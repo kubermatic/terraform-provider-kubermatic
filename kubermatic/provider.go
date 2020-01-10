@@ -1,6 +1,7 @@
 package kubermatic
 
 import (
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"net/url"
@@ -131,7 +132,7 @@ func setLogger(d *schema.ResourceData, fd *os.File) (*zap.SugaredLogger, error) 
 		logPath = d.Get("log_path").(string)
 	)
 
-	if debug {
+	if debug || dev {
 		level = zap.NewAtomicLevelAt(zapcore.DebugLevel)
 	}
 
@@ -186,7 +187,7 @@ func setAuth(d *schema.ResourceData) (runtime.ClientAuthInfoWriter, error) {
 		if err != nil {
 			return nil, err
 		}
-		token = string(rawToken)
+		token = string(bytes.Trim(rawToken, "\n"))
 	} else if token == "" {
 		return nil, fmt.Errorf("Missing authorization token")
 	}
