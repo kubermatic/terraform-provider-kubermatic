@@ -77,6 +77,7 @@ func Provider() *schema.Provider {
 
 		ResourcesMap: map[string]*schema.Resource{
 			"kubermatic_project": resourceProject(),
+			"kubermatic_cluster": resourceCluster(),
 		},
 	}
 
