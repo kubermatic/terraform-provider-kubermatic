@@ -7,6 +7,10 @@ import (
 // flatteners
 
 func flattenClusterSpec(in *models.ClusterSpec) []interface{} {
+	if in == nil {
+		return []interface{}{}
+	}
+
 	att := make(map[string]interface{})
 
 	if in.Version != nil {
@@ -26,31 +30,46 @@ func flattenClusterSpec(in *models.ClusterSpec) []interface{} {
 	}
 
 	if in.Cloud != nil {
-		att["cloud"] = flattenClusterCloud(in.Cloud)
+		att["cloud"] = flattenClusterCloudSpec(in.Cloud)
 	}
 
 	return []interface{}{att}
 }
 
 func flattenMachineNetworks(in []*models.MachineNetworkingConfig) []interface{} {
+	if len(in) < 1 {
+		return []interface{}{}
+	}
+
 	att := make([]interface{}, len(in))
+
 	for i, v := range in {
 		m := make(map[string]interface{})
+
 		if v.CIDR != "" {
-			m["cidr"] = v
+			m["cidr"] = v.CIDR
 		}
 		if v.Gateway != "" {
 			m["gateway"] = v.Gateway
 		}
 		if l := len(v.DNSServers); l > 0 {
-			m["dns_servers"] = v.DNSServers
+			ds := make([]interface{}, l)
+			for i, s := range v.DNSServers {
+				ds[i] = s
+			}
+			m["dns_servers"] = ds
 		}
 		att[i] = m
 	}
+
 	return att
 }
 
-func flattenClusterCloud(in *models.CloudSpec) []interface{} {
+func flattenClusterCloudSpec(in *models.CloudSpec) []interface{} {
+	if in == nil {
+		return []interface{}{}
+	}
+
 	att := make(map[string]interface{})
 
 	if in.DatacenterName != "" {
@@ -58,7 +77,7 @@ func flattenClusterCloud(in *models.CloudSpec) []interface{} {
 	}
 
 	if in.Bringyourown != nil {
-		att["bringyourown"] = in.Bringyourown
+		att["bringyourown"] = []interface{}{in.Bringyourown}
 	}
 
 	if in.Aws != nil {
@@ -69,6 +88,10 @@ func flattenClusterCloud(in *models.CloudSpec) []interface{} {
 }
 
 func flattenAWSCloudSpec(in *models.AWSCloudSpec) []interface{} {
+	if in == nil {
+		return []interface{}{}
+	}
+
 	att := make(map[string]interface{})
 
 	if in.AccessKeyID != "" {
@@ -119,9 +142,7 @@ func expandClusterSpec(p []interface{}) *models.ClusterSpec {
 	}
 
 	if v, ok := in["machine_networks"]; ok {
-		for _, mn := range v.([]interface{}) {
-			obj.MachineNetworks = append(obj.MachineNetworks, expandMachineNetwork(mn.(map[string]interface{})))
-		}
+		obj.MachineNetworks = expandMachineNetworks(v.([]interface{}))
 	}
 
 	if v, ok := in["audit_logging"]; ok {
@@ -129,28 +150,39 @@ func expandClusterSpec(p []interface{}) *models.ClusterSpec {
 	}
 
 	if v, ok := in["cloud"]; ok {
-		obj.Cloud = expandClusterCloud(v.([]interface{}))
+		obj.Cloud = expandClusterCloudSpec(v.([]interface{}))
 	}
 
 	return obj
 }
 
-func expandMachineNetwork(in map[string]interface{}) *models.MachineNetworkingConfig {
-	obj := &models.MachineNetworkingConfig{}
+func expandMachineNetworks(p []interface{}) []*models.MachineNetworkingConfig {
+	if len(p) < 1 {
+		return nil
+	}
+	var machines []*models.MachineNetworkingConfig
+	for _, elem := range p {
+		in := elem.(map[string]interface{})
+		obj := &models.MachineNetworkingConfig{}
 
-	if v, ok := in["cidr"]; ok {
-		obj.CIDR = v.(string)
+		if v, ok := in["cidr"]; ok {
+			obj.CIDR = v.(string)
+		}
+
+		if v, ok := in["gateway"]; ok {
+			obj.Gateway = v.(string)
+		}
+
+		if v, ok := in["dns_servers"]; ok {
+			for _, s := range v.([]interface{}) {
+				obj.DNSServers = append(obj.DNSServers, s.(string))
+			}
+		}
+
+		machines = append(machines, obj)
 	}
 
-	if v, ok := in["gateway"]; ok {
-		obj.Gateway = v.(string)
-	}
-
-	if v, ok := in["dns_servers"]; ok {
-		obj.DNSServers = append(obj.DNSServers, v.([]string)...)
-	}
-
-	return obj
+	return machines
 }
 
 func expandAuditLogging(p []interface{}) *models.AuditLoggingSettings {
@@ -170,7 +202,7 @@ func expandAuditLogging(p []interface{}) *models.AuditLoggingSettings {
 	return obj
 }
 
-func expandClusterCloud(p []interface{}) *models.CloudSpec {
+func expandClusterCloudSpec(p []interface{}) *models.CloudSpec {
 	if len(p) < 1 {
 		return nil
 	}
