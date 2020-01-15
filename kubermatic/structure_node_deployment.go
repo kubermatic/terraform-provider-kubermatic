@@ -6,6 +6,10 @@ import (
 
 // flatteners
 func flattenNodeDeploymentSpec(in *models.NodeDeploymentSpec) []interface{} {
+	if in == nil {
+		return []interface{}{}
+	}
+
 	att := make(map[string]interface{})
 
 	if in.Replicas != nil {
@@ -20,6 +24,10 @@ func flattenNodeDeploymentSpec(in *models.NodeDeploymentSpec) []interface{} {
 }
 
 func flattenNodeSpec(in *models.NodeSpec) []interface{} {
+	if in == nil {
+		return []interface{}{}
+	}
+
 	att := make(map[string]interface{})
 
 	if l := len(in.Labels); l > 0 {
@@ -54,6 +62,10 @@ func flattenNodeSpec(in *models.NodeSpec) []interface{} {
 }
 
 func flattenOperatingSystem(in *models.OperatingSystemSpec) []interface{} {
+	if in == nil {
+		return []interface{}{}
+	}
+
 	att := make(map[string]interface{})
 
 	if in.Ubuntu != nil {
@@ -72,6 +84,10 @@ func flattenOperatingSystem(in *models.OperatingSystemSpec) []interface{} {
 }
 
 func flattenUbuntu(in *models.UbuntuSpec) []interface{} {
+	if in == nil {
+		return []interface{}{}
+	}
+
 	att := make(map[string]interface{})
 
 	att["dist_upgrade_on_boot"] = in.DistUpgradeOnBoot
@@ -80,6 +96,10 @@ func flattenUbuntu(in *models.UbuntuSpec) []interface{} {
 }
 
 func flattenCentos(in *models.CentOSSpec) []interface{} {
+	if in == nil {
+		return []interface{}{}
+	}
+
 	att := make(map[string]interface{})
 
 	att["dist_upgrade_on_boot"] = in.DistUpgradeOnBoot
@@ -88,6 +108,10 @@ func flattenCentos(in *models.CentOSSpec) []interface{} {
 }
 
 func flattenContainerLinux(in *models.ContainerLinuxSpec) []interface{} {
+	if in == nil {
+		return []interface{}{}
+	}
+
 	att := make(map[string]interface{})
 
 	att["disable_auto_update"] = in.DisableAutoUpdate
@@ -96,6 +120,10 @@ func flattenContainerLinux(in *models.ContainerLinuxSpec) []interface{} {
 }
 
 func flattenNodeVersion(in *models.NodeVersionInfo) []interface{} {
+	if in == nil {
+		return []interface{}{}
+	}
+
 	att := make(map[string]interface{})
 
 	if in.Kubelet != "" {
@@ -106,6 +134,10 @@ func flattenNodeVersion(in *models.NodeVersionInfo) []interface{} {
 }
 
 func flattenTaintSpec(in *models.TaintSpec) map[string]interface{} {
+	if in == nil {
+		return map[string]interface{}{}
+	}
+
 	att := make(map[string]interface{})
 
 	if in.Key != "" {
@@ -124,6 +156,10 @@ func flattenTaintSpec(in *models.TaintSpec) map[string]interface{} {
 }
 
 func flattenNodeCloudSpec(in *models.NodeCloudSpec) []interface{} {
+	if in == nil {
+		return []interface{}{}
+	}
+
 	att := make(map[string]interface{})
 
 	if in.Aws != nil {
@@ -136,6 +172,10 @@ func flattenNodeCloudSpec(in *models.NodeCloudSpec) []interface{} {
 }
 
 func flattenAWSNodeSpec(in *models.AWSNodeSpec) []interface{} {
+	if in == nil {
+		return []interface{}{}
+	}
+
 	att := make(map[string]interface{})
 
 	att["assign_public_ip"] = in.AssignPublicIP
