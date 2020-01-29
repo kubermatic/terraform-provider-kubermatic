@@ -7,31 +7,36 @@ import (
 func clusterSpecFields() map[string]*schema.Schema {
 	return map[string]*schema.Schema{
 		"version": {
-			Type:     schema.TypeString,
-			Required: true,
-			ForceNew: true,
+			Type:        schema.TypeString,
+			Required:    true,
+			ForceNew:    true,
+			Description: "Cluster version",
 		},
 		"cloud": {
-			Type:     schema.TypeList,
-			Required: true,
-			ForceNew: true,
-			MaxItems: 1,
+			Type:        schema.TypeList,
+			Required:    true,
+			ForceNew:    true,
+			MaxItems:    1,
+			Description: "Cloud specification",
 			Elem: &schema.Resource{
 				Schema: map[string]*schema.Schema{
 					"dc": {
-						Type:     schema.TypeString,
-						Required: true,
+						Type:        schema.TypeString,
+						Required:    true,
+						Description: "Data center name",
 					},
 					"bringyourown": {
-						Type:     schema.TypeList,
-						Optional: true,
-						MaxItems: 1,
-						Elem:     &schema.Resource{},
+						Type:        schema.TypeList,
+						Optional:    true,
+						MaxItems:    1,
+						Elem:        &schema.Resource{},
+						Description: "Bring your own infrastructure",
 					},
 					"aws": {
-						Type:     schema.TypeList,
-						Optional: true,
-						MaxItems: 1,
+						Type:        schema.TypeList,
+						Optional:    true,
+						MaxItems:    1,
+						Description: "AWS cluster specification",
 						Elem: &schema.Resource{
 							Schema: awsCloudSpecFields(),
 						},
@@ -40,22 +45,26 @@ func clusterSpecFields() map[string]*schema.Schema {
 			},
 		},
 		"machine_networks": {
-			Type:     schema.TypeList,
-			Optional: true,
-			ForceNew: true,
+			Type:        schema.TypeList,
+			Optional:    true,
+			ForceNew:    true,
+			Description: "Machine networks optionally specifies the parameters for IPAM",
 			Elem: &schema.Resource{
 				Schema: map[string]*schema.Schema{
 					"cidr": {
-						Type:     schema.TypeString,
-						Optional: true,
+						Type:        schema.TypeString,
+						Optional:    true,
+						Description: "Network CIDR",
 					},
 					"gateway": {
-						Type:     schema.TypeString,
-						Optional: true,
+						Type:        schema.TypeString,
+						Optional:    true,
+						Description: "Network gateway",
 					},
 					"dns_servers": {
-						Type:     schema.TypeSet,
-						Optional: true,
+						Type:        schema.TypeSet,
+						Optional:    true,
+						Description: "DNS servers",
 						Elem: &schema.Schema{
 							Type: schema.TypeString,
 						},
@@ -64,15 +73,17 @@ func clusterSpecFields() map[string]*schema.Schema {
 			},
 		},
 		"audit_logging": {
-			Type:     schema.TypeList,
-			Optional: true,
-			MaxItems: 1,
+			Type:        schema.TypeList,
+			Optional:    true,
+			MaxItems:    1,
+			Description: "Audit logging settings",
 			Elem: &schema.Resource{
 				Schema: map[string]*schema.Schema{
 					"enabled": {
-						Type:     schema.TypeBool,
-						Optional: true,
-						Default:  false,
+						Type:        schema.TypeBool,
+						Optional:    true,
+						Default:     false,
+						Description: "Enable audit logging",
 					},
 				},
 			},
@@ -83,34 +94,41 @@ func clusterSpecFields() map[string]*schema.Schema {
 func awsCloudSpecFields() map[string]*schema.Schema {
 	return map[string]*schema.Schema{
 		"access_key_id": {
-			Type:      schema.TypeString,
-			Required:  true,
-			Sensitive: true,
+			Type:        schema.TypeString,
+			Required:    true,
+			Sensitive:   true,
+			Description: "Access key identifier",
 		},
 		"secret_access_key": {
-			Type:      schema.TypeString,
-			Required:  true,
-			Sensitive: true,
+			Type:        schema.TypeString,
+			Required:    true,
+			Sensitive:   true,
+			Description: "Secret access key",
 		},
 		"vpc_id": {
-			Type:     schema.TypeString,
-			Optional: true,
+			Type:        schema.TypeString,
+			Optional:    true,
+			Description: "Virtual private cloud identifier",
 		},
 		"security_group_id": {
-			Type:     schema.TypeString,
-			Optional: true,
+			Type:        schema.TypeString,
+			Optional:    true,
+			Description: "Security group identifier",
 		},
 		"route_table_id": {
-			Type:     schema.TypeString,
-			Optional: true,
+			Type:        schema.TypeString,
+			Optional:    true,
+			Description: "Route table identifier",
 		},
 		"instance_profile_name": {
-			Type:     schema.TypeString,
-			Optional: true,
+			Type:        schema.TypeString,
+			Optional:    true,
+			Description: "Instance profile name",
 		},
 		"role_arn": {
-			Type:     schema.TypeString,
-			Optional: true,
+			Type:        schema.TypeString,
+			Optional:    true,
+			Description: "The IAM role the control plane will use over assume-role",
 		},
 	}
 }

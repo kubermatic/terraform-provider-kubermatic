@@ -25,41 +25,49 @@ func resourceCluster() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"project_id": {
-				Type:     schema.TypeString,
-				Required: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "Reference project identifier",
 			},
 			"dc": {
-				Type:     schema.TypeString,
-				Required: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "Data center name",
 			},
 			"name": {
-				Type:     schema.TypeString,
-				Required: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "Cluster name",
 			},
 			"spec": {
-				Type:     schema.TypeList,
-				Required: true,
-				MaxItems: 1,
+				Type:        schema.TypeList,
+				Required:    true,
+				MaxItems:    1,
+				Description: "Cluster specification",
 				Elem: &schema.Resource{
 					Schema: clusterSpecFields(),
 				},
 			},
 			"credential": {
-				Type:     schema.TypeString,
-				Optional: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "Cluster access credential",
 			},
 			"type": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Default:  "kubernetes",
+				Type:        schema.TypeString,
+				Optional:    true,
+				Default:     "kubernetes",
+				Description: "Cluster type Kubernetes or OpenShift",
 			},
 			"creation_timestamp": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Creation timestamp",
 			},
 			"deletion_timestamp": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Deletion timestamp",
 			},
 		},
 	}

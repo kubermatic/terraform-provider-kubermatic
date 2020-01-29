@@ -7,12 +7,12 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
-func isReservedLabelOrTag(path string) bool {
+func isLabelOrTagReserved(path string) bool {
 	r := regexp.MustCompile(`(tags|labels)\.(system|kubernetes\.io)\/`)
 	return r.MatchString(path)
 }
 
-func validateTagOrLabel(key string) error {
+func validateLabelOrTag(key string) error {
 	r := regexp.MustCompile(`^(system|kubernetes\.io)\/`)
 	if r.MatchString(key) {
 		return fmt.Errorf("forbidden tag or label prefix %s", key)
@@ -23,33 +23,38 @@ func validateTagOrLabel(key string) error {
 func nodeDeploymentSpecFields() map[string]*schema.Schema {
 	return map[string]*schema.Schema{
 		"replicas": {
-			Type:     schema.TypeInt,
-			Optional: true,
-			Default:  1,
+			Type:        schema.TypeInt,
+			Optional:    true,
+			Default:     1,
+			Description: "Number of replicas",
 		},
 		"template": {
-			Type:     schema.TypeList,
-			MaxItems: 1,
-			Required: true,
+			Type:        schema.TypeList,
+			MaxItems:    1,
+			Required:    true,
+			Description: "Template specification",
 			Elem: &schema.Resource{
 				Schema: map[string]*schema.Schema{
 					"cloud": {
-						Type:     schema.TypeList,
-						MaxItems: 1,
-						Required: true,
+						Type:        schema.TypeList,
+						MaxItems:    1,
+						Required:    true,
+						Description: "Cloud specification",
 						Elem: &schema.Resource{
 							Schema: map[string]*schema.Schema{
 								"bringyourown": {
-									Optional: true,
-									Type:     schema.TypeMap,
+									Optional:    true,
+									Type:        schema.TypeMap,
+									Description: "Bring your own infrastructure",
 									Elem: &schema.Schema{
 										Type: schema.TypeString,
 									},
 								},
 								"aws": {
-									Type:     schema.TypeList,
-									Optional: true,
-									MaxItems: 1,
+									Type:        schema.TypeList,
+									Optional:    true,
+									MaxItems:    1,
+									Description: "AWS node deployment specification",
 									Elem: &schema.Resource{
 										Schema: awsNodeFields(),
 									},
@@ -58,22 +63,25 @@ func nodeDeploymentSpecFields() map[string]*schema.Schema {
 						},
 					},
 					"operating_system": {
-						Type:     schema.TypeList,
-						Optional: true,
-						MaxItems: 1,
+						Type:        schema.TypeList,
+						Optional:    true,
+						MaxItems:    1,
+						Description: "Operating system",
 						Elem: &schema.Resource{
 							Schema: map[string]*schema.Schema{
 								// TODO: add missing operating systems
 								"ubuntu": {
-									Type:     schema.TypeList,
-									Optional: true,
-									MaxItems: 1,
+									Type:        schema.TypeList,
+									Optional:    true,
+									MaxItems:    1,
+									Description: "Ubuntu operating system",
 									Elem: &schema.Resource{
 										Schema: map[string]*schema.Schema{
 											"dist_upgrade_on_boot": {
-												Type:     schema.TypeBool,
-												Optional: true,
-												Default:  false,
+												Type:        schema.TypeBool,
+												Optional:    true,
+												Default:     false,
+												Description: "Upgrade operating system on boot",
 											},
 										},
 									},
@@ -82,16 +90,18 @@ func nodeDeploymentSpecFields() map[string]*schema.Schema {
 						},
 					},
 					"versions": {
-						Type:     schema.TypeList,
-						Optional: true,
-						Computed: true,
-						MaxItems: 1,
+						Type:        schema.TypeList,
+						Optional:    true,
+						Computed:    true,
+						MaxItems:    1,
+						Description: "Cloud components versions",
 						Elem: &schema.Resource{
 							Schema: map[string]*schema.Schema{
 								"kubelet": {
-									Type:     schema.TypeString,
-									Optional: true,
-									Computed: true,
+									Type:        schema.TypeString,
+									Optional:    true,
+									Computed:    true,
+									Description: "Kubelet version",
 								},
 							},
 						},
@@ -100,16 +110,18 @@ func nodeDeploymentSpecFields() map[string]*schema.Schema {
 						Type:     schema.TypeMap,
 						Optional: true,
 						Computed: true,
+						Description: "Map of string keys and values that can be used to organize and categorize (scope and select) objects. " +
+							"It will be applied to Nodes allowing users run their apps on specific Node using labelSelector.",
 						Elem: &schema.Schema{
 							Type: schema.TypeString,
 						},
 						DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-							return isReservedLabelOrTag(k)
+							return isLabelOrTagReserved(k)
 						},
 						ValidateFunc: func(v interface{}, k string) (strings []string, errors []error) {
 							l := v.(map[string]interface{})
 							for key := range l {
-								if err := validateTagOrLabel(key); err != nil {
+								if err := validateLabelOrTag(key); err != nil {
 									errors = append(errors, err)
 								}
 							}
@@ -117,21 +129,25 @@ func nodeDeploymentSpecFields() map[string]*schema.Schema {
 						},
 					},
 					"taints": {
-						Type:     schema.TypeList,
-						Optional: true,
+						Type:        schema.TypeList,
+						Optional:    true,
+						Description: "List of taints to set on new nodes",
 						Elem: &schema.Resource{
 							Schema: map[string]*schema.Schema{
 								"effect": {
-									Type:     schema.TypeString,
-									Optional: true,
+									Type:        schema.TypeString,
+									Optional:    true,
+									Description: "Taint effect",
 								},
 								"key": {
-									Type:     schema.TypeString,
-									Optional: true,
+									Type:        schema.TypeString,
+									Optional:    true,
+									Description: "Taint key",
 								},
 								"value": {
-									Type:     schema.TypeString,
-									Optional: true,
+									Type:        schema.TypeString,
+									Optional:    true,
+									Description: "Taint value",
 								},
 							},
 						},
@@ -145,48 +161,57 @@ func nodeDeploymentSpecFields() map[string]*schema.Schema {
 func awsNodeFields() map[string]*schema.Schema {
 	return map[string]*schema.Schema{
 		"instance_type": {
-			Type:     schema.TypeString,
-			Required: true,
+			Type:        schema.TypeString,
+			Required:    true,
+			Description: "EC2 instance type",
 		},
 		"disk_size": {
-			Type:     schema.TypeInt,
-			Required: true,
+			Type:        schema.TypeInt,
+			Required:    true,
+			Description: "Size of the volume in GBs. Only one volume will be created",
 		},
 		"volume_type": {
-			Type:     schema.TypeString,
-			Required: true,
+			Type:        schema.TypeString,
+			Required:    true,
+			Description: "EBS volume type",
 		},
 		"availability_zone": {
-			Type:     schema.TypeString,
-			Required: true,
+			Type:        schema.TypeString,
+			Required:    true,
+			Description: "Availability zone in which to place the node. It is coupled with the subnet to which the node will belong",
 		},
 		"subnet_id": {
-			Type:     schema.TypeString,
-			Required: true,
+			Type:        schema.TypeString,
+			Required:    true,
+			Description: "The VPC subnet to which the node shall be connected",
 		},
 		"assign_public_ip": {
 			Type:     schema.TypeBool,
 			Optional: true,
 			Default:  true,
+			Description: "Flag which controls a property of the AWS instance. When set the AWS instance will get a public IP address " +
+				"assigned during launch overriding a possible setting in the used AWS subnet.",
 		},
 		"ami": {
-			Type:     schema.TypeString,
-			Optional: true,
+			Type:        schema.TypeString,
+			Optional:    true,
+			Description: "Amazon Machine Image to use. Will be defaulted to an AMI of your selected operating system and region",
 		},
 		"tags": {
-			Type:     schema.TypeMap,
-			Optional: true,
-			Computed: true,
+			Type:        schema.TypeMap,
+			Optional:    true,
+			Computed:    true,
+			Description: "Additional instance tags",
 			Elem: &schema.Schema{
 				Type: schema.TypeString,
 			},
 			DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-				return isReservedLabelOrTag(k)
+				return isLabelOrTagReserved(k)
 			},
 			ValidateFunc: func(v interface{}, k string) (strings []string, errors []error) {
 				l := v.(map[string]interface{})
 				for key := range l {
-					if err := validateTagOrLabel(key); err != nil {
+					if err := validateLabelOrTag(key); err != nil {
 						errors = append(errors, err)
 					}
 				}

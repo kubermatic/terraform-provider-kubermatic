@@ -19,36 +19,43 @@ func resourceNodeDeployment() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"dc": {
-				Type:     schema.TypeString,
-				Required: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "Data center name",
 			},
 			"project_id": {
-				Type:     schema.TypeString,
-				Required: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "Reference project identifier",
 			},
 			"cluster_id": {
-				Type:     schema.TypeString,
-				Required: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "Reference cluster identifier",
 			},
 			"name": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Node deployment name",
 			},
 			"spec": {
-				Type:     schema.TypeList,
-				MaxItems: 1,
-				Required: true,
+				Type:        schema.TypeList,
+				MaxItems:    1,
+				Required:    true,
+				Description: "Node deployment specification",
 				Elem: &schema.Resource{
 					Schema: nodeDeploymentSpecFields(),
 				},
 			},
 			"creation_timestamp": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Creation timestamp",
 			},
 			"deletion_timestamp": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Deletion timestamp",
 			},
 		},
 	}
