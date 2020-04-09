@@ -1,0 +1,15 @@
+aliases:
+  team-lifecycle:
+    - kdomanski
+    - kron4eg
+    - moadqassem
+    - moelsayed
+    - xmudrii
+    - xrstf
+    - youssefazrak
+
+  team-ui:
+    - kgroschoff
+    - maciaszczykm
+    - zreigz
+    - floreks
