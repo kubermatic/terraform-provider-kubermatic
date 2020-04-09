@@ -26,7 +26,7 @@ By doing this you state that you can certify the following (from https://develop
 
 ## Email and Chat
 
-The XXX project currently uses the general Loodse email list and Slack channel:
+The terraform-provider-kubermatic project currently uses the general Loodse email list and Slack channel:
 - Email: [loodse-dev](https://groups.google.com/forum/#!forum/loodse-dev)
 - Slack: #[Slack](http://slack.kubermatic.io/) on Slack
 
