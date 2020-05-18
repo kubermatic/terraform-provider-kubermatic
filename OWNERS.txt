@@ -3,7 +3,9 @@
 approvers:
   - team-lifecycle
   - team-ui
+  - team-ps
 
 reviewers:
   - team-lifecycle
   - team-ui
+  - team-ps

@@ -13,3 +13,6 @@ aliases:
     - maciaszczykm
     - zreigz
     - floreks
+
+  team-ps:
+    - mfranczy
