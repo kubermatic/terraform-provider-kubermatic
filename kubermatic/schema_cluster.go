@@ -2,13 +2,15 @@ package kubermatic
 
 import (
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 )
 
 func clusterSpecFields() map[string]*schema.Schema {
 	return map[string]*schema.Schema{
 		"version": {
-			Type:        schema.TypeString,
-			Required:    true,
+			Type:     schema.TypeString,
+			Required: true,
+			// TODO(furkhat): upgrade
 			ForceNew:    true,
 			Description: "Cluster version",
 		},
@@ -16,12 +18,14 @@ func clusterSpecFields() map[string]*schema.Schema {
 			Type:        schema.TypeList,
 			Required:    true,
 			ForceNew:    true,
+			MinItems:    1,
 			MaxItems:    1,
 			Description: "Cloud specification",
 			Elem: &schema.Resource{
 				Schema: map[string]*schema.Schema{
 					"dc": {
 						Type:        schema.TypeString,
+						ForceNew:    true,
 						Required:    true,
 						Description: "Data center name",
 					},
@@ -39,6 +43,15 @@ func clusterSpecFields() map[string]*schema.Schema {
 						Description: "AWS cluster specification",
 						Elem: &schema.Resource{
 							Schema: awsCloudSpecFields(),
+						},
+					},
+					"openstack": {
+						Type:        schema.TypeList,
+						Optional:    true,
+						MaxItems:    1,
+						Description: "OpenStack cluster specification",
+						Elem: &schema.Resource{
+							Schema: openstackCloudSpecFields(),
 						},
 					},
 				},
@@ -65,9 +78,7 @@ func clusterSpecFields() map[string]*schema.Schema {
 						Type:        schema.TypeSet,
 						Optional:    true,
 						Description: "DNS servers",
-						Elem: &schema.Schema{
-							Type: schema.TypeString,
-						},
+						Elem:        schema.TypeString,
 					},
 				},
 			},
@@ -129,6 +140,36 @@ func awsCloudSpecFields() map[string]*schema.Schema {
 			Type:        schema.TypeString,
 			Optional:    true,
 			Description: "The IAM role the control plane will use over assume-role",
+		},
+	}
+}
+
+func openstackCloudSpecFields() map[string]*schema.Schema {
+	return map[string]*schema.Schema{
+		"tenant": {
+			Type:         schema.TypeString,
+			Required:     true,
+			ForceNew:     true,
+			ValidateFunc: validation.NoZeroValues,
+		},
+		"username": {
+			Type:         schema.TypeString,
+			Required:     true,
+			ForceNew:     true,
+			Sensitive:    true,
+			ValidateFunc: validation.NoZeroValues,
+		},
+		"password": {
+			Type:         schema.TypeString,
+			Required:     true,
+			ForceNew:     true,
+			Sensitive:    true,
+			ValidateFunc: validation.NoZeroValues,
+		},
+		"floating_ip_pool": {
+			Type:     schema.TypeString,
+			Required: true,
+			ForceNew: true,
 		},
 	}
 }

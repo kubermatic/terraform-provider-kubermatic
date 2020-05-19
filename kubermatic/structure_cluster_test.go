@@ -52,7 +52,7 @@ func TestFlattenClusterSpec(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		output := flattenClusterSpec(tc.Input)
+		output := flattenClusterSpec(clusterPreserveValues{}, tc.Input)
 		if diff := cmp.Diff(tc.ExpectedOutput, output); diff != "" {
 			t.Fatalf("Unexpected output from expander: mismatch (-want +got):\n%s", diff)
 		}
@@ -105,7 +105,7 @@ func TestFlattenClusterCloudSpec(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		output := flattenClusterCloudSpec(tc.Input)
+		output := flattenClusterCloudSpec(clusterPreserveValues{}, tc.Input)
 		if diff := cmp.Diff(tc.ExpectedOutput, output); diff != "" {
 			t.Fatalf("Unexpected output from expander: mismatch (-want +got):\n%s", diff)
 		}
@@ -153,6 +153,60 @@ func TestFlattenAWSCloudSpec(t *testing.T) {
 
 	for _, tc := range cases {
 		output := flattenAWSCloudSpec(tc.Input)
+		if diff := cmp.Diff(tc.ExpectedOutput, output); diff != "" {
+			t.Fatalf("Unexpected output from expander: mismatch (-want +got):\n%s", diff)
+		}
+	}
+}
+
+func TestFlattenOpenstackCloudSpec(t *testing.T) {
+	cases := []struct {
+		Input          *models.OpenstackCloudSpec
+		PreserveValues clusterPreserveValues
+		ExpectedOutput []interface{}
+	}{
+		{
+			&models.OpenstackCloudSpec{
+				FloatingIPPool: "FloatingIPPool",
+				Network:        "Network",
+				Password:       "",
+				RouterID:       "RouterID",
+				SecurityGroups: "SecurityGroups",
+				SubnetID:       "SubnetID",
+				Tenant:         "",
+				TenantID:       "TenantID",
+				Username:       "",
+			},
+			clusterPreserveValues{
+				openstackUsername: "Username",
+				openstackPassword: "Password",
+				openstackTenant:   "Tenant",
+			},
+			[]interface{}{
+				map[string]interface{}{
+					"username":         "Username",
+					"password":         "Password",
+					"tenant":           "Tenant",
+					"floating_ip_pool": "FloatingIPPool",
+				},
+			},
+		},
+		{
+			&models.OpenstackCloudSpec{},
+			clusterPreserveValues{},
+			[]interface{}{
+				map[string]interface{}{},
+			},
+		},
+		{
+			nil,
+			clusterPreserveValues{},
+			[]interface{}{},
+		},
+	}
+
+	for _, tc := range cases {
+		output := flattenOpenstackSpec(tc.PreserveValues, tc.Input)
 		if diff := cmp.Diff(tc.ExpectedOutput, output); diff != "" {
 			t.Fatalf("Unexpected output from expander: mismatch (-want +got):\n%s", diff)
 		}
@@ -376,6 +430,50 @@ func TestExpandAWSCloudSpec(t *testing.T) {
 
 	for _, tc := range cases {
 		output := expandAWSCloudSpec(tc.Input)
+		if diff := cmp.Diff(tc.ExpectedOutput, output); diff != "" {
+			t.Fatalf("Unexpected output from expander: mismatch (-want +got):\n%s", diff)
+		}
+	}
+}
+
+func TestExpandOpenstackCloudSpec(t *testing.T) {
+	cases := []struct {
+		Input          []interface{}
+		ExpectedOutput *models.OpenstackCloudSpec
+	}{
+		{
+			[]interface{}{
+				map[string]interface{}{
+					"tenant":           "Tenant",
+					"floating_ip_pool": "FloatingIPPool",
+					"username":         "Username",
+					"password":         "Password",
+				},
+			},
+			&models.OpenstackCloudSpec{
+				Domain:         "Default",
+				FloatingIPPool: "FloatingIPPool",
+				Password:       "Password",
+				Tenant:         "Tenant",
+				Username:       "Username",
+			},
+		},
+		{
+			[]interface{}{
+				map[string]interface{}{},
+			},
+			&models.OpenstackCloudSpec{
+				Domain: "Default",
+			},
+		},
+		{
+			[]interface{}{},
+			nil,
+		},
+	}
+
+	for _, tc := range cases {
+		output := expandOpenstackCloudSpec(tc.Input)
 		if diff := cmp.Diff(tc.ExpectedOutput, output); diff != "" {
 			t.Fatalf("Unexpected output from expander: mismatch (-want +got):\n%s", diff)
 		}

@@ -46,9 +46,7 @@ func nodeDeploymentSpecFields() map[string]*schema.Schema {
 									Optional:    true,
 									Type:        schema.TypeMap,
 									Description: "Bring your own infrastructure",
-									Elem: &schema.Schema{
-										Type: schema.TypeString,
-									},
+									Elem:        schema.TypeString,
 								},
 								"aws": {
 									Type:        schema.TypeList,
@@ -112,9 +110,7 @@ func nodeDeploymentSpecFields() map[string]*schema.Schema {
 						Computed: true,
 						Description: "Map of string keys and values that can be used to organize and categorize (scope and select) objects. " +
 							"It will be applied to Nodes allowing users run their apps on specific Node using labelSelector.",
-						Elem: &schema.Schema{
-							Type: schema.TypeString,
-						},
+						Elem: schema.TypeString,
 						DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
 							return isLabelOrTagReserved(k)
 						},
@@ -202,9 +198,7 @@ func awsNodeFields() map[string]*schema.Schema {
 			Optional:    true,
 			Computed:    true,
 			Description: "Additional instance tags",
-			Elem: &schema.Schema{
-				Type: schema.TypeString,
-			},
+			Elem:        schema.TypeString,
 			DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
 				return isLabelOrTagReserved(k)
 			},

@@ -6,7 +6,7 @@ import (
 
 // flatteners
 
-func flattenClusterSpec(in *models.ClusterSpec) []interface{} {
+func flattenClusterSpec(values clusterPreserveValues, in *models.ClusterSpec) []interface{} {
 	if in == nil {
 		return []interface{}{}
 	}
@@ -30,7 +30,7 @@ func flattenClusterSpec(in *models.ClusterSpec) []interface{} {
 	}
 
 	if in.Cloud != nil {
-		att["cloud"] = flattenClusterCloudSpec(in.Cloud)
+		att["cloud"] = flattenClusterCloudSpec(values, in.Cloud)
 	}
 
 	return []interface{}{att}
@@ -65,7 +65,7 @@ func flattenMachineNetworks(in []*models.MachineNetworkingConfig) []interface{} 
 	return att
 }
 
-func flattenClusterCloudSpec(in *models.CloudSpec) []interface{} {
+func flattenClusterCloudSpec(values clusterPreserveValues, in *models.CloudSpec) []interface{} {
 	if in == nil {
 		return []interface{}{}
 	}
@@ -82,6 +82,10 @@ func flattenClusterCloudSpec(in *models.CloudSpec) []interface{} {
 
 	if in.Aws != nil {
 		att["aws"] = flattenAWSCloudSpec(in.Aws)
+	}
+
+	if in.Openstack != nil {
+		att["openstack"] = flattenOpenstackSpec(values, in.Openstack)
 	}
 
 	return []interface{}{att}
@@ -120,6 +124,30 @@ func flattenAWSCloudSpec(in *models.AWSCloudSpec) []interface{} {
 
 	if in.RouteTableID != "" {
 		att["route_table_id"] = in.RouteTableID
+	}
+
+	return []interface{}{att}
+}
+
+func flattenOpenstackSpec(values clusterPreserveValues, in *models.OpenstackCloudSpec) []interface{} {
+	if in == nil {
+		return []interface{}{}
+	}
+
+	att := make(map[string]interface{})
+
+	if in.FloatingIPPool != "" {
+		att["floating_ip_pool"] = in.FloatingIPPool
+	}
+
+	if values.openstackTenant != nil {
+		att["tenant"] = values.openstackTenant
+	}
+	if values.openstackUsername != nil {
+		att["username"] = values.openstackUsername
+	}
+	if values.openstackPassword != nil {
+		att["password"] = values.openstackPassword
 	}
 
 	return []interface{}{att}
@@ -224,6 +252,10 @@ func expandClusterCloudSpec(p []interface{}) *models.CloudSpec {
 		obj.Aws = expandAWSCloudSpec(v.([]interface{}))
 	}
 
+	if v, ok := in["openstack"]; ok {
+		obj.Openstack = expandOpenstackCloudSpec(v.([]interface{}))
+	}
+
 	return obj
 }
 
@@ -272,6 +304,38 @@ func expandAWSCloudSpec(p []interface{}) *models.AWSCloudSpec {
 	if v, ok := in["route_table_id"]; ok {
 		obj.RouteTableID = v.(string)
 	}
+
+	return obj
+}
+
+func expandOpenstackCloudSpec(p []interface{}) *models.OpenstackCloudSpec {
+	if len(p) < 1 {
+		return nil
+	}
+	obj := &models.OpenstackCloudSpec{}
+	if p[0] == nil {
+		return obj
+	}
+	in := p[0].(map[string]interface{})
+
+	if v, ok := in["tenant"]; ok {
+		obj.Tenant = v.(string)
+	}
+
+	if v, ok := in["floating_ip_pool"]; ok {
+		obj.FloatingIPPool = v.(string)
+	}
+
+	if v, ok := in["username"]; ok {
+		obj.Username = v.(string)
+	}
+
+	if v, ok := in["password"]; ok {
+		obj.Password = v.(string)
+	}
+
+	// HACK(furkhat): API doesn't return domain for cluster. Use 'Default' all the time.
+	obj.Domain = "Default"
 
 	return obj
 }

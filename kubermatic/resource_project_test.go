@@ -111,6 +111,7 @@ func testAccCheckKubermaticProjectDestroy(s *terraform.State) error {
 const testAccCheckKubermaticProjectConfigBasic = `
 resource "kubermatic_project" "foobar" {
 	name = "%s"
+
 	labels = {
 		"foo" = "bar"
 	}
@@ -143,7 +144,10 @@ func testAccCheckKubermaticProjectExists(n string, rec *models.Project) resource
 		p := project.NewGetProjectParams()
 
 		r, err := k.client.Project.GetProject(p.WithProjectID(rs.Primary.ID), k.auth)
-		if err != nil || r.Payload == nil {
+		if err != nil {
+			return fmt.Errorf("GetProject %w", err)
+		}
+		if r.Payload == nil {
 			return fmt.Errorf("Record not found")
 		}
 
