@@ -96,14 +96,15 @@ func awsCloudSpecFields() map[string]*schema.Schema {
 		"access_key_id": {
 			Type:        schema.TypeString,
 			Required:    true,
-			Sensitive:   true,
 			Description: "Access key identifier",
+			DefaultFunc: schema.EnvDefaultFunc("AWS_ACCESS_KEY_ID", ""),
 		},
 		"secret_access_key": {
 			Type:        schema.TypeString,
 			Required:    true,
 			Sensitive:   true,
 			Description: "Secret access key",
+			DefaultFunc: schema.EnvDefaultFunc("AWS_SECRET_ACCESS_KEY", ""),
 		},
 		"vpc_id": {
 			Type:        schema.TypeString,
