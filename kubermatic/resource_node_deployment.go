@@ -62,7 +62,7 @@ func resourceNodeDeployment() *schema.Resource {
 }
 
 func resourceNodeDeploymentCreate(d *schema.ResourceData, m interface{}) error {
-	k := m.(*kubermaticProvider)
+	k := m.(*kubermaticProviderMeta)
 	dc := d.Get("dc").(string)
 	pId := d.Get("project_id").(string)
 	cId := d.Get("cluster_id").(string)
@@ -109,7 +109,7 @@ func resourceNodeDeploymentCreate(d *schema.ResourceData, m interface{}) error {
 }
 
 func resourceNodeDeploymentRead(d *schema.ResourceData, m interface{}) error {
-	k := m.(*kubermaticProvider)
+	k := m.(*kubermaticProviderMeta)
 	p := project.NewGetNodeDeploymentParams()
 
 	p.SetDc(d.Get("dc").(string))
@@ -162,7 +162,7 @@ func resourceNodeDeploymentUpdate(d *schema.ResourceData, m interface{}) error {
 }
 
 func resourceNodeDeploymentDelete(d *schema.ResourceData, m interface{}) error {
-	k := m.(*kubermaticProvider)
+	k := m.(*kubermaticProviderMeta)
 	dc := d.Get("dc").(string)
 	pId := d.Get("project_id").(string)
 	cId := d.Get("cluster_id").(string)

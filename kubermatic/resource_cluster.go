@@ -74,7 +74,7 @@ func resourceCluster() *schema.Resource {
 }
 
 func resourceClusterCreate(d *schema.ResourceData, m interface{}) error {
-	k := m.(*kubermaticProvider)
+	k := m.(*kubermaticProviderMeta)
 	pId := d.Get("project_id").(string)
 	dc := d.Get("dc").(string)
 	p := project.NewCreateClusterParams()
@@ -129,7 +129,7 @@ func resourceClusterCreate(d *schema.ResourceData, m interface{}) error {
 }
 
 func resourceClusterRead(d *schema.ResourceData, m interface{}) error {
-	k := m.(*kubermaticProvider)
+	k := m.(*kubermaticProviderMeta)
 	p := project.NewGetClusterParams()
 	p.SetDc(d.Get("dc").(string))
 	p.SetProjectID(d.Get("project_id").(string))
@@ -192,7 +192,7 @@ func resourceClusterUpdate(d *schema.ResourceData, m interface{}) error {
 }
 
 func resourceClusterDelete(d *schema.ResourceData, m interface{}) error {
-	k := m.(*kubermaticProvider)
+	k := m.(*kubermaticProviderMeta)
 	cId := d.Id()
 	pId := d.Get("project_id").(string)
 	dc := d.Get("dc").(string)

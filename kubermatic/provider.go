@@ -11,6 +11,7 @@ import (
 	"github.com/go-openapi/runtime"
 	oclient "github.com/go-openapi/runtime/client"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/terraform"
 	k8client "github.com/kubermatic/go-kubermatic/client"
 	"github.com/mitchellh/go-homedir"
 	"go.uber.org/zap"
@@ -24,13 +25,14 @@ const (
 	retryTimeout = time.Second
 )
 
-type kubermaticProvider struct {
+type kubermaticProviderMeta struct {
 	client *k8client.Kubermatic
 	auth   runtime.ClientAuthInfoWriter
 	log    *zap.SugaredLogger
 }
 
-func Provider() *schema.Provider {
+// Provider is a Kubermatic Terraform Provider.
+func Provider() terraform.ResourceProvider {
 	p := &schema.Provider{
 		Schema: map[string]*schema.Schema{
 			"host": {
@@ -100,22 +102,46 @@ func Provider() *schema.Provider {
 }
 
 func configure(d *schema.ResourceData, terraformVersion string, fd *os.File) (interface{}, error) {
+	var logdev, logdebug bool
+	var logpath, host, token, tokenPath string
+	if v, ok := d.Get("development").(bool); ok {
+		logdev = v
+	}
+	if v, ok := d.Get("debug").(bool); ok {
+		logdebug = v
+	}
+	if v, ok := d.Get("log_path").(string); ok {
+		logpath = v
+	}
+	if v, ok := d.Get("host").(string); ok {
+		host = v
+	}
+	if v, ok := d.Get("token").(string); ok {
+		token = v
+	}
+	if v, ok := d.Get("token_path").(string); ok {
+		tokenPath = v
+	}
+	return newKubermaticProviderMeta(logdev, logdebug, logpath, host, token, tokenPath, fd)
+}
+
+func newKubermaticProviderMeta(logdev, logdebug bool, logpath, host, token, tokenPath string, fd *os.File) (*kubermaticProviderMeta, error) {
 	var (
-		k   kubermaticProvider
+		k   kubermaticProviderMeta
 		err error
 	)
 
-	k.log, err = setLogger(d, fd)
+	k.log, err = newLogger(logdev, logdebug, logpath, fd)
 	if err != nil {
 		return nil, err
 	}
 
-	k.client, err = setClient(d, terraformVersion)
+	k.client, err = newClient(host)
 	if err != nil {
 		return nil, err
 	}
 
-	k.auth, err = setAuth(d)
+	k.auth, err = newAuth(token, tokenPath)
 	if err != nil {
 		return nil, err
 	}
@@ -123,22 +149,18 @@ func configure(d *schema.ResourceData, terraformVersion string, fd *os.File) (in
 	return &k, nil
 }
 
-func setLogger(d *schema.ResourceData, fd *os.File) (*zap.SugaredLogger, error) {
+func newLogger(logdev, logdebug bool, logPath string, fd *os.File) (*zap.SugaredLogger, error) {
 	var (
 		ec    zapcore.EncoderConfig
 		cores []zapcore.Core
 		level = zap.NewAtomicLevelAt(zapcore.InfoLevel)
-
-		dev     = d.Get("development").(bool)
-		debug   = d.Get("debug").(bool)
-		logPath = d.Get("log_path").(string)
 	)
 
-	if debug || dev {
+	if logdev || logdebug {
 		level = zap.NewAtomicLevelAt(zapcore.DebugLevel)
 	}
 
-	if dev {
+	if logdev {
 		ec = zap.NewDevelopmentEncoderConfig()
 		ec.EncodeLevel = zapcore.CapitalColorLevelEncoder
 	} else {
@@ -165,8 +187,8 @@ func setLogger(d *schema.ResourceData, fd *os.File) (*zap.SugaredLogger, error) 
 	return zap.New(core).Sugar(), nil
 }
 
-func setClient(d *schema.ResourceData, terraformVersion string) (*k8client.Kubermatic, error) {
-	u, err := url.Parse(d.Get("host").(string))
+func newClient(host string) (*k8client.Kubermatic, error) {
+	u, err := url.Parse(host)
 	if err != nil {
 		return nil, err
 	}
@@ -178,9 +200,8 @@ func setClient(d *schema.ResourceData, terraformVersion string) (*k8client.Kuber
 	}), nil
 }
 
-func setAuth(d *schema.ResourceData) (runtime.ClientAuthInfoWriter, error) {
-	token := d.Get("token").(string)
-	if tokenPath := d.Get("token_path").(string); token == "" && tokenPath != "" {
+func newAuth(token, tokenPath string) (runtime.ClientAuthInfoWriter, error) {
+	if token == "" && tokenPath != "" {
 		p, err := homedir.Expand(tokenPath)
 		if err != nil {
 			return nil, err
