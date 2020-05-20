@@ -102,36 +102,22 @@ func Provider() terraform.ResourceProvider {
 }
 
 func configure(d *schema.ResourceData, terraformVersion string, fd *os.File) (interface{}, error) {
-	var logdev, logdebug bool
-	var logpath, host, token, tokenPath string
-	if v, ok := d.Get("development").(bool); ok {
-		logdev = v
-	}
-	if v, ok := d.Get("debug").(bool); ok {
-		logdebug = v
-	}
-	if v, ok := d.Get("log_path").(string); ok {
-		logpath = v
-	}
-	if v, ok := d.Get("host").(string); ok {
-		host = v
-	}
-	if v, ok := d.Get("token").(string); ok {
-		token = v
-	}
-	if v, ok := d.Get("token_path").(string); ok {
-		tokenPath = v
-	}
-	return newKubermaticProviderMeta(logdev, logdebug, logpath, host, token, tokenPath, fd)
+	logDev := d.Get("development").(bool)
+	logDebug := d.Get("debug").(bool)
+	logPath := d.Get("log_path").(string)
+	host := d.Get("host").(string)
+	token := d.Get("token").(string)
+	tokenPath := d.Get("token_path").(string)
+	return newKubermaticProviderMeta(logDev, logDebug, logPath, host, token, tokenPath, fd)
 }
 
-func newKubermaticProviderMeta(logdev, logdebug bool, logpath, host, token, tokenPath string, fd *os.File) (*kubermaticProviderMeta, error) {
+func newKubermaticProviderMeta(logDev, logDebug bool, logPath, host, token, tokenPath string, fd *os.File) (*kubermaticProviderMeta, error) {
 	var (
 		k   kubermaticProviderMeta
 		err error
 	)
 
-	k.log, err = newLogger(logdev, logdebug, logpath, fd)
+	k.log, err = newLogger(logDev, logDebug, logPath, fd)
 	if err != nil {
 		return nil, err
 	}
@@ -149,18 +135,18 @@ func newKubermaticProviderMeta(logdev, logdebug bool, logpath, host, token, toke
 	return &k, nil
 }
 
-func newLogger(logdev, logdebug bool, logPath string, fd *os.File) (*zap.SugaredLogger, error) {
+func newLogger(logDev, logDebug bool, logPath string, fd *os.File) (*zap.SugaredLogger, error) {
 	var (
 		ec    zapcore.EncoderConfig
 		cores []zapcore.Core
 		level = zap.NewAtomicLevelAt(zapcore.InfoLevel)
 	)
 
-	if logdev || logdebug {
+	if logDev || logDebug {
 		level = zap.NewAtomicLevelAt(zapcore.DebugLevel)
 	}
 
-	if logdev {
+	if logDev {
 		ec = zap.NewDevelopmentEncoderConfig()
 		ec.EncodeLevel = zapcore.CapitalColorLevelEncoder
 	} else {
