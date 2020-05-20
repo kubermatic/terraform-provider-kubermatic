@@ -17,7 +17,10 @@ install: fmtcheck
 	go install
 
 test: fmtcheck
-	go test ./$(PKG_NAME)
+	go test $(PKG_NAME)
+
+testacc:
+	TF_ACC=1 go test $(PKG_NAME) -v $(TESTARGS) -timeout 120m
 
 testacc:
 	TF_ACC=1 go test ./$(PKG_NAME) -v $(TESTARGS) -timeout 120m
@@ -36,7 +39,7 @@ vet:
 
 fmt:
 	@echo "==> Fixing source code with gofmt..."
-	gofmt -s -w ./$(PKG_NAME)
+	gofmt -s -w $(PKG_NAME)
 
 fmtcheck:
 	@sh -c "'$(CURDIR)/scripts/gofmtcheck.sh'"

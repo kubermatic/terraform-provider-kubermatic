@@ -179,39 +179,39 @@ func resourceClusterUpdate(d *schema.ResourceData, m interface{}) error {
 
 func resourceClusterDelete(d *schema.ResourceData, m interface{}) error {
 	k := m.(*kubermaticProviderMeta)
-	cId := d.Id()
+	cID := d.Id()
 	pID := d.Get("project_id").(string)
 	dc := d.Get("dc").(string)
 	p := project.NewDeleteClusterParams()
 
 	p.SetDC(dc)
 	p.SetProjectID(pID)
-	p.SetClusterID(cId)
+	p.SetClusterID(cID)
 
 	_, err := k.client.Project.DeleteCluster(p, k.auth)
 	if err != nil {
-		return fmt.Errorf("unable to delete cluster '%s': %v", cId, err)
+		return fmt.Errorf("unable to delete cluster '%s': %v", cID, err)
 	}
 
 	return resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
 		p := project.NewGetClusterParams()
 
-		p.SetClusterID(cId)
+		p.SetClusterID(cID)
 		p.SetProjectID(pID)
 		p.SetDC(dc)
 
 		r, err := k.client.Project.GetCluster(p, k.auth)
 		if err != nil {
 			if e, ok := err.(*project.GetClusterDefault); ok && e.Code() == http.StatusNotFound {
-				k.log.Debugf("cluster '%s' has been destroyed, returned http code: %d", cId, e.Code())
+				k.log.Debugf("cluster '%s' has been destroyed, returned http code: %d", cID, e.Code())
 				d.SetId("")
 				return nil
 			}
-			return resource.NonRetryableError(fmt.Errorf("unable to get cluster '%s': %v", cId, err))
+			return resource.NonRetryableError(fmt.Errorf("unable to get cluster '%s': %v", cID, err))
 		}
 
 		k.log.Debugf("cluster '%s' deletion in progress, deletionTimestamp: %s",
-			cId, r.Payload.DeletionTimestamp.String())
-		return resource.RetryableError(fmt.Errorf("cluster '%s' deletion in progress", cId))
+			cID, r.Payload.DeletionTimestamp.String())
+		return resource.RetryableError(fmt.Errorf("cluster '%s' deletion in progress", cID))
 	})
 }
