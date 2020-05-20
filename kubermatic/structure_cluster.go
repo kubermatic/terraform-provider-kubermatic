@@ -102,6 +102,14 @@ func flattenAWSCloudSpec(in *models.AWSCloudSpec) []interface{} {
 		att["security_group_id"] = in.SecurityGroupID
 	}
 
+	if in.AccessKeyID != "" {
+		att["access_key_id"] = in.AccessKeyID
+	}
+
+	if in.SecretAccessKey != "" {
+		att["secret_access_key"] = in.SecretAccessKey
+	}
+
 	if in.InstanceProfileName != "" {
 		att["instance_profile_name"] = in.InstanceProfileName
 	}

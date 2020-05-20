@@ -11,9 +11,7 @@ import (
 )
 
 const (
-	HealthStatusDown models.HealthStatus = iota
-	HealthStatusUp
-	HealthStatusProvisioning
+	healthStatusUp models.HealthStatus = 1
 )
 
 func resourceCluster() *schema.Resource {
@@ -80,7 +78,7 @@ func resourceClusterCreate(d *schema.ResourceData, m interface{}) error {
 	p := project.NewCreateClusterParams()
 
 	p.SetProjectID(pID)
-	p.SetDc(dc)
+	p.SetDC(dc)
 	p.SetBody(&models.CreateClusterSpec{
 		Cluster: &models.Cluster{
 			Name:       d.Get("name").(string),
@@ -101,20 +99,20 @@ func resourceClusterCreate(d *schema.ResourceData, m interface{}) error {
 		hp := project.NewGetClusterHealthParams()
 		hp.SetClusterID(cID)
 		hp.SetProjectID(pID)
-		hp.SetDc(dc)
+		hp.SetDC(dc)
 
 		r, err := k.client.Project.GetClusterHealth(hp, k.auth)
 		if err != nil {
 			return resource.NonRetryableError(fmt.Errorf("unable to get cluster '%s' health: %v", cID, err))
 		}
 
-		if r.Payload.Apiserver == HealthStatusUp &&
-			r.Payload.CloudProviderInfrastructure == HealthStatusUp &&
-			r.Payload.Controller == HealthStatusUp &&
-			r.Payload.Etcd == HealthStatusUp &&
-			r.Payload.MachineController == HealthStatusUp &&
-			r.Payload.Scheduler == HealthStatusUp &&
-			r.Payload.UserClusterControllerManager == HealthStatusUp {
+		if r.Payload.Apiserver == healthStatusUp &&
+			r.Payload.CloudProviderInfrastructure == healthStatusUp &&
+			r.Payload.Controller == healthStatusUp &&
+			r.Payload.Etcd == healthStatusUp &&
+			r.Payload.MachineController == healthStatusUp &&
+			r.Payload.Scheduler == healthStatusUp &&
+			r.Payload.UserClusterControllerManager == healthStatusUp {
 			return nil
 		}
 
@@ -131,7 +129,7 @@ func resourceClusterCreate(d *schema.ResourceData, m interface{}) error {
 func resourceClusterRead(d *schema.ResourceData, m interface{}) error {
 	k := m.(*kubermaticProviderMeta)
 	p := project.NewGetClusterParams()
-	p.SetDc(d.Get("dc").(string))
+	p.SetDC(d.Get("dc").(string))
 	p.SetProjectID(d.Get("project_id").(string))
 	p.SetClusterID(d.Id())
 
@@ -186,7 +184,7 @@ func resourceClusterDelete(d *schema.ResourceData, m interface{}) error {
 	dc := d.Get("dc").(string)
 	p := project.NewDeleteClusterParams()
 
-	p.SetDc(dc)
+	p.SetDC(dc)
 	p.SetProjectID(pID)
 	p.SetClusterID(cId)
 
@@ -200,7 +198,7 @@ func resourceClusterDelete(d *schema.ResourceData, m interface{}) error {
 
 		p.SetClusterID(cId)
 		p.SetProjectID(pID)
-		p.SetDc(dc)
+		p.SetDC(dc)
 
 		r, err := k.client.Project.GetCluster(p, k.auth)
 		if err != nil {
