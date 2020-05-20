@@ -159,7 +159,8 @@ func resourceClusterRead(d *schema.ResourceData, m interface{}) error {
 
 	d.Set("type", r.Payload.Type)
 
-	// TODO: Do not rewrite sensetive fields
+	// TODO: Rewriting sensitive fields produces misleading state diff, which
+	// can be fixed by skipping and not rewriting sensitive fields.
 	if err = d.Set("spec", flattenClusterSpec(r.Payload.Spec)); err != nil {
 		return err
 	}

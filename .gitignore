@@ -28,4 +28,5 @@ website/node_modules
 vendor
 .env
 terraform-provider-kubermatic
+
 website/vendor
