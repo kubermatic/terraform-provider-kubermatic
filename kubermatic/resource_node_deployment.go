@@ -35,7 +35,7 @@ func resourceNodeDeployment() *schema.Resource {
 			},
 			"name": {
 				Type:        schema.TypeString,
-				Computed:    true,
+				Required:    true,
 				Description: "Node deployment name",
 			},
 			"spec": {

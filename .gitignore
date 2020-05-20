@@ -26,5 +26,6 @@ website/node_modules
 *.test
 *.iml
 vendor
-
+.env
+terraform-provider-kubermatic
 website/vendor

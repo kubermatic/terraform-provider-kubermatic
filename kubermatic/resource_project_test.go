@@ -111,6 +111,7 @@ func testAccCheckKubermaticProjectDestroy(s *terraform.State) error {
 const testAccCheckKubermaticProjectConfigBasic = `
 resource "kubermatic_project" "foobar" {
 	name = "%s"
+
 	labels = {
 		"foo" = "bar"
 	}
