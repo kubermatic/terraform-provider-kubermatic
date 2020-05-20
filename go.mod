@@ -11,6 +11,7 @@ replace (
 require (
 	github.com/go-openapi/runtime v0.19.8
 	github.com/go-openapi/validate v0.19.5 // indirect
+	github.com/google/go-cmp v0.3.1
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/hashicorp/terraform-plugin-sdk v1.4.0
 	github.com/kubermatic/go-kubermatic v0.0.0-20191127145553-81485867810f

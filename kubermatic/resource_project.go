@@ -21,6 +21,9 @@ func resourceProject() *schema.Resource {
 		Read:   resourceProjectRead,
 		Update: resourceProjectUpdate,
 		Delete: resourceProjectDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -32,7 +35,7 @@ func resourceProject() *schema.Resource {
 				Type:        schema.TypeMap,
 				Optional:    true,
 				Description: "Project labels",
-				Elem:        &schema.Schema{Type: schema.TypeString},
+				Elem:        schema.TypeString,
 			},
 			"status": {
 				Type:        schema.TypeString,
@@ -54,7 +57,7 @@ func resourceProject() *schema.Resource {
 }
 
 func resourceProjectCreate(d *schema.ResourceData, m interface{}) error {
-	k := m.(*kubermaticProvider)
+	k := m.(*kubermaticProviderMeta)
 	p := project.NewCreateProjectParams()
 
 	p.Body.Name = d.Get("name").(string)
@@ -70,8 +73,9 @@ func resourceProjectCreate(d *schema.ResourceData, m interface{}) error {
 	if err != nil {
 		return fmt.Errorf("error when creating a project: %s", err)
 	}
-	id := r.Payload.ID
+	d.SetId(r.Payload.ID)
 
+	id := r.Payload.ID
 	createStateConf := &resource.StateChangeConf{
 		Pending: []string{
 			projectInactive,
@@ -85,25 +89,23 @@ func resourceProjectCreate(d *schema.ResourceData, m interface{}) error {
 			if err != nil {
 				return nil, "", err
 			}
-			k.log.Debugf("creating project '%s', currently in '%s' state", r.Payload.ID, r.Payload.Status)
+			k.log.Debugf("creating project '%s', currently in '%s' state", id, r.Payload.Status)
 			return r, r.Payload.Status, nil
 		},
 		Timeout:    d.Timeout(schema.TimeoutCreate),
 		MinTimeout: retryTimeout,
 		Delay:      requestDelay,
 	}
-	_, err = createStateConf.WaitForState()
-	if err != nil {
+
+	if _, err := createStateConf.WaitForState(); err != nil {
 		k.log.Debugf("error while waiting for project '%s' to be created: %s", id, err)
 		return fmt.Errorf("error while waiting for project '%s' to be created: %s", id, err)
 	}
-
-	d.SetId(id)
 	return resourceProjectRead(d, m)
 }
 
 func resourceProjectRead(d *schema.ResourceData, m interface{}) error {
-	k := m.(*kubermaticProvider)
+	k := m.(*kubermaticProviderMeta)
 	p := project.NewGetProjectParams()
 
 	r, err := k.client.Project.GetProject(p.WithProjectID(d.Id()), k.auth)
@@ -119,37 +121,18 @@ func resourceProjectRead(d *schema.ResourceData, m interface{}) error {
 		return fmt.Errorf("unable to get project '%s': %v", d.Id(), err)
 	}
 
-	err = d.Set("name", r.Payload.Name)
-	if err != nil {
+	if err := d.Set("labels", r.Payload.Labels); err != nil {
 		return err
 	}
-
-	err = d.Set("labels", r.Payload.Labels)
-	if err != nil {
-		return err
-	}
-
-	err = d.Set("status", r.Payload.Status)
-	if err != nil {
-		return err
-	}
-
-	err = d.Set("creation_timestamp", r.Payload.CreationTimestamp.String())
-	if err != nil {
-		return err
-	}
-
-	err = d.Set("deletion_timestamp", r.Payload.DeletionTimestamp.String())
-	if err != nil {
-		return err
-	}
-
+	d.Set("name", r.Payload.Name)
+	d.Set("status", r.Payload.Status)
+	d.Set("creation_timestamp", r.Payload.CreationTimestamp.String())
+	d.Set("deletion_timestamp", r.Payload.DeletionTimestamp.String())
 	return nil
-
 }
 
 func resourceProjectUpdate(d *schema.ResourceData, m interface{}) error {
-	k := m.(*kubermaticProvider)
+	k := m.(*kubermaticProviderMeta)
 	p := project.NewUpdateProjectParams()
 	p.Body = &models.Project{
 		// name is always required for update requests, otherwise bad request returns
@@ -176,7 +159,7 @@ func resourceProjectUpdate(d *schema.ResourceData, m interface{}) error {
 }
 
 func resourceProjectDelete(d *schema.ResourceData, m interface{}) error {
-	k := m.(*kubermaticProvider)
+	k := m.(*kubermaticProviderMeta)
 	p := project.NewDeleteProjectParams()
 	_, err := k.client.Project.DeleteProject(p.WithProjectID(d.Id()), k.auth)
 	if err != nil {
