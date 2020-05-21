@@ -34,7 +34,8 @@ func resourceNodeDeployment() *schema.Resource {
 				Description: "Reference cluster identifier",
 			},
 			"name": {
-				Type:        schema.TypeString,
+				Type: schema.TypeString,
+				// TODO(furkhat): make field "Computed: true" when back end error is fixed.
 				Required:    true,
 				Description: "Node deployment name",
 			},

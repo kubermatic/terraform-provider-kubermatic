@@ -94,20 +94,20 @@ func flattenAWSCloudSpec(in *models.AWSCloudSpec) []interface{} {
 
 	att := make(map[string]interface{})
 
-	if in.VPCID != "" {
-		att["vpc_id"] = in.VPCID
-	}
-
-	if in.SecurityGroupID != "" {
-		att["security_group_id"] = in.SecurityGroupID
-	}
-
 	if in.AccessKeyID != "" {
 		att["access_key_id"] = in.AccessKeyID
 	}
 
 	if in.SecretAccessKey != "" {
 		att["secret_access_key"] = in.SecretAccessKey
+	}
+
+	if in.VPCID != "" {
+		att["vpc_id"] = in.VPCID
+	}
+
+	if in.SecurityGroupID != "" {
+		att["security_group_id"] = in.SecurityGroupID
 	}
 
 	if in.InstanceProfileName != "" {

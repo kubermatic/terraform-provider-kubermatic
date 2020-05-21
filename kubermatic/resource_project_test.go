@@ -29,7 +29,7 @@ func testSweepProject(region string) error {
 
 	records, err := meta.client.Project.ListProjects(project.NewListProjectsParams(), meta.auth)
 	if err != nil {
-		return fmt.Errorf("list projectss: %w", err)
+		return fmt.Errorf("list projects: %w", err)
 	}
 
 	for _, rec := range records.Payload {
