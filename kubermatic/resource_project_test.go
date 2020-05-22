@@ -29,7 +29,7 @@ func testSweepProject(region string) error {
 
 	records, err := meta.client.Project.ListProjects(project.NewListProjectsParams(), meta.auth)
 	if err != nil {
-		return err
+		return fmt.Errorf("list projects: %w", err)
 	}
 
 	for _, rec := range records.Payload {
@@ -40,7 +40,7 @@ func testSweepProject(region string) error {
 		p := project.NewDeleteProjectParams()
 		p.ProjectID = rec.ID
 		if _, err := meta.client.Project.DeleteProject(p, meta.auth); err != nil {
-			return err
+			return fmt.Errorf("delete project: %w", err)
 		}
 	}
 

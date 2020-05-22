@@ -11,9 +11,7 @@ import (
 )
 
 const (
-	HealthStatusDown models.HealthStatus = iota
-	HealthStatusUp
-	HealthStatusProvisioning
+	healthStatusUp models.HealthStatus = 1
 )
 
 func resourceCluster() *schema.Resource {
@@ -75,12 +73,12 @@ func resourceCluster() *schema.Resource {
 
 func resourceClusterCreate(d *schema.ResourceData, m interface{}) error {
 	k := m.(*kubermaticProviderMeta)
-	pId := d.Get("project_id").(string)
+	pID := d.Get("project_id").(string)
 	dc := d.Get("dc").(string)
 	p := project.NewCreateClusterParams()
 
-	p.SetProjectID(pId)
-	p.SetDc(dc)
+	p.SetProjectID(pID)
+	p.SetDC(dc)
 	p.SetBody(&models.CreateClusterSpec{
 		Cluster: &models.Cluster{
 			Name:       d.Get("name").(string),
@@ -92,46 +90,46 @@ func resourceClusterCreate(d *schema.ResourceData, m interface{}) error {
 
 	r, err := k.client.Project.CreateCluster(p, k.auth)
 	if err != nil {
-		return fmt.Errorf("unable to create cluster for project '%s': %v", pId, err)
+		return fmt.Errorf("unable to create cluster for project '%s': %s", pID, err)
 	}
-	cId := r.Payload.ID
+	d.SetId(r.Payload.ID)
+	cID := r.Payload.ID
 
 	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
 		hp := project.NewGetClusterHealthParams()
-		hp.SetClusterID(cId)
-		hp.SetProjectID(pId)
-		hp.SetDc(dc)
+		hp.SetClusterID(cID)
+		hp.SetProjectID(pID)
+		hp.SetDC(dc)
 
 		r, err := k.client.Project.GetClusterHealth(hp, k.auth)
 		if err != nil {
-			return resource.NonRetryableError(fmt.Errorf("unable to get cluster '%s' health: %v", cId, err))
+			return resource.NonRetryableError(fmt.Errorf("unable to get cluster '%s' health: %v", cID, err))
 		}
 
-		if r.Payload.Apiserver == HealthStatusUp &&
-			r.Payload.CloudProviderInfrastructure == HealthStatusUp &&
-			r.Payload.Controller == HealthStatusUp &&
-			r.Payload.Etcd == HealthStatusUp &&
-			r.Payload.MachineController == HealthStatusUp &&
-			r.Payload.Scheduler == HealthStatusUp &&
-			r.Payload.UserClusterControllerManager == HealthStatusUp {
+		if r.Payload.Apiserver == healthStatusUp &&
+			r.Payload.CloudProviderInfrastructure == healthStatusUp &&
+			r.Payload.Controller == healthStatusUp &&
+			r.Payload.Etcd == healthStatusUp &&
+			r.Payload.MachineController == healthStatusUp &&
+			r.Payload.Scheduler == healthStatusUp &&
+			r.Payload.UserClusterControllerManager == healthStatusUp {
 			return nil
 		}
 
-		k.log.Debugf("waiting for cluster '%s' to be ready, %+v", cId, r.Payload)
-		return resource.RetryableError(fmt.Errorf("waiting for cluster '%s' to be ready", cId))
+		k.log.Debugf("waiting for cluster '%s' to be ready, %+v", cID, r.Payload)
+		return resource.RetryableError(fmt.Errorf("waiting for cluster '%s' to be ready", cID))
 	})
 	if err != nil {
-		return fmt.Errorf("cluster '%s' is not ready: %v", cId, err)
+		return fmt.Errorf("cluster '%s' is not ready: %v", cID, err)
 	}
 
-	d.SetId(cId)
 	return resourceClusterRead(d, m)
 }
 
 func resourceClusterRead(d *schema.ResourceData, m interface{}) error {
 	k := m.(*kubermaticProviderMeta)
 	p := project.NewGetClusterParams()
-	p.SetDc(d.Get("dc").(string))
+	p.SetDC(d.Get("dc").(string))
 	p.SetProjectID(d.Get("project_id").(string))
 	p.SetClusterID(d.Id())
 
@@ -151,10 +149,7 @@ func resourceClusterRead(d *schema.ResourceData, m interface{}) error {
 		return fmt.Errorf("unable to get cluster '%s': %v", d.Id(), err)
 	}
 
-	err = d.Set("name", r.Payload.Name)
-	if err != nil {
-		return err
-	}
+	d.Set("name", r.Payload.Name)
 
 	// TODO: check why API returns an empty credential field even if it is set
 	//err = d.Set("credential", r.Payload.Credential)
@@ -162,25 +157,17 @@ func resourceClusterRead(d *schema.ResourceData, m interface{}) error {
 	//	return err
 	//}
 
-	err = d.Set("type", r.Payload.Type)
-	if err != nil {
+	d.Set("type", r.Payload.Type)
+
+	// TODO: Rewriting sensitive fields produces misleading state diff, which
+	// can be fixed by skipping and not rewriting sensitive fields.
+	if err = d.Set("spec", flattenClusterSpec(r.Payload.Spec)); err != nil {
 		return err
 	}
 
-	err = d.Set("spec", flattenClusterSpec(r.Payload.Spec))
-	if err != nil {
-		return err
-	}
+	d.Set("creation_timestamp", r.Payload.CreationTimestamp.String())
 
-	err = d.Set("creation_timestamp", r.Payload.CreationTimestamp.String())
-	if err != nil {
-		return err
-	}
-
-	err = d.Set("deletion_timestamp", r.Payload.DeletionTimestamp.String())
-	if err != nil {
-		return err
-	}
+	d.Set("deletion_timestamp", r.Payload.DeletionTimestamp.String())
 
 	return nil
 }
@@ -193,39 +180,39 @@ func resourceClusterUpdate(d *schema.ResourceData, m interface{}) error {
 
 func resourceClusterDelete(d *schema.ResourceData, m interface{}) error {
 	k := m.(*kubermaticProviderMeta)
-	cId := d.Id()
-	pId := d.Get("project_id").(string)
+	cID := d.Id()
+	pID := d.Get("project_id").(string)
 	dc := d.Get("dc").(string)
 	p := project.NewDeleteClusterParams()
 
-	p.SetDc(dc)
-	p.SetProjectID(pId)
-	p.SetClusterID(cId)
+	p.SetDC(dc)
+	p.SetProjectID(pID)
+	p.SetClusterID(cID)
 
 	_, err := k.client.Project.DeleteCluster(p, k.auth)
 	if err != nil {
-		return fmt.Errorf("unable to delete cluster '%s': %v", cId, err)
+		return fmt.Errorf("unable to delete cluster '%s': %v", cID, err)
 	}
 
 	return resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
 		p := project.NewGetClusterParams()
 
-		p.SetClusterID(cId)
-		p.SetProjectID(pId)
-		p.SetDc(dc)
+		p.SetClusterID(cID)
+		p.SetProjectID(pID)
+		p.SetDC(dc)
 
 		r, err := k.client.Project.GetCluster(p, k.auth)
 		if err != nil {
 			if e, ok := err.(*project.GetClusterDefault); ok && e.Code() == http.StatusNotFound {
-				k.log.Debugf("cluster '%s' has been destroyed, returned http code: %d", cId, e.Code())
+				k.log.Debugf("cluster '%s' has been destroyed, returned http code: %d", cID, e.Code())
 				d.SetId("")
 				return nil
 			}
-			return resource.NonRetryableError(fmt.Errorf("unable to get cluster '%s': %v", cId, err))
+			return resource.NonRetryableError(fmt.Errorf("unable to get cluster '%s': %v", cID, err))
 		}
 
 		k.log.Debugf("cluster '%s' deletion in progress, deletionTimestamp: %s",
-			cId, r.Payload.DeletionTimestamp.String())
-		return resource.RetryableError(fmt.Errorf("cluster '%s' deletion in progress", cId))
+			cID, r.Payload.DeletionTimestamp.String())
+		return resource.RetryableError(fmt.Errorf("cluster '%s' deletion in progress", cID))
 	})
 }

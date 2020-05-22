@@ -34,8 +34,9 @@ func resourceNodeDeployment() *schema.Resource {
 				Description: "Reference cluster identifier",
 			},
 			"name": {
-				Type:        schema.TypeString,
-				Computed:    true,
+				Type: schema.TypeString,
+				// TODO(furkhat): make field "Computed: true" when back end error is fixed.
+				Required:    true,
 				Description: "Node deployment name",
 			},
 			"spec": {
@@ -64,13 +65,13 @@ func resourceNodeDeployment() *schema.Resource {
 func resourceNodeDeploymentCreate(d *schema.ResourceData, m interface{}) error {
 	k := m.(*kubermaticProviderMeta)
 	dc := d.Get("dc").(string)
-	pId := d.Get("project_id").(string)
-	cId := d.Get("cluster_id").(string)
+	pID := d.Get("project_id").(string)
+	cID := d.Get("cluster_id").(string)
 	p := project.NewCreateNodeDeploymentParams()
 
-	p.SetProjectID(pId)
-	p.SetClusterID(cId)
-	p.SetDc(dc)
+	p.SetProjectID(pID)
+	p.SetClusterID(cID)
+	p.SetDC(dc)
 	p.SetBody(&models.NodeDeployment{
 		Name: d.Get("name").(string),
 		Spec: expandNodeDeploymentSpec(d.Get("spec").([]interface{})),
@@ -80,31 +81,31 @@ func resourceNodeDeploymentCreate(d *schema.ResourceData, m interface{}) error {
 	if err != nil {
 		return fmt.Errorf("unable to create a node deployment: %v", err)
 	}
-	nId := r.Payload.ID
+	nID := r.Payload.ID
 
 	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
 		p := project.NewGetNodeDeploymentParams()
-		p.SetProjectID(pId)
-		p.SetClusterID(cId)
-		p.SetDc(dc)
-		p.SetNodedeploymentID(nId)
+		p.SetProjectID(pID)
+		p.SetClusterID(cID)
+		p.SetDC(dc)
+		p.SetNodeDeploymentID(nID)
 
 		r, err := k.client.Project.GetNodeDeployment(p, k.auth)
 		if err != nil {
-			return resource.NonRetryableError(fmt.Errorf("unable to get node deployment '%s' status: %v", nId, err))
+			return resource.NonRetryableError(fmt.Errorf("unable to get node deployment '%s' status: %v", nID, err))
 		}
 
 		if r.Payload.Status.ReadyReplicas < *r.Payload.Spec.Replicas {
-			k.log.Debugf("waiting for node deployment '%s' to be ready, %+v", nId, r.Payload.Status)
-			return resource.RetryableError(fmt.Errorf("waiting for node deployment '%s' to be ready", nId))
+			k.log.Debugf("waiting for node deployment '%s' to be ready, %+v", nID, r.Payload.Status)
+			return resource.RetryableError(fmt.Errorf("waiting for node deployment '%s' to be ready", nID))
 		}
 		return nil
 	})
 	if err != nil {
-		return fmt.Errorf("node deployment '%s' is not ready: %v", nId, err)
+		return fmt.Errorf("node deployment '%s' is not ready: %v", nID, err)
 	}
 
-	d.SetId(nId)
+	d.SetId(nID)
 	return resourceNodeDeploymentRead(d, m)
 }
 
@@ -112,10 +113,10 @@ func resourceNodeDeploymentRead(d *schema.ResourceData, m interface{}) error {
 	k := m.(*kubermaticProviderMeta)
 	p := project.NewGetNodeDeploymentParams()
 
-	p.SetDc(d.Get("dc").(string))
+	p.SetDC(d.Get("dc").(string))
 	p.SetProjectID(d.Get("project_id").(string))
 	p.SetClusterID(d.Get("cluster_id").(string))
-	p.SetNodedeploymentID(d.Id())
+	p.SetNodeDeploymentID(d.Id())
 
 	r, err := k.client.Project.GetNodeDeployment(p, k.auth)
 	if err != nil {
@@ -164,41 +165,41 @@ func resourceNodeDeploymentUpdate(d *schema.ResourceData, m interface{}) error {
 func resourceNodeDeploymentDelete(d *schema.ResourceData, m interface{}) error {
 	k := m.(*kubermaticProviderMeta)
 	dc := d.Get("dc").(string)
-	pId := d.Get("project_id").(string)
-	cId := d.Get("cluster_id").(string)
-	nId := d.Id()
+	pID := d.Get("project_id").(string)
+	cID := d.Get("cluster_id").(string)
+	nID := d.Id()
 	p := project.NewDeleteNodeDeploymentParams()
 
-	p.SetDc(dc)
-	p.SetProjectID(pId)
-	p.SetClusterID(cId)
-	p.SetNodedeploymentID(nId)
+	p.SetDC(dc)
+	p.SetProjectID(pID)
+	p.SetClusterID(cID)
+	p.SetNodeDeploymentID(nID)
 
 	_, err := k.client.Project.DeleteNodeDeployment(p, k.auth)
 	if err != nil {
 		// TODO: check if not found
-		return fmt.Errorf("unable to delete node deployment '%s': %v", nId, err)
+		return fmt.Errorf("unable to delete node deployment '%s': %v", nID, err)
 	}
 
 	return resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
 		p := project.NewGetNodeDeploymentParams()
-		p.SetDc(dc)
-		p.SetProjectID(pId)
-		p.SetClusterID(cId)
-		p.SetNodedeploymentID(nId)
+		p.SetDC(dc)
+		p.SetProjectID(pID)
+		p.SetClusterID(cID)
+		p.SetNodeDeploymentID(nID)
 
 		r, err := k.client.Project.GetNodeDeployment(p, k.auth)
 		if err != nil {
 			if e, ok := err.(*project.GetNodeDeploymentDefault); ok && e.Code() == http.StatusNotFound {
-				k.log.Debugf("node deployment '%s' has been destroyed, returned http code: %d", nId, e.Code())
+				k.log.Debugf("node deployment '%s' has been destroyed, returned http code: %d", nID, e.Code())
 				d.SetId("")
 				return nil
 			}
-			return resource.NonRetryableError(fmt.Errorf("unable to get node deployment '%s': %v", nId, err))
+			return resource.NonRetryableError(fmt.Errorf("unable to get node deployment '%s': %v", nID, err))
 		}
 
 		k.log.Debugf("node deployment '%s' deletion in progress, deletionTimestamp: %s",
-			nId, r.Payload.DeletionTimestamp.String())
-		return resource.RetryableError(fmt.Errorf("node deployment '%s' deletion in progress", nId))
+			nID, r.Payload.DeletionTimestamp.String())
+		return resource.RetryableError(fmt.Errorf("node deployment '%s' deletion in progress", nID))
 	})
 }

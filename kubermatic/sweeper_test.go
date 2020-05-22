@@ -3,9 +3,15 @@ package kubermatic
 import (
 	"fmt"
 	"os"
+	"testing"
 
+	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"go.uber.org/zap"
 )
+
+func TestMain(m *testing.M) {
+	resource.TestMain(m)
+}
 
 func sharedConfigForRegion(_ string) (*kubermaticProviderMeta, error) {
 	host := os.Getenv("KUBERMATIC_HOST")
