@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/hashicorp/go-version"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/kubermatic/go-kubermatic/client/project"
@@ -75,6 +77,27 @@ func resourceCluster() *schema.Resource {
 				Description: "Deletion timestamp",
 			},
 		},
+
+		CustomizeDiff: customdiff.All(
+			customdiff.ForceNewIfChange("spec.0.version", func(old, new, meta interface{}) bool {
+				// "version" can only be upgraded to newer versions, so we must create a new resource
+				// if it is decreased.
+				newVer, err := version.NewVersion(new.(string))
+				if err != nil {
+					return false
+				}
+
+				oldVer, err := version.NewVersion(old.(string))
+				if err != nil {
+					return false
+				}
+
+				if newVer.LessThan(oldVer) {
+					return true
+				}
+				return false
+			}),
+		),
 	}
 }
 
@@ -101,34 +124,9 @@ func resourceClusterCreate(d *schema.ResourceData, m interface{}) error {
 		return fmt.Errorf("unable to create cluster for project '%s': %s", pID, err)
 	}
 	d.SetId(r.Payload.ID)
-	cID := r.Payload.ID
 
-	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
-		hp := project.NewGetClusterHealthParams()
-		hp.SetClusterID(cID)
-		hp.SetProjectID(pID)
-		hp.SetDC(dc)
-
-		r, err := k.client.Project.GetClusterHealth(hp, k.auth)
-		if err != nil {
-			return resource.NonRetryableError(fmt.Errorf("unable to get cluster '%s' health: %v", cID, err))
-		}
-
-		if r.Payload.Apiserver == healthStatusUp &&
-			r.Payload.CloudProviderInfrastructure == healthStatusUp &&
-			r.Payload.Controller == healthStatusUp &&
-			r.Payload.Etcd == healthStatusUp &&
-			r.Payload.MachineController == healthStatusUp &&
-			r.Payload.Scheduler == healthStatusUp &&
-			r.Payload.UserClusterControllerManager == healthStatusUp {
-			return nil
-		}
-
-		k.log.Debugf("waiting for cluster '%s' to be ready, %+v", cID, r.Payload)
-		return resource.RetryableError(fmt.Errorf("waiting for cluster '%s' to be ready", cID))
-	})
-	if err != nil {
-		return fmt.Errorf("cluster '%s' is not ready: %v", cID, err)
+	if err := waitClusterReady(k, d); err != nil {
+		return fmt.Errorf("cluster '%s' is not ready: %v", r.Payload.ID, err)
 	}
 
 	return resourceClusterRead(d, m)
@@ -245,7 +243,7 @@ func resourceClusterUpdate(d *schema.ResourceData, m interface{}) error {
 	p.SetProjectID(d.Get("project_id").(string))
 	p.SetDC(d.Get("dc").(string))
 	p.SetClusterID(d.Id())
-	p.SetPatch(newClusterPatch(d.Get("name").(string), d.Get("spec.0.audit_logging.0.enabled").(bool), d.Get("labels")))
+	p.SetPatch(newClusterPatch(d.Get("name").(string), d.Get("spec.0.version").(string), d.Get("spec.0.audit_logging").(bool), d.Get("labels")))
 
 	err := resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
 		_, err := k.client.Project.PatchCluster(p, k.auth)
@@ -261,11 +259,42 @@ func resourceClusterUpdate(d *schema.ResourceData, m interface{}) error {
 		return err
 	}
 
+	if err := waitClusterReady(k, d); err != nil {
+		return fmt.Errorf("cluster '%s' is not ready: %v", d.Id(), err)
+	}
+
 	return resourceClusterRead(d, m)
 }
 
-func newClusterPatch(name string, auditLogging bool, labels interface{}) interface{} {
-	// TODO(furkhat): change to struct when API fixed.
+func waitClusterReady(k *kubermaticProviderMeta, d *schema.ResourceData) error {
+	return resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
+		hp := project.NewGetClusterHealthParams()
+		hp.SetClusterID(d.Id())
+		hp.SetProjectID(d.Get("project_id").(string))
+		hp.SetDC(d.Get("dc").(string))
+
+		r, err := k.client.Project.GetClusterHealth(hp, k.auth)
+		if err != nil {
+			return resource.NonRetryableError(fmt.Errorf("unable to get cluster '%s' health: %v", d.Id(), err))
+		}
+
+		if r.Payload.Apiserver == healthStatusUp &&
+			r.Payload.CloudProviderInfrastructure == healthStatusUp &&
+			r.Payload.Controller == healthStatusUp &&
+			r.Payload.Etcd == healthStatusUp &&
+			r.Payload.MachineController == healthStatusUp &&
+			r.Payload.Scheduler == healthStatusUp &&
+			r.Payload.UserClusterControllerManager == healthStatusUp {
+			return nil
+		}
+
+		k.log.Debugf("waiting for cluster '%s' to be ready, %+v", d.Id(), r.Payload)
+		return resource.RetryableError(fmt.Errorf("waiting for cluster '%s' to be ready", d.Id()))
+	})
+}
+
+func newClusterPatch(name, version string, auditLogging bool, labels interface{}) interface{} {
+	// TODO(furkhat): change to dedicated struct when API has it.
 	return map[string]interface{}{
 		"name":   name,
 		"labels": labels,
@@ -273,6 +302,7 @@ func newClusterPatch(name string, auditLogging bool, labels interface{}) interfa
 			"auditLogging": map[string]bool{
 				"enabled": auditLogging,
 			},
+			"version": version,
 		},
 	}
 }

@@ -12,6 +12,7 @@ require (
 	github.com/go-openapi/runtime v0.19.11
 	github.com/go-openapi/validate v0.19.5 // indirect
 	github.com/google/go-cmp v0.3.1
+	github.com/hashicorp/go-version v1.2.0
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/hashicorp/terraform-plugin-sdk v1.6.0
 	github.com/kubermatic/go-kubermatic v0.0.0-20200520074811-6441307c58e6

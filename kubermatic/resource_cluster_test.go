@@ -13,6 +13,7 @@ import (
 	"github.com/kubermatic/go-kubermatic/models"
 )
 
+const testClusterVersion16 = "1.16.8"
 const testClusterVersion17 = "1.17.4"
 
 func TestAccKubermaticCluster_Openstack_Basic(t *testing.T) {
@@ -92,7 +93,7 @@ func TestAccKubermaticCluster_Openstack_Basic(t *testing.T) {
 
 						return nil
 					}),
-					resource.TestCheckResourceAttr("kubermatic_cluster.acctest_cluster", "spec.0.audit_logging.#", "0"),
+					resource.TestCheckResourceAttr("kubermatic_cluster.acctest_cluster", "spec.0.audit_logging", "false"),
 					// Test credential
 					testResourceInstanceState("kubermatic_cluster.acctest_cluster", func(is *terraform.InstanceState) error {
 						v, ok := is.Attributes["credential"]
@@ -177,8 +178,7 @@ func TestAccKubermaticCluster_Openstack_Basic(t *testing.T) {
 
 						return nil
 					}),
-					resource.TestCheckResourceAttr("kubermatic_cluster.acctest_cluster", "spec.0.audit_logging.#", "1"),
-					resource.TestCheckResourceAttr("kubermatic_cluster.acctest_cluster", "spec.0.audit_logging.0.enabled", "true"),
+					resource.TestCheckResourceAttr("kubermatic_cluster.acctest_cluster", "spec.0.audit_logging", "true"),
 					// Test credential
 					testResourceInstanceState("kubermatic_cluster.acctest_cluster", func(is *terraform.InstanceState) error {
 						v, ok := is.Attributes["credential"]
@@ -194,6 +194,42 @@ func TestAccKubermaticCluster_Openstack_Basic(t *testing.T) {
 					resource.TestCheckResourceAttr("kubermatic_cluster.acctest_cluster", "type", "kubernetes"),
 					resource.TestCheckResourceAttrSet("kubermatic_cluster.acctest_cluster", "creation_timestamp"),
 					resource.TestCheckResourceAttrSet("kubermatic_cluster.acctest_cluster", "deletion_timestamp"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccKubermaticCluster_Openstack_UpgradeVersion(t *testing.T) {
+	var cluster models.Cluster
+	testName := randomTestName()
+	username := os.Getenv(testEnvOpenstackUsername)
+	password := os.Getenv(testEnvOpenstackPassword)
+	tenant := os.Getenv(testEnvOpenstackTenant)
+	seedDC := os.Getenv(testEnvOpenstackSeedDC)
+	nodeDC := os.Getenv(testEnvOpenstackNodeDC)
+	versionedConfig := func(version string) string {
+		return testAccCheckKubermaticClusterOpenstackBasic(testName, username, password, tenant, seedDC, nodeDC, version)
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheckForOpenstack(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckKubermaticClusterDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: versionedConfig(testClusterVersion16),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccCheckKubermaticClusterExists(seedDC, &cluster),
+					resource.TestCheckResourceAttr("kubermatic_cluster.acctest_cluster", "spec.0.version", testClusterVersion16),
+				),
+			},
+			{
+				Config: versionedConfig(testClusterVersion17),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrPtr("kubermatic_cluster.acctest_cluster", "id", &cluster.ID),
+					testAccCheckKubermaticClusterExists(seedDC, &cluster),
+					resource.TestCheckResourceAttr("kubermatic_cluster.acctest_cluster", "spec.0.version", testClusterVersion17),
 				),
 			},
 		},
@@ -288,9 +324,7 @@ func testAccCheckKubermaticClusterOpenstackBasic2(testName, username, password, 
 			}
 
 			# enable audit logging
-			audit_logging {
-				enabled = true
-			}
+			audit_logging = true
 		}
 	}`
 	return fmt.Sprintf(config, testName, testName, seedDC, nodeDC, tenant, username, password)

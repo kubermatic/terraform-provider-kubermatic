@@ -21,12 +21,9 @@ func flattenClusterSpec(values clusterPreserveValues, in *models.ClusterSpec) []
 		att["machine_networks"] = flattenMachineNetworks(in.MachineNetworks)
 	}
 
+	att["audit_logging"] = false
 	if in.AuditLogging != nil {
-		att["audit_logging"] = []interface{}{
-			map[string]interface{}{
-				"enabled": in.AuditLogging.Enabled,
-			},
-		}
+		att["audit_logging"] = in.AuditLogging.Enabled
 	}
 
 	if in.Cloud != nil {
@@ -174,7 +171,7 @@ func expandClusterSpec(p []interface{}) *models.ClusterSpec {
 	}
 
 	if v, ok := in["audit_logging"]; ok {
-		obj.AuditLogging = expandAuditLogging(v.([]interface{}))
+		obj.AuditLogging = expandAuditLogging(v.(bool))
 	}
 
 	if v, ok := in["cloud"]; ok {
@@ -213,21 +210,10 @@ func expandMachineNetworks(p []interface{}) []*models.MachineNetworkingConfig {
 	return machines
 }
 
-func expandAuditLogging(p []interface{}) *models.AuditLoggingSettings {
-	if len(p) < 1 {
-		return nil
+func expandAuditLogging(enabled bool) *models.AuditLoggingSettings {
+	return &models.AuditLoggingSettings{
+		Enabled: enabled,
 	}
-	obj := &models.AuditLoggingSettings{}
-	if p[0] == nil {
-		return obj
-	}
-	in := p[0].(map[string]interface{})
-
-	if v, ok := in["enabled"]; ok {
-		obj.Enabled = v.(bool)
-	}
-
-	return obj
 }
 
 func expandClusterCloudSpec(p []interface{}) *models.CloudSpec {

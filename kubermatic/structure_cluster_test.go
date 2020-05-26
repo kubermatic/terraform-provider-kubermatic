@@ -1,6 +1,7 @@
 package kubermatic
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -24,12 +25,8 @@ func TestFlattenClusterSpec(t *testing.T) {
 			},
 			[]interface{}{
 				map[string]interface{}{
-					"version": "1.15.6",
-					"audit_logging": []interface{}{
-						map[string]interface{}{
-							"enabled": false,
-						},
-					},
+					"version":       "1.15.6",
+					"audit_logging": false,
 					"cloud": []interface{}{
 						map[string]interface{}{
 							"dc":           "eu-west-1",
@@ -42,7 +39,7 @@ func TestFlattenClusterSpec(t *testing.T) {
 		{
 			&models.ClusterSpec{},
 			[]interface{}{
-				map[string]interface{}{},
+				map[string]interface{}{"audit_logging": false},
 			},
 		},
 		{
@@ -268,9 +265,7 @@ func TestExpandClusterSpec(t *testing.T) {
 				map[string]interface{}{
 					"version":          "1.15.6",
 					"machine_networks": []interface{}{},
-					"audit_logging": []interface{}{
-						map[string]interface{}{},
-					},
+					"audit_logging":    false,
 					"cloud": []interface{}{
 						map[string]interface{}{
 							"dc": "eu-west-1",
@@ -528,38 +523,11 @@ func TestExpandMachineNetwork(t *testing.T) {
 }
 
 func TestExpandAuditLogging(t *testing.T) {
-	cases := []struct {
-		Input          []interface{}
-		ExpectedOutput *models.AuditLoggingSettings
-	}{
-		{
-			[]interface{}{
-				map[string]interface{}{
-					"enabled": true,
-				},
-			},
-			&models.AuditLoggingSettings{
-				Enabled: true,
-			},
-		},
-		{
-			[]interface{}{
-				map[string]interface{}{},
-			},
-			&models.AuditLoggingSettings{
-				Enabled: false,
-			},
-		},
-		{
-			[]interface{}{},
-			nil,
-		},
+	want := &models.AuditLoggingSettings{
+		Enabled: true,
 	}
-
-	for _, tc := range cases {
-		output := expandAuditLogging(tc.Input)
-		if diff := cmp.Diff(tc.ExpectedOutput, output); diff != "" {
-			t.Fatalf("Unexpected output from expander: mismatch (-want +got):\n%s", diff)
-		}
+	got := expandAuditLogging(true)
+	if !reflect.DeepEqual(want, got) {
+		t.Fatalf("want %+v, got %+v", want, got)
 	}
 }

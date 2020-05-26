@@ -8,10 +8,8 @@ import (
 func clusterSpecFields() map[string]*schema.Schema {
 	return map[string]*schema.Schema{
 		"version": {
-			Type:     schema.TypeString,
-			Required: true,
-			// TODO(furkhat): upgrade
-			ForceNew:    true,
+			Type:        schema.TypeString,
+			Required:    true,
 			Description: "Cluster version",
 		},
 		"cloud": {
@@ -84,20 +82,10 @@ func clusterSpecFields() map[string]*schema.Schema {
 			},
 		},
 		"audit_logging": {
-			Type:        schema.TypeList,
+			Type:        schema.TypeBool,
 			Optional:    true,
-			MaxItems:    1,
-			Description: "Audit logging settings",
-			Elem: &schema.Resource{
-				Schema: map[string]*schema.Schema{
-					"enabled": {
-						Type:        schema.TypeBool,
-						Optional:    true,
-						Default:     false,
-						Description: "Enable audit logging",
-					},
-				},
-			},
+			Default:     false,
+			Description: "Whether to enable audit logging or not",
 		},
 	}
 }
