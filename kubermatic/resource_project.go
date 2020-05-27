@@ -87,6 +87,9 @@ func resourceProjectCreate(d *schema.ResourceData, m interface{}) error {
 			p := project.NewGetProjectParams()
 			r, err := k.client.Project.GetProject(p.WithProjectID(id), k.auth)
 			if err != nil {
+				if e, ok := err.(*project.GetProjectDefault); ok && (e.Code() == http.StatusForbidden || e.Code() == http.StatusNotFound) {
+					return r, projectInactive, nil
+				}
 				return nil, "", err
 			}
 			k.log.Debugf("creating project '%s', currently in '%s' state", id, r.Payload.Status)

@@ -235,29 +235,6 @@ func TestAccKubermaticCluster_Openstack_UpgradeVersion(t *testing.T) {
 		},
 	})
 }
-
-func testAccCheckKubermaticClusterDestroy(s *terraform.State) error {
-	k := testAccProvider.Meta().(*kubermaticProviderMeta)
-
-	for _, rs := range s.RootModule().Resources {
-		if rs.Type != "kubermatic_cluster" {
-			continue
-		}
-
-		// Try to find the cluster
-		p := project.NewGetClusterParams()
-		p.SetClusterID(rs.Primary.ID)
-		p.SetDC(rs.Primary.Attributes["dc"])
-		p.SetProjectID(rs.Primary.Attributes["project_id"])
-		r, err := k.client.Project.GetCluster(p, k.auth)
-		if err == nil && r.Payload != nil {
-			return fmt.Errorf("Cluster still exists")
-		}
-	}
-
-	return nil
-}
-
 func testAccCheckKubermaticClusterOpenstackBasic(testName, username, password, tenant, seedDC, nodeDC, version string) string {
 	config := `
 	provider "kubermatic" {}
@@ -330,47 +307,6 @@ func testAccCheckKubermaticClusterOpenstackBasic2(testName, username, password, 
 	return fmt.Sprintf(config, testName, testName, seedDC, nodeDC, tenant, username, password)
 }
 
-func testAccCheckKubermaticClusterExists(seedDC string, cluster *models.Cluster) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		var projectID, clusterID string
-
-		rs, ok := s.RootModule().Resources["kubermatic_project.acctest_project"]
-		if !ok {
-			return fmt.Errorf("Not found: %s", "kubermatic_project.acctest_project")
-		}
-		if rs.Primary.ID == "" {
-			return fmt.Errorf("No Record ID is set")
-		}
-		projectID = rs.Primary.ID
-
-		rs, ok = s.RootModule().Resources["kubermatic_cluster.acctest_cluster"]
-		if !ok {
-			return fmt.Errorf("Not found: %s", "kubermatic_cluster.acctest_cluster")
-		}
-		if rs.Primary.ID == "" {
-			return fmt.Errorf("No Record ID is set")
-		}
-		clusterID = rs.Primary.ID
-
-		k := testAccProvider.Meta().(*kubermaticProviderMeta)
-		p := project.NewGetClusterParams()
-		p.SetProjectID(projectID)
-		p.SetClusterID(clusterID)
-		p.SetDC(seedDC)
-		ret, err := k.client.Project.GetCluster(p, k.auth)
-		if err != nil {
-			return fmt.Errorf("GetCluster %w", err)
-		}
-		if ret.Payload == nil {
-			return fmt.Errorf("Record not found")
-		}
-
-		*cluster = *ret.Payload
-
-		return nil
-	}
-}
-
 func testAccCheckKubermaticClusterOpenstackAttributes(cluster *models.Cluster, name, username, password, tenant, nodeDC string, labels map[string]string, auditLogging bool) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		if cluster.Name != name {
@@ -417,6 +353,190 @@ func testAccCheckKubermaticClusterOpenstackAttributes(cluster *models.Cluster, n
 		// if openstack.Tenant != tenant {
 		// 	return fmt.Errorf("want .Spec.Cloud.Openstack.Tenant=%s, got %s", openstack.Tenant, tenant)
 		// }
+
+		return nil
+	}
+}
+
+func TestAccKubermaticCluster_SSHKeys(t *testing.T) {
+	var cluster models.Cluster
+	var sshkey models.SSHKey
+	testName := randomTestName()
+	username := os.Getenv(testEnvOpenstackUsername)
+	password := os.Getenv(testEnvOpenstackPassword)
+	tenant := os.Getenv(testEnvOpenstackTenant)
+	seedDC := os.Getenv(testEnvOpenstackSeedDC)
+	nodeDC := os.Getenv(testEnvOpenstackNodeDC)
+
+	configClusterWithKey := testAccCheckKubermaticClusterOpenstackBasicWithSSHKey(testName, username, password, tenant, seedDC, nodeDC)
+	configClusterNoKey := testAccCheckKubermaticClusterOpenstackBasic(testName, username, password, tenant, seedDC, nodeDC, testClusterVersion17)
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheckForOpenstack(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckKubermaticClusterDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: configClusterNoKey,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccCheckKubermaticClusterExists(seedDC, &cluster),
+					resource.TestCheckResourceAttr("kubermatic_cluster.acctest_cluster", "sshkeys.#", "0"),
+				),
+			},
+			{
+				Config: configClusterWithKey,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrPtr("kubermatic_cluster.acctest_cluster", "id", &cluster.ID),
+					testAccCheckKubermaticClusterExists(seedDC, &cluster),
+					testAccCheckKubermaticSSHKeyExists("kubermatic_sshkey.acctest_sshkey", "kubermatic_project.acctest_project", &sshkey),
+					resource.TestCheckResourceAttr("kubermatic_cluster.acctest_cluster", "sshkeys.#", "1"),
+					testAccCheckKubermaticClusterHasSSHKey(seedDC, &cluster.ID, &sshkey.ID),
+				),
+			},
+			{
+				Config: configClusterNoKey,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccCheckKubermaticSSHKeyDestroy,
+					resource.TestCheckResourceAttr("kubermatic_cluster.acctest_cluster", "sshkeys.#", "0"),
+				),
+			},
+		},
+	})
+}
+
+func testAccCheckKubermaticClusterOpenstackBasicWithSSHKey(testName, username, password, tenant, seedDC, nodeDC string) string {
+	config := `
+	provider "kubermatic" {}
+
+	resource "kubermatic_project" "acctest_project" {
+		name = "%s"
+	}
+
+	resource "kubermatic_cluster" "acctest_cluster" {
+		name = "%s"
+		dc = "%s"
+		project_id = kubermatic_project.acctest_project.id
+
+		sshkeys = [
+			kubermatic_sshkey.acctest_sshkey.id
+		]
+
+		spec {
+			version = "1.17.4"
+			cloud {
+				dc = "%s"
+				openstack {
+					tenant = "%s"
+					username = "%s"
+					password = "%s"
+					floating_ip_pool = "ext-net"
+				}
+			}
+		}
+	}
+
+	resource "kubermatic_sshkey" "acctest_sshkey" {
+		project_id = kubermatic_project.acctest_project.id
+		name = "acctest-sshkey"
+		public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCut5oRyqeqYci3E9m6Z6mtxfqkiyb+xNFJM6+/sllhnMDX0vzrNj8PuIFfGkgtowKY//QWLgoB+RpvXqcD4bb4zPkLdXdJPtUf1eAoMh/qgyThUjBs3n7BXvXMDg1Wdj0gq/sTnPLvXsfrSVPjiZvWN4h0JdID2NLnwYuKIiltIn+IbUa6OnyFfOEpqb5XJ7H7LK1mUKTlQ/9CFROxSQf3YQrR9UdtASIeyIZL53WgYgU31Yqy7MQaY1y0fGmHsFwpCK6qFZj1DNruKl/IR1lLx/Bg3z9sDcoBnHKnzSzVels9EVlDOG6bW738ho269QAIrWQYBtznsvWKu5xZPuuj user@machine"
+	}`
+	return fmt.Sprintf(config, testName, testName, seedDC, nodeDC, tenant, username, password)
+}
+
+func testAccCheckKubermaticClusterDestroy(s *terraform.State) error {
+	k := testAccProvider.Meta().(*kubermaticProviderMeta)
+
+	for _, rs := range s.RootModule().Resources {
+		if rs.Type != "kubermatic_cluster" {
+			continue
+		}
+
+		// Try to find the cluster
+		p := project.NewGetClusterParams()
+		p.SetClusterID(rs.Primary.ID)
+		p.SetDC(rs.Primary.Attributes["dc"])
+		p.SetProjectID(rs.Primary.Attributes["project_id"])
+		r, err := k.client.Project.GetCluster(p, k.auth)
+		if err == nil && r.Payload != nil {
+			return fmt.Errorf("Cluster still exists")
+		}
+	}
+
+	return nil
+}
+
+func testAccCheckKubermaticClusterExists(seedDC string, cluster *models.Cluster) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		var projectID, clusterID string
+
+		rs, ok := s.RootModule().Resources["kubermatic_project.acctest_project"]
+		if !ok {
+			return fmt.Errorf("Not found: %s", "kubermatic_project.acctest_project")
+		}
+		if rs.Primary.ID == "" {
+			return fmt.Errorf("No Record ID is set")
+		}
+		projectID = rs.Primary.ID
+
+		rs, ok = s.RootModule().Resources["kubermatic_cluster.acctest_cluster"]
+		if !ok {
+			return fmt.Errorf("Not found: %s", "kubermatic_cluster.acctest_cluster")
+		}
+		if rs.Primary.ID == "" {
+			return fmt.Errorf("No Record ID is set")
+		}
+		clusterID = rs.Primary.ID
+
+		k := testAccProvider.Meta().(*kubermaticProviderMeta)
+		p := project.NewGetClusterParams()
+		p.SetProjectID(projectID)
+		p.SetClusterID(clusterID)
+		p.SetDC(seedDC)
+		ret, err := k.client.Project.GetCluster(p, k.auth)
+		if err != nil {
+			return fmt.Errorf("GetCluster %w", err)
+		}
+		if ret.Payload == nil {
+			return fmt.Errorf("Record not found")
+		}
+
+		*cluster = *ret.Payload
+
+		return nil
+	}
+}
+
+func testAccCheckKubermaticClusterHasSSHKey(dc string, cluster, sshkey *string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		var projectID string
+
+		rs, ok := s.RootModule().Resources["kubermatic_project.acctest_project"]
+		if !ok {
+			return fmt.Errorf("Not found: %s", "kubermatic_project.acctest_project")
+		}
+		if rs.Primary.ID == "" {
+			return fmt.Errorf("No Record ID is set")
+		}
+		projectID = rs.Primary.ID
+
+		k := testAccProvider.Meta().(*kubermaticProviderMeta)
+		p := project.NewListSSHKeysAssignedToClusterParams()
+		p.SetProjectID(projectID)
+		p.SetDC(dc)
+		p.SetClusterID(*cluster)
+		ret, err := k.client.Project.ListSSHKeysAssignedToCluster(p, k.auth)
+		if err != nil {
+			return fmt.Errorf("ListSSHKeysAssignedToCluster %w", err)
+		}
+
+		var ids []string
+		for _, v := range ret.Payload {
+			ids = append(ids, v.ID)
+		}
+
+		sshkeys := []string{*sshkey}
+		if diff := cmp.Diff(sshkeys, ids); diff != "" {
+			return fmt.Errorf("wrong sshkeys: %s, %s", *sshkey, diff)
+		}
 
 		return nil
 	}

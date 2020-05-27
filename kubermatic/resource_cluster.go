@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 	"github.com/kubermatic/go-kubermatic/client/project"
 	"github.com/kubermatic/go-kubermatic/models"
 )
@@ -44,6 +45,14 @@ func resourceCluster() *schema.Resource {
 			"labels": {
 				Type:     schema.TypeMap,
 				Optional: true,
+			},
+			"sshkeys": {
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem: &schema.Schema{
+					Type:         schema.TypeString,
+					ValidateFunc: validation.NoZeroValues,
+				},
 			},
 			"spec": {
 				Type:        schema.TypeList,
@@ -195,6 +204,14 @@ func resourceClusterRead(d *schema.ResourceData, m interface{}) error {
 
 	d.Set("deletion_timestamp", r.Payload.DeletionTimestamp.String())
 
+	keys, err := getClusterAssignedSSHKeys(d, k)
+	if err != nil {
+		return err
+	}
+	if err := d.Set("sshkeys", keys); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -215,6 +232,23 @@ func excludeProjectLabels(k *kubermaticProviderMeta, projectID string, allLabels
 	}
 
 	return allLabels, nil
+}
+
+func getClusterAssignedSSHKeys(d *schema.ResourceData, k *kubermaticProviderMeta) ([]string, error) {
+	p := project.NewListSSHKeysAssignedToClusterParams()
+	p.SetProjectID(d.Get("project_id").(string))
+	p.SetDC(d.Get("dc").(string))
+	p.SetClusterID(d.Id())
+	ret, err := k.client.Project.ListSSHKeysAssignedToCluster(p, k.auth)
+	if err != nil {
+		return nil, err
+	}
+
+	var ids []string
+	for _, v := range ret.Payload {
+		ids = append(ids, v.ID)
+	}
+	return ids, nil
 }
 
 // clusterPreserveValues helps avoid misleading diffs during read phase.
@@ -238,12 +272,35 @@ func readClusterPreserveValues(d *schema.ResourceData) clusterPreserveValues {
 }
 
 func resourceClusterUpdate(d *schema.ResourceData, m interface{}) error {
+	d.Partial(true)
+	defer d.Partial(false)
+
 	k := m.(*kubermaticProviderMeta)
+
+	if d.HasChanges("name", "labels", "spec") {
+		patchClusterFields(d, k)
+	}
+	if d.HasChange("sshkeys") {
+		updateClusterSSHKeys(d, k)
+	}
+
+	if err := waitClusterReady(k, d); err != nil {
+		return fmt.Errorf("cluster '%s' is not ready: %v", d.Id(), err)
+	}
+
+	return resourceClusterRead(d, m)
+}
+
+func patchClusterFields(d *schema.ResourceData, k *kubermaticProviderMeta) error {
 	p := project.NewPatchClusterParams()
 	p.SetProjectID(d.Get("project_id").(string))
 	p.SetDC(d.Get("dc").(string))
 	p.SetClusterID(d.Id())
-	p.SetPatch(newClusterPatch(d.Get("name").(string), d.Get("spec.0.version").(string), d.Get("spec.0.audit_logging").(bool), d.Get("labels")))
+	name := d.Get("name").(string)
+	version := d.Get("spec.0.version").(string)
+	auditLogging := d.Get("spec.0.audit_logging").(bool)
+	labels := d.Get("labels")
+	p.SetPatch(newClusterPatch(name, version, auditLogging, labels))
 
 	err := resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
 		_, err := k.client.Project.PatchCluster(p, k.auth)
@@ -259,11 +316,58 @@ func resourceClusterUpdate(d *schema.ResourceData, m interface{}) error {
 		return err
 	}
 
-	if err := waitClusterReady(k, d); err != nil {
-		return fmt.Errorf("cluster '%s' is not ready: %v", d.Id(), err)
+	d.SetPartial("name")
+	d.SetPartial("labels")
+	d.SetPartial("spec")
+
+	return nil
+}
+
+func updateClusterSSHKeys(d *schema.ResourceData, k *kubermaticProviderMeta) error {
+	var unassign, assign []string
+	old, new := d.GetChange("sshkeys")
+
+	for _, id := range old.(*schema.Set).List() {
+		if !new.(*schema.Set).Contains(id) {
+			unassign = append(unassign, id.(string))
+		}
 	}
 
-	return resourceClusterRead(d, m)
+	for _, id := range new.(*schema.Set).List() {
+		if !old.(*schema.Set).Contains(id) {
+			assign = append(assign, id.(string))
+		}
+	}
+
+	projectID := d.Get("project_id").(string)
+	dc := d.Get("dc").(string)
+
+	for _, id := range unassign {
+		p := project.NewDetachSSHKeyFromClusterParams()
+		p.SetProjectID(projectID)
+		p.SetDC(dc)
+		p.SetClusterID(d.Id())
+		p.SetKeyID(id)
+		_, err := k.client.Project.DetachSSHKeyFromCluster(p, k.auth)
+		if err != nil {
+			return err
+		}
+	}
+
+	for _, id := range assign {
+		p := project.NewAssignSSHKeyToClusterParams()
+		p.SetProjectID(projectID)
+		p.SetDC(dc)
+		p.SetClusterID(d.Id())
+		p.SetKeyID(id)
+		_, err := k.client.Project.AssignSSHKeyToCluster(p, k.auth)
+		if err != nil {
+			return err
+		}
+	}
+
+	d.SetPartial("sshkeys")
+	return nil
 }
 
 func waitClusterReady(k *kubermaticProviderMeta, d *schema.ResourceData) error {
@@ -318,12 +422,26 @@ func resourceClusterDelete(d *schema.ResourceData, m interface{}) error {
 	p.SetProjectID(pID)
 	p.SetClusterID(cID)
 
-	_, err := k.client.Project.DeleteCluster(p, k.auth)
-	if err != nil {
-		return fmt.Errorf("unable to delete cluster '%s': %v", cID, err)
-	}
-
+	deleteSent := false
 	return resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
+		if !deleteSent {
+			_, err := k.client.Project.DeleteCluster(p, k.auth)
+			if err != nil {
+				if e, ok := err.(*project.DeleteClusterDefault); ok {
+					if e.Code() == http.StatusConflict {
+						return resource.RetryableError(err)
+					}
+					if e.Code() == http.StatusNotFound {
+						return nil
+					}
+				}
+				if _, ok := err.(*project.DeleteClusterForbidden); ok {
+					return resource.RetryableError(err)
+				}
+				return resource.NonRetryableError(fmt.Errorf("unable to delete cluster '%s': %v", cID, err))
+			}
+			deleteSent = true
+		}
 		p := project.NewGetClusterParams()
 
 		p.SetClusterID(cID)
@@ -335,7 +453,10 @@ func resourceClusterDelete(d *schema.ResourceData, m interface{}) error {
 			if e, ok := err.(*project.GetClusterDefault); ok && e.Code() == http.StatusNotFound {
 				k.log.Debugf("cluster '%s' has been destroyed, returned http code: %d", cID, e.Code())
 				d.SetId("")
-				return nil
+				return resource.RetryableError(err)
+			}
+			if _, ok := err.(*project.GetClusterForbidden); ok {
+				return resource.RetryableError(err)
 			}
 			return resource.NonRetryableError(fmt.Errorf("unable to get cluster '%s': %v", cID, err))
 		}
