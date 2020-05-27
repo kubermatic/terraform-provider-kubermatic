@@ -17,10 +17,7 @@ install: fmtcheck
 	go install
 
 test: fmtcheck
-	go test $(PKG_NAME)
-
-testacc:
-	TF_ACC=1 go test $(PKG_NAME) -v $(TESTARGS) -timeout 120m
+	go test ./$(PKG_NAME)
 
 testacc:
 	TF_ACC=1 go test ./$(PKG_NAME) -v $(TESTARGS) -timeout 120m

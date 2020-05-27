@@ -2,6 +2,7 @@ package kubermatic
 
 import (
 	"fmt"
+	"net/http"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
@@ -66,6 +67,9 @@ func testAccCheckKubermaticSSHKeyDestroy(s *terraform.State) error {
 		if err != nil {
 			// API returns 403 if project doesn't exist.
 			if _, ok := err.(*project.ListSSHKeysForbidden); ok {
+				continue
+			}
+			if e, ok := err.(*project.ListSSHKeysDefault); ok && e.Code() == http.StatusNotFound {
 				continue
 			}
 			return fmt.Errorf("check destroy: %w", err)
