@@ -134,6 +134,15 @@ func resourceClusterCreate(d *schema.ResourceData, m interface{}) error {
 	}
 	d.SetId(r.Payload.ID)
 
+	raw := d.Get("sshkeys").(*schema.Set).List()
+	var sshkeys []string
+	for _, v := range raw {
+		sshkeys = append(sshkeys, v.(string))
+	}
+	if err := assignSSHKeysToCluster(pID, dc, r.Payload.ID, sshkeys, k); err != nil {
+		return err
+	}
+
 	if err := waitClusterReady(k, d); err != nil {
 		return fmt.Errorf("cluster '%s' is not ready: %v", r.Payload.ID, err)
 	}
@@ -278,10 +287,18 @@ func resourceClusterUpdate(d *schema.ResourceData, m interface{}) error {
 	k := m.(*kubermaticProviderMeta)
 
 	if d.HasChanges("name", "labels", "spec") {
-		patchClusterFields(d, k)
+		if err := patchClusterFields(d, k); err != nil {
+			return err
+		}
+		d.SetPartial("name")
+		d.SetPartial("labels")
+		d.SetPartial("spec")
 	}
 	if d.HasChange("sshkeys") {
-		updateClusterSSHKeys(d, k)
+		if err := updateClusterSSHKeys(d, k); err != nil {
+			return err
+		}
+		d.SetPartial("sshkeys")
 	}
 
 	if err := waitClusterReady(k, d); err != nil {
@@ -316,10 +333,6 @@ func patchClusterFields(d *schema.ResourceData, k *kubermaticProviderMeta) error
 		return err
 	}
 
-	d.SetPartial("name")
-	d.SetPartial("labels")
-	d.SetPartial("spec")
-
 	return nil
 }
 
@@ -350,23 +363,33 @@ func updateClusterSSHKeys(d *schema.ResourceData, k *kubermaticProviderMeta) err
 		p.SetKeyID(id)
 		_, err := k.client.Project.DetachSSHKeyFromCluster(p, k.auth)
 		if err != nil {
+			if e, ok := err.(*project.DetachSSHKeyFromClusterDefault); ok && e.Code() == http.StatusNotFound {
+				continue
+			}
 			return err
 		}
 	}
 
-	for _, id := range assign {
+	if err := assignSSHKeysToCluster(projectID, dc, d.Id(), assign, k); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func assignSSHKeysToCluster(projectID, dc, cluster string, sshkeyIDs []string, k *kubermaticProviderMeta) error {
+	for _, id := range sshkeyIDs {
 		p := project.NewAssignSSHKeyToClusterParams()
 		p.SetProjectID(projectID)
 		p.SetDC(dc)
-		p.SetClusterID(d.Id())
+		p.SetClusterID(cluster)
 		p.SetKeyID(id)
 		_, err := k.client.Project.AssignSSHKeyToCluster(p, k.auth)
 		if err != nil {
-			return err
+			return fmt.Errorf("unable to assign sshkeys to cluster '%s': %w", cluster, err)
 		}
 	}
 
-	d.SetPartial("sshkeys")
 	return nil
 }
 
@@ -436,7 +459,7 @@ func resourceClusterDelete(d *schema.ResourceData, m interface{}) error {
 					}
 				}
 				if _, ok := err.(*project.DeleteClusterForbidden); ok {
-					return resource.RetryableError(err)
+					return nil
 				}
 				return resource.NonRetryableError(fmt.Errorf("unable to delete cluster '%s': %s", cID, getErrorResponse(err)))
 			}
@@ -452,11 +475,10 @@ func resourceClusterDelete(d *schema.ResourceData, m interface{}) error {
 		if err != nil {
 			if e, ok := err.(*project.GetClusterDefault); ok && e.Code() == http.StatusNotFound {
 				k.log.Debugf("cluster '%s' has been destroyed, returned http code: %d", cID, e.Code())
-				d.SetId("")
 				return nil
 			}
 			if _, ok := err.(*project.GetClusterForbidden); ok {
-				return resource.RetryableError(err)
+				return nil
 			}
 			return resource.NonRetryableError(fmt.Errorf("unable to get cluster '%s': %s", cID, getErrorResponse(err)))
 		}
