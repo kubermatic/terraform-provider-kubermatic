@@ -170,18 +170,12 @@ func resourceClusterRead(d *schema.ResourceData, m interface{}) error {
 	p.SetClusterID(d.Id())
 
 	r, err := k.client.Project.GetCluster(p, k.auth)
+	if getClusterErrResourceIsDeleted(err) {
+		k.log.Infof("removing cluster '%s' from terraform state file, could not find the resource", d.Id())
+		d.SetId("")
+		return nil
+	}
 	if err != nil {
-		if e, ok := err.(*project.GetClusterDefault); ok && e.Code() == http.StatusNotFound {
-			k.log.Infof("removing cluster '%s' from terraform state file, could not find the resource", d.Id())
-			d.SetId("")
-			return nil
-		}
-
-		// TODO: check the cluster API code
-		// when cluster does not exist but it is in terraform state file
-		// the GET request returns 500 http code instead of 404, probably it's a bug
-		// because of that manual action to clean terraform state file is required
-
 		return fmt.Errorf("unable to get cluster '%s': %v", d.Id(), err)
 	}
 
@@ -222,6 +216,22 @@ func resourceClusterRead(d *schema.ResourceData, m interface{}) error {
 	}
 
 	return nil
+}
+
+func getClusterErrResourceIsDeleted(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	e, ok := err.(*project.GetClusterDefault)
+	if !ok {
+		return false
+	}
+
+	// All api replies and errors, that nevertheless indicate cluster was deleted.
+	// TODO: adjust when https://github.com/kubermatic/kubermatic/issues/5462 fixed
+	return (e.Code() == http.StatusNotFound ||
+		(e.Payload != nil && e.Payload.Error != nil && e.Payload.Error.Message != nil && *e.Payload.Error.Message == "no userInfo in request"))
 }
 
 // excludeProjectLabels excludes labels defined in project.

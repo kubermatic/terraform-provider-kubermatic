@@ -5,6 +5,7 @@ import (
 	"regexp"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 )
 
 func isLabelOrTagReserved(path string) bool {
@@ -57,12 +58,22 @@ func nodeDeploymentSpecFields() map[string]*schema.Schema {
 										Schema: awsNodeFields(),
 									},
 								},
+								"openstack": {
+									Type:        schema.TypeList,
+									Optional:    true,
+									MaxItems:    1,
+									Description: "OpenStack node deployment specification",
+									Elem: &schema.Resource{
+										Schema: openstackNodeFields(),
+									},
+								},
 							},
 						},
 					},
 					"operating_system": {
 						Type:        schema.TypeList,
-						Optional:    true,
+						Required:    true,
+						MinItems:    1,
 						MaxItems:    1,
 						Description: "Operating system",
 						Elem: &schema.Resource{
@@ -131,9 +142,10 @@ func nodeDeploymentSpecFields() map[string]*schema.Schema {
 						Elem: &schema.Resource{
 							Schema: map[string]*schema.Schema{
 								"effect": {
-									Type:        schema.TypeString,
-									Optional:    true,
-									Description: "Taint effect",
+									Type:         schema.TypeString,
+									Optional:     true,
+									Description:  "Taint effect",
+									ValidateFunc: validation.StringInSlice([]string{"NoSchedule", "PreferNoSchedule", "NoExecute"}, false),
 								},
 								"key": {
 									Type:        schema.TypeString,
@@ -211,6 +223,52 @@ func awsNodeFields() map[string]*schema.Schema {
 				}
 				return
 			},
+		},
+	}
+}
+
+func openstackNodeFields() map[string]*schema.Schema {
+	return map[string]*schema.Schema{
+		"flavor": {
+			Type:        schema.TypeString,
+			Required:    true,
+			Description: "Instante type",
+		},
+		"image": {
+			Type:        schema.TypeString,
+			Required:    true,
+			Description: "Image to use",
+		},
+		"disk_size": {
+			Type:         schema.TypeInt,
+			Optional:     true,
+			ValidateFunc: validation.IntAtLeast(1),
+			Description:  "If set, the rootDisk will be a volume. If not, the rootDisk will be on ephemeral storage and its size will be derived from the flavor",
+		},
+		"tags": {
+			Type:        schema.TypeMap,
+			Optional:    true,
+			Computed:    true,
+			Description: "Additional instance tags",
+			Elem:        schema.TypeString,
+			DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+				return isLabelOrTagReserved(k)
+			},
+			ValidateFunc: func(v interface{}, k string) (strings []string, errors []error) {
+				l := v.(map[string]interface{})
+				for key := range l {
+					if err := validateLabelOrTag(key); err != nil {
+						errors = append(errors, err)
+					}
+				}
+				return
+			},
+		},
+		"use_floating_ip": {
+			Type:        schema.TypeBool,
+			Optional:    true,
+			Default:     false,
+			Description: "Defines whether floating ip should be used",
 		},
 	}
 }
