@@ -3,6 +3,7 @@ package kubermatic
 import (
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
@@ -37,6 +38,7 @@ func resourceNodeDeployment() *schema.Resource {
 				Type: schema.TypeString,
 				// TODO(furkhat): make field "Computed: true" when back end error is fixed.
 				Required:    true,
+				ForceNew:    true,
 				Description: "Node deployment name",
 			},
 			"spec": {
@@ -81,31 +83,12 @@ func resourceNodeDeploymentCreate(d *schema.ResourceData, m interface{}) error {
 	if err != nil {
 		return fmt.Errorf("unable to create a node deployment: %s", getErrorResponse(err))
 	}
-	nID := r.Payload.ID
+	d.SetId(r.Payload.ID)
 
-	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
-		p := project.NewGetNodeDeploymentParams()
-		p.SetProjectID(pID)
-		p.SetClusterID(cID)
-		p.SetDC(dc)
-		p.SetNodeDeploymentID(nID)
-
-		r, err := k.client.Project.GetNodeDeployment(p, k.auth)
-		if err != nil {
-			return resource.NonRetryableError(fmt.Errorf("unable to get node deployment '%s' status: %s", nID, getErrorResponse(err)))
-		}
-
-		if r.Payload.Status.ReadyReplicas < *r.Payload.Spec.Replicas {
-			k.log.Debugf("waiting for node deployment '%s' to be ready, %+v", nID, r.Payload.Status)
-			return resource.RetryableError(fmt.Errorf("waiting for node deployment '%s' to be ready", nID))
-		}
-		return nil
-	})
-	if err != nil {
-		return fmt.Errorf("node deployment '%s' is not ready: %v", nID, err)
+	if err := waitForNodeDeploymentRead(k, d.Timeout(schema.TimeoutCreate), pID, dc, cID, r.Payload.ID); err != nil {
+		return err
 	}
 
-	d.SetId(nID)
 	return resourceNodeDeploymentRead(d, m)
 }
 
@@ -157,9 +140,59 @@ func resourceNodeDeploymentRead(d *schema.ResourceData, m interface{}) error {
 }
 
 func resourceNodeDeploymentUpdate(d *schema.ResourceData, m interface{}) error {
-	// TODO: implement after kubermatic client fix
+	// TODO(furkhat): uncomment and adjust when client is fixed.
+	// k := m.(*kubermaticProviderMeta)
+	// dc := d.Get("dc").(string)
+	// pID := d.Get("project_id").(string)
+	// cID := d.Get("cluster_id").(string)
+	// p := project.NewPatchNodeDeploymentParams()
+
+	// p.SetProjectID(pID)
+	// p.SetClusterID(cID)
+	// p.SetDC(dc)
+	// p.SetPatch(map[string]interface{}{
+	// 	"spec": expandNodeDeploymentSpec(d.Get("spec").([]interface{})),
+	// })
+
+	// r, err := k.client.Project.PatchNodeDeployment(p, k.auth)
+	// if err != nil {
+	// 	v, _ := json.Marshal(expandNodeDeploymentSpec(d.Get("spec").([]interface{})))
+	// 	if e, ok := err.(*project.PatchNodeDeploymentDefault); ok {
+	// 		return fmt.Errorf("%+v", e.Payload.Error)
+	// 	}
+	// 	return fmt.Errorf("unable to update a node deployment: %v\n%s", err, v)
+	// }
+
+	// if err := waitForNodeDeploymentRead(k, d.Timeout(schema.TimeoutCreate), pID, dc, cID, r.Payload.ID); err != nil {
+	// 	return err
+	// }
 
 	return resourceNodeDeploymentRead(d, m)
+}
+
+func waitForNodeDeploymentRead(k *kubermaticProviderMeta, timeout time.Duration, proj, dc, cluster, id string) error {
+	err := resource.Retry(timeout, func() *resource.RetryError {
+		p := project.NewGetNodeDeploymentParams()
+		p.SetProjectID(proj)
+		p.SetClusterID(cluster)
+		p.SetDC(dc)
+		p.SetNodeDeploymentID(id)
+
+		r, err := k.client.Project.GetNodeDeployment(p, k.auth)
+		if err != nil {
+			return resource.NonRetryableError(fmt.Errorf("unable to get node deployment '%s' status: %v", id, getErrorResponse(err)))
+		}
+
+		if r.Payload.Status.ReadyReplicas < *r.Payload.Spec.Replicas {
+			k.log.Debugf("waiting for node deployment '%s' to be ready, %+v", id, r.Payload.Status)
+			return resource.RetryableError(fmt.Errorf("waiting for node deployment '%s' to be ready", id))
+		}
+		return nil
+	})
+	if err != nil {
+		return fmt.Errorf("node deployment '%s' is not ready: %v", id, err)
+	}
+	return nil
 }
 
 func resourceNodeDeploymentDelete(d *schema.ResourceData, m interface{}) error {

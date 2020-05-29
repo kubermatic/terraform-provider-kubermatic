@@ -170,6 +170,11 @@ func resourceClusterRead(d *schema.ResourceData, m interface{}) error {
 	p.SetClusterID(d.Id())
 
 	r, err := k.client.Project.GetCluster(p, k.auth)
+	if getClusterErrResourceIsDeleted(err) {
+		k.log.Infof("removing cluster '%s' from terraform state file, could not find the resource", d.Id())
+		d.SetId("")
+		return nil
+	}
 	if err != nil {
 		if e, ok := err.(*project.GetClusterDefault); ok && e.Code() == http.StatusNotFound {
 			k.log.Infof("removing cluster '%s' from terraform state file, could not find the resource", d.Id())
@@ -222,6 +227,22 @@ func resourceClusterRead(d *schema.ResourceData, m interface{}) error {
 	}
 
 	return nil
+}
+
+func getClusterErrResourceIsDeleted(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	e, ok := err.(*project.GetClusterDefault)
+	if !ok {
+		return false
+	}
+
+	// All api replies and errors, that nevertheless indicate cluster was deleted.
+	// TODO: adjust when https://github.com/kubermatic/kubermatic/issues/5462 fixed
+	return (e.Code() == http.StatusNotFound ||
+		(e.Payload != nil && e.Payload.Error != nil && e.Payload.Error.Message != nil && *e.Payload.Error.Message == "no userInfo in request"))
 }
 
 // excludeProjectLabels excludes labels defined in project.

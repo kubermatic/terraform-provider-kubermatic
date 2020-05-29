@@ -267,6 +267,55 @@ func TestFlattenAWSNodeSpec(t *testing.T) {
 	}
 }
 
+func TestFlattenOpenstackNodeSpec(t *testing.T) {
+	cases := []struct {
+		Input          *models.OpenstackNodeSpec
+		ExpectedOutput []interface{}
+	}{
+		{
+			&models.OpenstackNodeSpec{
+				Flavor:        strToPtr("big"),
+				Image:         strToPtr("Ubuntu"),
+				UseFloatingIP: true,
+				Tags: map[string]string{
+					"foo": "bar",
+				},
+				RootDiskSizeGB: int64(999),
+			},
+			[]interface{}{
+				map[string]interface{}{
+					"flavor":          "big",
+					"image":           "Ubuntu",
+					"use_floating_ip": true,
+					"tags": map[string]string{
+						"foo": "bar",
+					},
+					"disk_size": int64(999),
+				},
+			},
+		},
+		{
+			&models.OpenstackNodeSpec{},
+			[]interface{}{
+				map[string]interface{}{
+					"use_floating_ip": false,
+				},
+			},
+		},
+		{
+			nil,
+			[]interface{}{},
+		},
+	}
+
+	for _, tc := range cases {
+		output := flattenOpenstackNodeSpec(tc.Input)
+		if diff := cmp.Diff(tc.ExpectedOutput, output); diff != "" {
+			t.Fatalf("Unexpected output from expander: mismatch (-want +got):\n%s", diff)
+		}
+	}
+}
+
 func TestExpandNodeDeploymentSpec(t *testing.T) {
 	cases := []struct {
 		Input          []interface{}
@@ -523,6 +572,54 @@ func TestExpandAWSNodeSpec(t *testing.T) {
 
 	for _, tc := range cases {
 		output := expandAWSNodeSpec(tc.Input)
+		if diff := cmp.Diff(tc.ExpectedOutput, output); diff != "" {
+			t.Fatalf("Unexpected output from expander: mismatch (-want +got):\n%s", diff)
+		}
+	}
+}
+
+func TestExpandOpenstackNodeSpec(t *testing.T) {
+	cases := []struct {
+		Input          []interface{}
+		ExpectedOutput *models.OpenstackNodeSpec
+	}{
+		{
+			[]interface{}{
+				map[string]interface{}{
+					"flavor":          "tiny",
+					"image":           "Ubuntu",
+					"use_floating_ip": true,
+					"tags": map[string]interface{}{
+						"foo": "bar",
+					},
+					"disk_size": 999,
+				},
+			},
+			&models.OpenstackNodeSpec{
+				Flavor:        strToPtr("tiny"),
+				Image:         strToPtr("Ubuntu"),
+				UseFloatingIP: true,
+				Tags: map[string]string{
+					"foo": "bar",
+				},
+				RootDiskSizeGB: int64(999),
+			},
+		},
+		{
+
+			[]interface{}{
+				map[string]interface{}{},
+			},
+			&models.OpenstackNodeSpec{},
+		},
+		{
+			[]interface{}{},
+			nil,
+		},
+	}
+
+	for _, tc := range cases {
+		output := expandOpenstackNodeSpec(tc.Input)
 		if diff := cmp.Diff(tc.ExpectedOutput, output); diff != "" {
 			t.Fatalf("Unexpected output from expander: mismatch (-want +got):\n%s", diff)
 		}

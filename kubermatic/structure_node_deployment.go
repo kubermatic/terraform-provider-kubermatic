@@ -166,6 +166,10 @@ func flattenNodeCloudSpec(in *models.NodeCloudSpec) []interface{} {
 		att["aws"] = flattenAWSNodeSpec(in.Aws)
 	}
 
+	if in.Openstack != nil {
+		att["openstack"] = flattenOpenstackNodeSpec(in.Openstack)
+	}
+
 	// TODO: add all cloud providers
 
 	return []interface{}{att}
@@ -210,6 +214,34 @@ func flattenAWSNodeSpec(in *models.AWSNodeSpec) []interface{} {
 
 	if in.InstanceType != nil {
 		att["instance_type"] = *in.InstanceType
+	}
+
+	return []interface{}{att}
+}
+
+func flattenOpenstackNodeSpec(in *models.OpenstackNodeSpec) []interface{} {
+	if in == nil {
+		return []interface{}{}
+	}
+
+	att := make(map[string]interface{})
+
+	if in.Flavor != nil {
+		att["flavor"] = *in.Flavor
+	}
+
+	if in.Image != nil {
+		att["image"] = *in.Image
+	}
+
+	att["use_floating_ip"] = in.UseFloatingIP
+
+	if in.Tags != nil {
+		att["tags"] = in.Tags
+	}
+
+	if in.RootDiskSizeGB != 0 {
+		att["disk_size"] = in.RootDiskSizeGB
 	}
 
 	return []interface{}{att}
@@ -402,6 +434,10 @@ func expandNodeCloudSpec(p []interface{}) *models.NodeCloudSpec {
 		obj.Aws = expandAWSNodeSpec(v.([]interface{}))
 	}
 
+	if v, ok := in["openstack"]; ok {
+		obj.Openstack = expandOpenstackNodeSpec(v.([]interface{}))
+	}
+
 	return obj
 }
 
@@ -448,6 +484,42 @@ func expandAWSNodeSpec(p []interface{}) *models.AWSNodeSpec {
 		for key, val := range v.(map[string]interface{}) {
 			obj.Tags[key] = val.(string)
 		}
+	}
+
+	return obj
+}
+
+func expandOpenstackNodeSpec(p []interface{}) *models.OpenstackNodeSpec {
+	if len(p) < 1 {
+		return nil
+	}
+	obj := &models.OpenstackNodeSpec{}
+	if p[0] == nil {
+		return obj
+	}
+	in := p[0].(map[string]interface{})
+
+	if v, ok := in["flavor"]; ok {
+		obj.Flavor = strToPtr(v.(string))
+	}
+
+	if v, ok := in["image"]; ok {
+		obj.Image = strToPtr(v.(string))
+	}
+
+	if v, ok := in["use_floating_ip"]; ok {
+		obj.UseFloatingIP = v.(bool)
+	}
+
+	if v, ok := in["tags"]; ok {
+		obj.Tags = make(map[string]string)
+		for key, val := range v.(map[string]interface{}) {
+			obj.Tags[key] = val.(string)
+		}
+	}
+
+	if v, ok := in["disk_size"]; ok {
+		obj.RootDiskSizeGB = int64(v.(int))
 	}
 
 	return obj
