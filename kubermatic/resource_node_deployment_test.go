@@ -24,7 +24,9 @@ func TestAccKubermaticNodeDeployment_Openstack_Basic(t *testing.T) {
 	seedDC := os.Getenv(testEnvOpenstackSeedDC)
 	nodeDC := os.Getenv(testEnvOpenstackNodeDC)
 	image := os.Getenv(testEnvOpenstackImage)
+	image2 := os.Getenv(testEnvOpenstackImage2)
 	flavor := os.Getenv(testEnvOpenstackFlavor)
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheckForOpenstack(t) },
 		Providers:    testAccProviders,
@@ -45,24 +47,23 @@ func TestAccKubermaticNodeDeployment_Openstack_Basic(t *testing.T) {
 					resource.TestCheckResourceAttr("kubermatic_node_deployment.acctest_nd", "spec.0.template.0.versions.0.kubelet", testKubeletVersion16),
 				),
 			},
-			// TODO(furkhat): when go-kubermatic node deployment patch method fixed.
-			// {
-			// 	Config: testAccCheckKubermaticNodeDeploymentBasic2(testName, seedDC, nodeDC, username, password, tenant, testClusterVersion17, testKubeletVersion17, image2, flavor),
-			// 	Check: resource.ComposeAggregateTestCheckFunc(
-			// 		resource.TestCheckResourceAttrPtr("kubermatic_node_deployment.acctest_nd", "id", &ndepl.ID),
-			// 		testAccCheckKubermaticNodeDeploymentExists("kubermatic_node_deployment.acctest_nd", "kubermatic_project.acctest_project", "kubermatic_cluster.acctest_cluster", seedDC, &ndepl),
-			// 		testAccCheckKubermaticNodeDeploymentFields(&ndepl, flavor, image2, testKubeletVersion17, 2, 123, true, true),
-			// 		resource.TestCheckResourceAttr("kubermatic_node_deployment.acctest_nd", "dc", seedDC),
-			// 		resource.TestCheckResourceAttr("kubermatic_node_deployment.acctest_nd", "name", testName),
-			// 		resource.TestCheckResourceAttr("kubermatic_node_deployment.acctest_nd", "spec.0.replicas", "2"),
-			// 		resource.TestCheckResourceAttr("kubermatic_node_deployment.acctest_nd", "spec.0.template.0.cloud.0.openstack.0.flavor", flavor),
-			// 		resource.TestCheckResourceAttr("kubermatic_node_deployment.acctest_nd", "spec.0.template.0.cloud.0.openstack.0.image", image2),
-			// 		resource.TestCheckResourceAttr("kubermatic_node_deployment.acctest_nd", "spec.0.template.0.cloud.0.openstack.0.use_floating_ip", "true"),
-			// 		resource.TestCheckResourceAttr("kubermatic_node_deployment.acctest_nd", "spec.0.template.0.cloud.0.openstack.0.disk_size", "123"),
-			// 		resource.TestCheckResourceAttr("kubermatic_node_deployment.acctest_nd", "spec.0.template.0.operating_system.0.ubuntu.0.dist_upgrade_on_boot", "true"),
-			// 		resource.TestCheckResourceAttr("kubermatic_node_deployment.acctest_nd", "spec.0.template.0.versions.0.kubelet", testKubeletVersion17),
-			// 	),
-			// },
+			{
+				Config: testAccCheckKubermaticNodeDeploymentBasic2(testName, seedDC, nodeDC, username, password, tenant, testClusterVersion17, testKubeletVersion17, image2, flavor),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrPtr("kubermatic_node_deployment.acctest_nd", "id", &ndepl.ID),
+					testAccCheckKubermaticNodeDeploymentExists("kubermatic_node_deployment.acctest_nd", "kubermatic_project.acctest_project", "kubermatic_cluster.acctest_cluster", seedDC, &ndepl),
+					testAccCheckKubermaticNodeDeploymentFields(&ndepl, flavor, image2, testKubeletVersion17, 2, 123, true, true),
+					resource.TestCheckResourceAttr("kubermatic_node_deployment.acctest_nd", "dc", seedDC),
+					resource.TestCheckResourceAttr("kubermatic_node_deployment.acctest_nd", "name", testName),
+					resource.TestCheckResourceAttr("kubermatic_node_deployment.acctest_nd", "spec.0.replicas", "2"),
+					resource.TestCheckResourceAttr("kubermatic_node_deployment.acctest_nd", "spec.0.template.0.cloud.0.openstack.0.flavor", flavor),
+					resource.TestCheckResourceAttr("kubermatic_node_deployment.acctest_nd", "spec.0.template.0.cloud.0.openstack.0.image", image2),
+					resource.TestCheckResourceAttr("kubermatic_node_deployment.acctest_nd", "spec.0.template.0.cloud.0.openstack.0.use_floating_ip", "true"),
+					resource.TestCheckResourceAttr("kubermatic_node_deployment.acctest_nd", "spec.0.template.0.cloud.0.openstack.0.disk_size", "123"),
+					resource.TestCheckResourceAttr("kubermatic_node_deployment.acctest_nd", "spec.0.template.0.operating_system.0.ubuntu.0.dist_upgrade_on_boot", "true"),
+					resource.TestCheckResourceAttr("kubermatic_node_deployment.acctest_nd", "spec.0.template.0.versions.0.kubelet", testKubeletVersion17),
+				),
+			},
 		},
 	})
 }

@@ -81,6 +81,9 @@ func resourceNodeDeploymentCreate(d *schema.ResourceData, m interface{}) error {
 
 	r, err := k.client.Project.CreateNodeDeployment(p, k.auth)
 	if err != nil {
+		if e, ok := err.(*project.CreateNodeDeploymentDefault); ok && e.Payload.Error.Message != nil {
+			return fmt.Errorf("%s: %v", *e.Payload.Error.Message, err)
+		}
 		return fmt.Errorf("unable to create a node deployment: %v", err)
 	}
 	d.SetId(r.Payload.ID)
@@ -141,31 +144,31 @@ func resourceNodeDeploymentRead(d *schema.ResourceData, m interface{}) error {
 
 func resourceNodeDeploymentUpdate(d *schema.ResourceData, m interface{}) error {
 	// TODO(furkhat): uncomment and adjust when client is fixed.
-	// k := m.(*kubermaticProviderMeta)
-	// dc := d.Get("dc").(string)
-	// pID := d.Get("project_id").(string)
-	// cID := d.Get("cluster_id").(string)
-	// p := project.NewPatchNodeDeploymentParams()
+	k := m.(*kubermaticProviderMeta)
+	dc := d.Get("dc").(string)
+	pID := d.Get("project_id").(string)
+	cID := d.Get("cluster_id").(string)
+	p := project.NewPatchNodeDeploymentParams()
 
-	// p.SetProjectID(pID)
-	// p.SetClusterID(cID)
-	// p.SetDC(dc)
-	// p.SetPatch(map[string]interface{}{
-	// 	"spec": expandNodeDeploymentSpec(d.Get("spec").([]interface{})),
-	// })
+	p.SetProjectID(pID)
+	p.SetDC(dc)
+	p.SetClusterID(cID)
+	p.SetNodeDeploymentID(d.Id())
+	p.SetPatch(models.NodeDeployment{
+		Spec: expandNodeDeploymentSpec(d.Get("spec").([]interface{})),
+	})
 
-	// r, err := k.client.Project.PatchNodeDeployment(p, k.auth)
-	// if err != nil {
-	// 	v, _ := json.Marshal(expandNodeDeploymentSpec(d.Get("spec").([]interface{})))
-	// 	if e, ok := err.(*project.PatchNodeDeploymentDefault); ok {
-	// 		return fmt.Errorf("%+v", e.Payload.Error)
-	// 	}
-	// 	return fmt.Errorf("unable to update a node deployment: %v\n%s", err, v)
-	// }
+	r, err := k.client.Project.PatchNodeDeployment(p, k.auth)
+	if err != nil {
+		if e, ok := err.(*project.PatchNodeDeploymentDefault); ok {
+			return fmt.Errorf("%+v", e.Payload.Error)
+		}
+		return fmt.Errorf("unable to update a node deployment: %v", err)
+	}
 
-	// if err := waitForNodeDeploymentRead(k, d.Timeout(schema.TimeoutCreate), pID, dc, cID, r.Payload.ID); err != nil {
-	// 	return err
-	// }
+	if err := waitForNodeDeploymentRead(k, d.Timeout(schema.TimeoutCreate), pID, dc, cID, r.Payload.ID); err != nil {
+		return err
+	}
 
 	return resourceNodeDeploymentRead(d, m)
 }
