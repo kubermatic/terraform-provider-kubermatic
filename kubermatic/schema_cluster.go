@@ -21,12 +21,6 @@ func clusterSpecFields() map[string]*schema.Schema {
 			Description: "Cloud specification",
 			Elem: &schema.Resource{
 				Schema: map[string]*schema.Schema{
-					"dc": {
-						Type:        schema.TypeString,
-						ForceNew:    true,
-						Required:    true,
-						Description: "Data center name",
-					},
 					"bringyourown": {
 						Type:        schema.TypeList,
 						Optional:    true,

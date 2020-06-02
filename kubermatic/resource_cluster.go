@@ -9,7 +9,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
+	"github.com/kubermatic/go-kubermatic/client/datacenter"
 	"github.com/kubermatic/go-kubermatic/client/project"
+	"github.com/kubermatic/go-kubermatic/client/versions"
 	"github.com/kubermatic/go-kubermatic/models"
 )
 
@@ -31,7 +33,12 @@ func resourceCluster() *schema.Resource {
 				ForceNew:    true,
 				Description: "Reference project identifier",
 			},
-			"dc": {
+			"dc_seed": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Data center seed",
+			},
+			"dc_name": {
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
@@ -106,22 +113,52 @@ func resourceCluster() *schema.Resource {
 				}
 				return false
 			}),
+			validateVersionExists(),
 		),
+	}
+}
+
+func validateVersionExists() schema.CustomizeDiffFunc {
+	return func(d *schema.ResourceDiff, meta interface{}) error {
+		k := meta.(*kubermaticProviderMeta)
+		version := d.Get("spec.0.version").(string)
+		p := versions.NewGetMasterVersionsParams()
+		r, err := k.client.Versions.GetMasterVersions(p, k.auth)
+		if err != nil {
+			if e, ok := err.(*versions.GetMasterVersionsDefault); ok && e.Payload != nil && e.Payload.Error != nil && e.Payload.Error.Message != nil {
+				return fmt.Errorf("get cluster upgrades: %s", *e.Payload.Error.Message)
+			}
+			return err
+		}
+
+		for _, v := range r.Payload {
+			if s, ok := v.Version.(string); ok && s == version {
+				return nil
+			}
+		}
+
+		return fmt.Errorf("unknown version %s", version)
 	}
 }
 
 func resourceClusterCreate(d *schema.ResourceData, m interface{}) error {
 	k := m.(*kubermaticProviderMeta)
 	pID := d.Get("project_id").(string)
-	dc := d.Get("dc").(string)
+	dcName := d.Get("dc_name").(string)
 	p := project.NewCreateClusterParams()
 
+	dc, err := getDatacenterByName(k, dcName)
+	if err != nil {
+		return err
+	}
+	d.Set("dc_seed", dc.Spec.Seed)
+
 	p.SetProjectID(pID)
-	p.SetDC(dc)
+	p.SetDC(dc.Spec.Seed)
 	p.SetBody(&models.CreateClusterSpec{
 		Cluster: &models.Cluster{
 			Name:       d.Get("name").(string),
-			Spec:       expandClusterSpec(d.Get("spec").([]interface{})),
+			Spec:       expandClusterSpec(d.Get("spec").([]interface{}), d.Get("dc_name").(string)),
 			Type:       d.Get("type").(string),
 			Labels:     getLabels(d),
 			Credential: d.Get("credential").(string),
@@ -139,7 +176,7 @@ func resourceClusterCreate(d *schema.ResourceData, m interface{}) error {
 	for _, v := range raw {
 		sshkeys = append(sshkeys, v.(string))
 	}
-	if err := assignSSHKeysToCluster(pID, dc, r.Payload.ID, sshkeys, k); err != nil {
+	if err := assignSSHKeysToCluster(pID, dc.Spec.Seed, r.Payload.ID, sshkeys, k); err != nil {
 		return err
 	}
 
@@ -162,10 +199,29 @@ func getLabels(d *schema.ResourceData) map[string]string {
 	return labels
 }
 
+func getDatacenterByName(k *kubermaticProviderMeta, name string) (*models.Datacenter, error) {
+	p := datacenter.NewListDatacentersParams()
+	r, err := k.client.Datacenter.ListDatacenters(p, k.auth)
+	if err != nil {
+		if e, ok := err.(*datacenter.ListDatacentersDefault); ok && e.Payload != nil && e.Payload.Error != nil && e.Payload.Error.Message != nil {
+			return nil, fmt.Errorf("list datacenters: %s", *e.Payload.Error.Message)
+		}
+		return nil, fmt.Errorf("list datacenters: %v", err)
+	}
+
+	for _, v := range r.Payload {
+		if !v.Seed && v.Metadata.Name == name {
+			return v, nil
+		}
+	}
+
+	return nil, fmt.Errorf("Datacenter '%s' not found", name)
+}
+
 func resourceClusterRead(d *schema.ResourceData, m interface{}) error {
 	k := m.(*kubermaticProviderMeta)
 	p := project.NewGetClusterParams()
-	p.SetDC(d.Get("dc").(string))
+	p.SetDC(d.Get("dc_seed").(string))
 	p.SetProjectID(d.Get("project_id").(string))
 	p.SetClusterID(d.Id())
 
@@ -267,7 +323,7 @@ func excludeProjectLabels(k *kubermaticProviderMeta, projectID string, allLabels
 func getClusterAssignedSSHKeys(d *schema.ResourceData, k *kubermaticProviderMeta) ([]string, error) {
 	p := project.NewListSSHKeysAssignedToClusterParams()
 	p.SetProjectID(d.Get("project_id").(string))
-	p.SetDC(d.Get("dc").(string))
+	p.SetDC(d.Get("dc_seed").(string))
 	p.SetClusterID(d.Id())
 	ret, err := k.client.Project.ListSSHKeysAssignedToCluster(p, k.auth)
 	if err != nil {
@@ -332,7 +388,7 @@ func resourceClusterUpdate(d *schema.ResourceData, m interface{}) error {
 func patchClusterFields(d *schema.ResourceData, k *kubermaticProviderMeta) error {
 	p := project.NewPatchClusterParams()
 	p.SetProjectID(d.Get("project_id").(string))
-	p.SetDC(d.Get("dc").(string))
+	p.SetDC(d.Get("dc_seed").(string))
 	p.SetClusterID(d.Id())
 	name := d.Get("name").(string)
 	version := d.Get("spec.0.version").(string)
@@ -374,7 +430,7 @@ func updateClusterSSHKeys(d *schema.ResourceData, k *kubermaticProviderMeta) err
 	}
 
 	projectID := d.Get("project_id").(string)
-	dc := d.Get("dc").(string)
+	dc := d.Get("dc_seed").(string)
 
 	for _, id := range unassign {
 		p := project.NewDetachSSHKeyFromClusterParams()
@@ -419,7 +475,7 @@ func waitClusterReady(k *kubermaticProviderMeta, d *schema.ResourceData) error {
 		hp := project.NewGetClusterHealthParams()
 		hp.SetClusterID(d.Id())
 		hp.SetProjectID(d.Get("project_id").(string))
-		hp.SetDC(d.Get("dc").(string))
+		hp.SetDC(d.Get("dc_seed").(string))
 
 		r, err := k.client.Project.GetClusterHealth(hp, k.auth)
 		if err != nil {
@@ -459,7 +515,7 @@ func resourceClusterDelete(d *schema.ResourceData, m interface{}) error {
 	k := m.(*kubermaticProviderMeta)
 	cID := d.Id()
 	pID := d.Get("project_id").(string)
-	dc := d.Get("dc").(string)
+	dc := d.Get("dc_seed").(string)
 	p := project.NewDeleteClusterParams()
 
 	p.SetDC(dc)

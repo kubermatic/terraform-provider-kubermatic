@@ -29,7 +29,6 @@ func TestFlattenClusterSpec(t *testing.T) {
 					"audit_logging": false,
 					"cloud": []interface{}{
 						map[string]interface{}{
-							"dc":           "eu-west-1",
 							"bringyourown": []interface{}{map[string]interface{}{}},
 						},
 					},
@@ -63,12 +62,10 @@ func TestFlattenClusterCloudSpec(t *testing.T) {
 	}{
 		{
 			&models.CloudSpec{
-				DatacenterName: "eu-west-1",
-				Aws:            &models.AWSCloudSpec{},
+				Aws: &models.AWSCloudSpec{},
 			},
 			[]interface{}{
 				map[string]interface{}{
-					"dc": "eu-west-1",
 					"aws": []interface{}{
 						map[string]interface{}{},
 					},
@@ -77,12 +74,10 @@ func TestFlattenClusterCloudSpec(t *testing.T) {
 		},
 		{
 			&models.CloudSpec{
-				DatacenterName: "eu-west-1",
-				Bringyourown:   map[string]interface{}{},
+				Bringyourown: map[string]interface{}{},
 			},
 			[]interface{}{
 				map[string]interface{}{
-					"dc": "eu-west-1",
 					"bringyourown": []interface{}{
 						map[string]interface{}{},
 					},
@@ -259,6 +254,7 @@ func TestExpandClusterSpec(t *testing.T) {
 	cases := []struct {
 		Input          []interface{}
 		ExpectedOutput *models.ClusterSpec
+		DCName         string
 	}{
 		{
 			[]interface{}{
@@ -268,7 +264,6 @@ func TestExpandClusterSpec(t *testing.T) {
 					"audit_logging":    false,
 					"cloud": []interface{}{
 						map[string]interface{}{
-							"dc": "eu-west-1",
 							"bringyourown": []interface{}{
 								map[string]interface{}{},
 							},
@@ -285,21 +280,24 @@ func TestExpandClusterSpec(t *testing.T) {
 					Bringyourown:   map[string]interface{}{},
 				},
 			},
+			"eu-west-1",
 		},
 		{
 			[]interface{}{
 				map[string]interface{}{},
 			},
 			&models.ClusterSpec{},
+			"",
 		},
 		{
 			[]interface{}{},
 			nil,
+			"",
 		},
 	}
 
 	for _, tc := range cases {
-		output := expandClusterSpec(tc.Input)
+		output := expandClusterSpec(tc.Input, tc.DCName)
 		if diff := cmp.Diff(tc.ExpectedOutput, output); diff != "" {
 			t.Fatalf("Unexpected output from expander: mismatch (-want +got):\n%s", diff)
 		}
@@ -310,11 +308,11 @@ func TestExpandClusterCloudSpec(t *testing.T) {
 	cases := []struct {
 		Input          []interface{}
 		ExpectedOutput *models.CloudSpec
+		DCName         string
 	}{
 		{
 			[]interface{}{
 				map[string]interface{}{
-					"dc": "eu-west-1",
 					"bringyourown": []interface{}{
 						map[string]interface{}{},
 					},
@@ -324,11 +322,11 @@ func TestExpandClusterCloudSpec(t *testing.T) {
 				DatacenterName: "eu-west-1",
 				Bringyourown:   map[string]interface{}{},
 			},
+			"eu-west-1",
 		},
 		{
 			[]interface{}{
 				map[string]interface{}{
-					"dc": "eu-west-1",
 					"aws": []interface{}{
 						map[string]interface{}{},
 					},
@@ -338,21 +336,26 @@ func TestExpandClusterCloudSpec(t *testing.T) {
 				DatacenterName: "eu-west-1",
 				Aws:            &models.AWSCloudSpec{},
 			},
+			"eu-west-1",
 		},
 		{
 			[]interface{}{
 				map[string]interface{}{},
 			},
-			&models.CloudSpec{},
+			&models.CloudSpec{
+				DatacenterName: "eu-west-1",
+			},
+			"eu-west-1",
 		},
 		{
 			[]interface{}{},
 			nil,
+			"eu-west-1",
 		},
 	}
 
 	for _, tc := range cases {
-		output := expandClusterCloudSpec(tc.Input)
+		output := expandClusterCloudSpec(tc.Input, tc.DCName)
 		if diff := cmp.Diff(tc.ExpectedOutput, output); diff != "" {
 			t.Fatalf("Unexpected output from expander: mismatch (-want +got):\n%s", diff)
 		}

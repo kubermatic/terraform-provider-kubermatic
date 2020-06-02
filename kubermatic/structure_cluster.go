@@ -69,10 +69,6 @@ func flattenClusterCloudSpec(values clusterPreserveValues, in *models.CloudSpec)
 
 	att := make(map[string]interface{})
 
-	if in.DatacenterName != "" {
-		att["dc"] = in.DatacenterName
-	}
-
 	if in.Bringyourown != nil {
 		att["bringyourown"] = []interface{}{in.Bringyourown}
 	}
@@ -152,7 +148,7 @@ func flattenOpenstackSpec(values clusterPreserveValues, in *models.OpenstackClou
 
 // expanders
 
-func expandClusterSpec(p []interface{}) *models.ClusterSpec {
+func expandClusterSpec(p []interface{}, dcName string) *models.ClusterSpec {
 	if len(p) < 1 {
 		return nil
 	}
@@ -175,7 +171,7 @@ func expandClusterSpec(p []interface{}) *models.ClusterSpec {
 	}
 
 	if v, ok := in["cloud"]; ok {
-		obj.Cloud = expandClusterCloudSpec(v.([]interface{}))
+		obj.Cloud = expandClusterCloudSpec(v.([]interface{}), dcName)
 	}
 
 	return obj
@@ -216,7 +212,7 @@ func expandAuditLogging(enabled bool) *models.AuditLoggingSettings {
 	}
 }
 
-func expandClusterCloudSpec(p []interface{}) *models.CloudSpec {
+func expandClusterCloudSpec(p []interface{}, dcName string) *models.CloudSpec {
 	if len(p) < 1 {
 		return nil
 	}
@@ -226,9 +222,7 @@ func expandClusterCloudSpec(p []interface{}) *models.CloudSpec {
 	}
 	in := p[0].(map[string]interface{})
 
-	if v, ok := in["dc"]; ok {
-		obj.DatacenterName = v.(string)
-	}
+	obj.DatacenterName = dcName
 
 	if v, ok := in["bringyourown"]; ok {
 		obj.Bringyourown = expandBringYourOwnCloudSpec(v.([]interface{}))
