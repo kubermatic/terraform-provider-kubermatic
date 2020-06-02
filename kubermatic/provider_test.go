@@ -19,6 +19,7 @@ const (
 	testEnvOpenstackSeedDC   = "KUBERMATIC_OPENSTACK_SEED_DC"
 	testEnvOpenstackNodeDC   = "KUBERMATIC_OPENSTACK_NODE_DC"
 	testEnvOpenstackImage    = "KUBERMATIC_OPENSTACK_IMAGE"
+	testEnvOpenstackImage2   = "KUBERMATIC_OPENSTACK_IMAGE2"
 	testEnvOpenstackFlavor   = "KUBERMATIC_OPENSTACK_FLAVOR"
 )
 
@@ -43,6 +44,7 @@ func testAccPreCheckForOpenstack(t *testing.T) {
 	checkEnv(t, testEnvOpenstackSeedDC)
 	checkEnv(t, testEnvOpenstackNodeDC)
 	checkEnv(t, testEnvOpenstackImage)
+	checkEnv(t, testEnvOpenstackImage2)
 	checkEnv(t, testEnvOpenstackFlavor)
 }
 
