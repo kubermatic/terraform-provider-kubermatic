@@ -22,10 +22,10 @@ func TestAccKubermaticSSHKey_Basic(t *testing.T) {
 			{
 				Config: fmt.Sprintf(testAccCheckKubermaticSSHKeyConfigBasic, testName, testName),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					testAccCheckKubermaticSSHKeyExists("kubermatic_sshkey.test-sshkey", "kubermatic_project.sshkey-project", &sshkey),
+					testAccCheckKubermaticSSHKeyExists("kubermatic_sshkey.acctest_sshkey", "kubermatic_project.acctest_project", &sshkey),
 					testAccCheckKubermaticSSHKeyAttributes(&sshkey, testName),
-					resource.TestCheckResourceAttr("kubermatic_sshkey.test-sshkey", "name", testName),
-					resource.TestCheckResourceAttr("kubermatic_sshkey.test-sshkey", "public_key", testSSHPubKey),
+					resource.TestCheckResourceAttr("kubermatic_sshkey.acctest_sshkey", "name", testName),
+					resource.TestCheckResourceAttr("kubermatic_sshkey.acctest_sshkey", "public_key", testSSHPubKey),
 				),
 			},
 		},
@@ -38,13 +38,13 @@ const (
 provider "kubermatic" {
 }
 
-resource "kubermatic_project" "sshkey-project" {
+resource "kubermatic_project" "acctest_project" {
 	name = "%s"
 	labels = {}
 }
 
-resource "kubermatic_sshkey" "test-sshkey" {
-	project_id = kubermatic_project.sshkey-project.id
+resource "kubermatic_sshkey" "acctest_sshkey" {
+	project_id = kubermatic_project.acctest_project.id
 
 	name = "%s"
 	public_key = "` + testSSHPubKey + `"

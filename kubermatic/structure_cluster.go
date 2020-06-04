@@ -26,6 +26,8 @@ func flattenClusterSpec(values clusterPreserveValues, in *models.ClusterSpec) []
 		att["audit_logging"] = in.AuditLogging.Enabled
 	}
 
+	att["pod_security_policy"] = in.UsePodSecurityPolicyAdmissionPlugin
+
 	if in.Cloud != nil {
 		att["cloud"] = flattenClusterCloudSpec(values, in.Cloud)
 	}
@@ -168,6 +170,10 @@ func expandClusterSpec(p []interface{}, dcName string) *models.ClusterSpec {
 
 	if v, ok := in["audit_logging"]; ok {
 		obj.AuditLogging = expandAuditLogging(v.(bool))
+	}
+
+	if v, ok := in["pod_security_policy"]; ok {
+		obj.UsePodSecurityPolicyAdmissionPlugin = v.(bool)
 	}
 
 	if v, ok := in["cloud"]; ok {

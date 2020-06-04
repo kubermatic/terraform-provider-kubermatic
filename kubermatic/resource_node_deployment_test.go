@@ -11,8 +11,8 @@ import (
 	"github.com/kubermatic/go-kubermatic/models"
 )
 
-const testKubeletVersion16 = "1.16.8"
-const testKubeletVersion17 = "1.17.4"
+const testKubeletVersion16 = "1.16.9"
+const testKubeletVersion17 = "1.17.5"
 
 func TestAccKubermaticNodeDeployment_Openstack_Basic(t *testing.T) {
 	var ndepl models.NodeDeployment
@@ -21,7 +21,6 @@ func TestAccKubermaticNodeDeployment_Openstack_Basic(t *testing.T) {
 	username := os.Getenv(testEnvOpenstackUsername)
 	password := os.Getenv(testEnvOpenstackPassword)
 	tenant := os.Getenv(testEnvOpenstackTenant)
-	seedDC := os.Getenv(testEnvOpenstackSeedDC)
 	nodeDC := os.Getenv(testEnvOpenstackNodeDC)
 	image := os.Getenv(testEnvOpenstackImage)
 	image2 := os.Getenv(testEnvOpenstackImage2)
@@ -33,11 +32,10 @@ func TestAccKubermaticNodeDeployment_Openstack_Basic(t *testing.T) {
 		CheckDestroy: testAccCheckKubermaticNodeDeploymentDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCheckKubermaticNodeDeploymentBasic(testName, seedDC, nodeDC, username, password, tenant, testClusterVersion17, testKubeletVersion16, image, flavor),
+				Config: testAccCheckKubermaticNodeDeploymentBasic(testName, nodeDC, username, password, tenant, testClusterVersion17, testKubeletVersion16, image, flavor),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					testAccCheckKubermaticNodeDeploymentExists("kubermatic_node_deployment.acctest_nd", "kubermatic_project.acctest_project", "kubermatic_cluster.acctest_cluster", seedDC, &ndepl),
+					testAccCheckKubermaticNodeDeploymentExists("kubermatic_node_deployment.acctest_nd", &ndepl),
 					testAccCheckKubermaticNodeDeploymentFields(&ndepl, flavor, image, testKubeletVersion16, 1, 0, false, false),
-					resource.TestCheckResourceAttr("kubermatic_node_deployment.acctest_nd", "dc", seedDC),
 					resource.TestCheckResourceAttr("kubermatic_node_deployment.acctest_nd", "name", testName),
 					resource.TestCheckResourceAttrPtr("kubermatic_node_deployment.acctest_nd", "name", &ndepl.Name),
 					resource.TestCheckResourceAttr("kubermatic_node_deployment.acctest_nd", "spec.0.replicas", "1"),
@@ -48,12 +46,20 @@ func TestAccKubermaticNodeDeployment_Openstack_Basic(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccCheckKubermaticNodeDeploymentBasic2(testName, seedDC, nodeDC, username, password, tenant, testClusterVersion17, testKubeletVersion17, image2, flavor),
+				Config: testAccCheckKubermaticNodeDeploymentBasic2(testName, nodeDC, username, password, tenant, testClusterVersion17, testKubeletVersion17, image2, flavor),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttrPtr("kubermatic_node_deployment.acctest_nd", "id", &ndepl.ID),
-					testAccCheckKubermaticNodeDeploymentExists("kubermatic_node_deployment.acctest_nd", "kubermatic_project.acctest_project", "kubermatic_cluster.acctest_cluster", seedDC, &ndepl),
+					testResourceInstanceState("kubermatic_node_deployment.acctest_nd", func(is *terraform.InstanceState) error {
+						_, _, _, id, err := kubermaticNodeDeploymentParseID(is.ID)
+						if err != nil {
+							return err
+						}
+						if id != ndepl.ID {
+							return fmt.Errorf("node deployment not updated. Want ID=%v, got %v", ndepl.ID, id)
+						}
+						return nil
+					}),
+					testAccCheckKubermaticNodeDeploymentExists("kubermatic_node_deployment.acctest_nd", &ndepl),
 					testAccCheckKubermaticNodeDeploymentFields(&ndepl, flavor, image2, testKubeletVersion17, 2, 123, true, true),
-					resource.TestCheckResourceAttr("kubermatic_node_deployment.acctest_nd", "dc", seedDC),
 					resource.TestCheckResourceAttr("kubermatic_node_deployment.acctest_nd", "name", testName),
 					resource.TestCheckResourceAttr("kubermatic_node_deployment.acctest_nd", "spec.0.replicas", "2"),
 					resource.TestCheckResourceAttr("kubermatic_node_deployment.acctest_nd", "spec.0.template.0.cloud.0.openstack.0.flavor", flavor),
@@ -68,7 +74,7 @@ func TestAccKubermaticNodeDeployment_Openstack_Basic(t *testing.T) {
 	})
 }
 
-func testAccCheckKubermaticNodeDeploymentBasic(testName, seedDC, nodeDC, username, password, tenant, clusterVersion, kubeletVersion, image, flavor string) string {
+func testAccCheckKubermaticNodeDeploymentBasic(testName, nodeDC, username, password, tenant, clusterVersion, kubeletVersion, image, flavor string) string {
 	return fmt.Sprintf(`
 	provider "kubermatic" {}
 
@@ -78,12 +84,11 @@ func testAccCheckKubermaticNodeDeploymentBasic(testName, seedDC, nodeDC, usernam
 
 	resource "kubermatic_cluster" "acctest_cluster" {
 		name = "%s"
-		dc = "%s"
+		dc_name = "%s"
 		project_id = kubermatic_project.acctest_project.id
 		spec {
 			version = "%s"
 			cloud {
-				dc = "%s"
 				openstack {
 					tenant = "%s"
 					username = "%s"
@@ -95,8 +100,6 @@ func testAccCheckKubermaticNodeDeploymentBasic(testName, seedDC, nodeDC, usernam
 	}
 
 	resource "kubermatic_node_deployment" "acctest_nd" {
-		dc = "%s"
-		project_id = kubermatic_project.acctest_project.id
 		cluster_id = kubermatic_cluster.acctest_cluster.id
 		name = "%s"
 		spec {
@@ -116,10 +119,10 @@ func testAccCheckKubermaticNodeDeploymentBasic(testName, seedDC, nodeDC, usernam
 				}
 			}
 		}
-	}`, testName, testName, seedDC, clusterVersion, nodeDC, tenant, username, password, seedDC, testName, flavor, image, kubeletVersion)
+	}`, testName, testName, nodeDC, clusterVersion, tenant, username, password, testName, flavor, image, kubeletVersion)
 }
 
-func testAccCheckKubermaticNodeDeploymentBasic2(testName, seedDC, nodeDC, username, password, tenant, clusterVersion, kubeletVersion, image, flavor string) string {
+func testAccCheckKubermaticNodeDeploymentBasic2(testName, nodeDC, username, password, tenant, clusterVersion, kubeletVersion, image, flavor string) string {
 	return fmt.Sprintf(`
 	provider "kubermatic" {}
 
@@ -132,7 +135,7 @@ func testAccCheckKubermaticNodeDeploymentBasic2(testName, seedDC, nodeDC, userna
 
 	resource "kubermatic_cluster" "acctest_cluster" {
 		name = "%s"
-		dc = "%s"
+		dc_name = "%s"
 		project_id = kubermatic_project.acctest_project.id
 		labels = {
 			"cluster-label" = "val"
@@ -140,7 +143,6 @@ func testAccCheckKubermaticNodeDeploymentBasic2(testName, seedDC, nodeDC, userna
 		spec {
 			version = "%s"
 			cloud {
-				dc = "%s"
 				openstack {
 					tenant = "%s"
 					username = "%s"
@@ -152,8 +154,6 @@ func testAccCheckKubermaticNodeDeploymentBasic2(testName, seedDC, nodeDC, userna
 	}
 
 	resource "kubermatic_node_deployment" "acctest_nd" {
-		dc = "%s"
-		project_id = kubermatic_project.acctest_project.id
 		cluster_id = kubermatic_cluster.acctest_cluster.id
 		name = "%s"
 		spec {
@@ -180,14 +180,14 @@ func testAccCheckKubermaticNodeDeploymentBasic2(testName, seedDC, nodeDC, userna
 				}
 			}
 		}
-	}`, testName, testName, seedDC, clusterVersion, nodeDC, tenant, username, password, seedDC, testName, flavor, image, kubeletVersion)
+	}`, testName, testName, nodeDC, clusterVersion, tenant, username, password, testName, flavor, image, kubeletVersion)
 }
 
 func testAccCheckKubermaticNodeDeploymentDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckKubermaticNodeDeploymentExists(n, pn, cn, dc string, rec *models.NodeDeployment) resource.TestCheckFunc {
+func testAccCheckKubermaticNodeDeploymentExists(n string, rec *models.NodeDeployment) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 
@@ -199,33 +199,18 @@ func testAccCheckKubermaticNodeDeploymentExists(n, pn, cn, dc string, rec *model
 			return fmt.Errorf("No Record ID is set")
 		}
 
-		prs, ok := s.RootModule().Resources[pn]
-
-		if !ok {
-			return fmt.Errorf("Not found: %s", pn)
-		}
-
-		if prs.Primary.ID == "" {
-			return fmt.Errorf("No Record ID is set")
-		}
-
-		crs, ok := s.RootModule().Resources[cn]
-
-		if !ok {
-			return fmt.Errorf("Not found: %s", cn)
-		}
-
-		if crs.Primary.ID == "" {
-			return fmt.Errorf("No Record ID is set")
-		}
-
 		k := testAccProvider.Meta().(*kubermaticProviderMeta)
 
+		projectID, seedDC, clusterID, nodeDeplID, err := kubermaticNodeDeploymentParseID(rs.Primary.ID)
+		if err != nil {
+			return err
+		}
+
 		p := project.NewGetNodeDeploymentParams()
-		p.SetProjectID(prs.Primary.ID)
-		p.SetClusterID(crs.Primary.ID)
-		p.SetDC(dc)
-		p.SetNodeDeploymentID(rs.Primary.ID)
+		p.SetProjectID(projectID)
+		p.SetClusterID(clusterID)
+		p.SetDC(seedDC)
+		p.SetNodeDeploymentID(nodeDeplID)
 		r, err := k.client.Project.GetNodeDeployment(p, k.auth)
 		if err != nil {
 			return fmt.Errorf("GetNodeDeployment: %v", err)

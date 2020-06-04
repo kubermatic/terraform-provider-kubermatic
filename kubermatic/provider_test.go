@@ -16,7 +16,6 @@ const (
 	testEnvOpenstackUsername = "KUBERMATIC_OPENSTACK_USERNAME"
 	testEnvOpenstackPassword = "KUBERMATIC_OPENSTACK_PASSWORD"
 	testEnvOpenstackTenant   = "KUBERMATIC_OPENSTACK_TENANT"
-	testEnvOpenstackSeedDC   = "KUBERMATIC_OPENSTACK_SEED_DC"
 	testEnvOpenstackNodeDC   = "KUBERMATIC_OPENSTACK_NODE_DC"
 	testEnvOpenstackImage    = "KUBERMATIC_OPENSTACK_IMAGE"
 	testEnvOpenstackImage2   = "KUBERMATIC_OPENSTACK_IMAGE2"
@@ -41,7 +40,6 @@ func testAccPreCheckForOpenstack(t *testing.T) {
 	checkEnv(t, testEnvOpenstackUsername)
 	checkEnv(t, testEnvOpenstackPassword)
 	checkEnv(t, testEnvOpenstackTenant)
-	checkEnv(t, testEnvOpenstackSeedDC)
 	checkEnv(t, testEnvOpenstackNodeDC)
 	checkEnv(t, testEnvOpenstackImage)
 	checkEnv(t, testEnvOpenstackImage2)

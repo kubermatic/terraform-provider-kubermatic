@@ -3,6 +3,7 @@ package kubermatic
 import (
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/customdiff"
@@ -25,6 +26,9 @@ func resourceCluster() *schema.Resource {
 		Read:   resourceClusterRead,
 		Update: resourceClusterUpdate,
 		Delete: resourceClusterDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"project_id": {
@@ -32,11 +36,6 @@ func resourceCluster() *schema.Resource {
 				Required:    true,
 				ForceNew:    true,
 				Description: "Reference project identifier",
-			},
-			"dc_seed": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "Data center seed",
 			},
 			"dc_name": {
 				Type:        schema.TypeString,
@@ -92,6 +91,8 @@ func resourceCluster() *schema.Resource {
 				Computed:    true,
 				Description: "Deletion timestamp",
 			},
+			// TODO: uncomment once `no consumer: "application/yaml"` error in kubermatic client is fixed.
+			// "kube_config": kubernetesConfigSchema(),
 		},
 
 		CustomizeDiff: customdiff.All(
@@ -114,6 +115,7 @@ func resourceCluster() *schema.Resource {
 				return false
 			}),
 			validateVersionExists(),
+			validateOnlyOneCloudProviderSpecified(),
 		),
 	}
 }
@@ -141,6 +143,18 @@ func validateVersionExists() schema.CustomizeDiffFunc {
 	}
 }
 
+func validateOnlyOneCloudProviderSpecified() schema.CustomizeDiffFunc {
+	return func(d *schema.ResourceDiff, meta interface{}) error {
+		_, bringYourOwn := d.GetOkExists("spec.0.cloud.0.bringyourown.0")
+		_, aws := d.GetOkExists("spec.0.cloud.0.aws.0")
+		_, openstack := d.GetOkExists("spec.0.cloud.0.openstack.0")
+		if (bringYourOwn && aws) || (bringYourOwn && openstack) || (aws && openstack) {
+			return fmt.Errorf("only one cloud provider must be specified")
+		}
+		return nil
+	}
+}
+
 func resourceClusterCreate(d *schema.ResourceData, m interface{}) error {
 	k := m.(*kubermaticProviderMeta)
 	pID := d.Get("project_id").(string)
@@ -151,7 +165,6 @@ func resourceClusterCreate(d *schema.ResourceData, m interface{}) error {
 	if err != nil {
 		return err
 	}
-	d.Set("dc_seed", dc.Spec.Seed)
 
 	p.SetProjectID(pID)
 	p.SetDC(dc.Spec.Seed)
@@ -169,7 +182,7 @@ func resourceClusterCreate(d *schema.ResourceData, m interface{}) error {
 	if err != nil {
 		return fmt.Errorf("unable to create cluster for project '%s': %s", pID, getErrorResponse(err))
 	}
-	d.SetId(r.Payload.ID)
+	d.SetId(kubermaticClusterMakeID(d.Get("project_id").(string), dc.Spec.Seed, r.Payload.ID))
 
 	raw := d.Get("sshkeys").(*schema.Set).List()
 	var sshkeys []string
@@ -185,6 +198,20 @@ func resourceClusterCreate(d *schema.ResourceData, m interface{}) error {
 	}
 
 	return resourceClusterRead(d, m)
+}
+
+func kubermaticClusterMakeID(project, seedDC, id string) string {
+	return fmt.Sprintf("%s:%s:%s", project, seedDC, id)
+}
+
+func kubermaticClusterParseID(id string) (string, string, string, error) {
+	parts := strings.SplitN(id, ":", 3)
+
+	if len(parts) != 3 || parts[0] == "" || parts[1] == "" || parts[2] == "" {
+		return "", "", "", fmt.Errorf("unexpected format of ID (%s), expected project_id:seed_dc:id", id)
+	}
+
+	return parts[0], parts[1], parts[2], nil
 }
 
 func getLabels(d *schema.ResourceData) map[string]string {
@@ -221,9 +248,13 @@ func getDatacenterByName(k *kubermaticProviderMeta, name string) (*models.Datace
 func resourceClusterRead(d *schema.ResourceData, m interface{}) error {
 	k := m.(*kubermaticProviderMeta)
 	p := project.NewGetClusterParams()
-	p.SetDC(d.Get("dc_seed").(string))
-	p.SetProjectID(d.Get("project_id").(string))
-	p.SetClusterID(d.Id())
+	projectID, seedDC, clusterID, err := kubermaticClusterParseID(d.Id())
+	if err != nil {
+		return err
+	}
+	p.SetProjectID(projectID)
+	p.SetDC(seedDC)
+	p.SetClusterID(clusterID)
 
 	r, err := k.client.Project.GetCluster(p, k.auth)
 	if getClusterErrResourceIsDeleted(err) {
@@ -246,7 +277,10 @@ func resourceClusterRead(d *schema.ResourceData, m interface{}) error {
 		return fmt.Errorf("unable to get cluster '%s': %s", d.Id(), getErrorResponse(err))
 	}
 
-	labels, err := excludeProjectLabels(k, d.Get("project_id").(string), r.Payload.Labels)
+	d.Set("project_id", projectID)
+	d.Set("dc_name", r.Payload.Spec.Cloud.DatacenterName)
+
+	labels, err := excludeProjectLabels(k, projectID, r.Payload.Labels)
 	if err != nil {
 		return err
 	}
@@ -274,7 +308,7 @@ func resourceClusterRead(d *schema.ResourceData, m interface{}) error {
 
 	d.Set("deletion_timestamp", r.Payload.DeletionTimestamp.String())
 
-	keys, err := getClusterAssignedSSHKeys(d, k)
+	keys, err := kubermaticClusterGetAssignedSSHKeys(d, k)
 	if err != nil {
 		return err
 	}
@@ -320,11 +354,15 @@ func excludeProjectLabels(k *kubermaticProviderMeta, projectID string, allLabels
 	return allLabels, nil
 }
 
-func getClusterAssignedSSHKeys(d *schema.ResourceData, k *kubermaticProviderMeta) ([]string, error) {
+func kubermaticClusterGetAssignedSSHKeys(d *schema.ResourceData, k *kubermaticProviderMeta) ([]string, error) {
 	p := project.NewListSSHKeysAssignedToClusterParams()
-	p.SetProjectID(d.Get("project_id").(string))
-	p.SetDC(d.Get("dc_seed").(string))
-	p.SetClusterID(d.Id())
+	projectID, seedDC, clusterID, err := kubermaticClusterParseID(d.Id())
+	if err != nil {
+		return nil, err
+	}
+	p.SetProjectID(projectID)
+	p.SetDC(seedDC)
+	p.SetClusterID(clusterID)
 	ret, err := k.client.Project.ListSSHKeysAssignedToCluster(p, k.auth)
 	if err != nil {
 		return nil, err
@@ -387,20 +425,26 @@ func resourceClusterUpdate(d *schema.ResourceData, m interface{}) error {
 
 func patchClusterFields(d *schema.ResourceData, k *kubermaticProviderMeta) error {
 	p := project.NewPatchClusterParams()
-	p.SetProjectID(d.Get("project_id").(string))
-	p.SetDC(d.Get("dc_seed").(string))
-	p.SetClusterID(d.Id())
+	projectID, seedDC, clusterID, err := kubermaticClusterParseID(d.Id())
+	if err != nil {
+		return err
+	}
+	p.SetProjectID(projectID)
+	p.SetDC(seedDC)
+	p.SetClusterID(clusterID)
 	name := d.Get("name").(string)
 	version := d.Get("spec.0.version").(string)
 	auditLogging := d.Get("spec.0.audit_logging").(bool)
 	labels := d.Get("labels")
 	p.SetPatch(newClusterPatch(name, version, auditLogging, labels))
 
-	err := resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+	err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
 		_, err := k.client.Project.PatchCluster(p, k.auth)
 		if err != nil {
 			if e, ok := err.(*project.PatchClusterDefault); ok && e.Code() == http.StatusConflict {
 				return resource.RetryableError(fmt.Errorf("cluster patch conflict: %w", err))
+			} else if ok && e.Payload != nil && e.Payload.Error != nil && e.Payload.Error.Message != nil {
+				return resource.NonRetryableError(fmt.Errorf("patch cluster '%s': %s", d.Id(), *e.Payload.Error.Message))
 			}
 			return resource.NonRetryableError(fmt.Errorf("patch cluster '%s': %v", d.Id(), err))
 		}
@@ -429,14 +473,16 @@ func updateClusterSSHKeys(d *schema.ResourceData, k *kubermaticProviderMeta) err
 		}
 	}
 
-	projectID := d.Get("project_id").(string)
-	dc := d.Get("dc_seed").(string)
+	projectID, seedDC, clusterID, err := kubermaticClusterParseID(d.Id())
+	if err != nil {
+		return err
+	}
 
 	for _, id := range unassign {
 		p := project.NewDetachSSHKeyFromClusterParams()
 		p.SetProjectID(projectID)
-		p.SetDC(dc)
-		p.SetClusterID(d.Id())
+		p.SetDC(seedDC)
+		p.SetClusterID(clusterID)
 		p.SetKeyID(id)
 		_, err := k.client.Project.DetachSSHKeyFromCluster(p, k.auth)
 		if err != nil {
@@ -447,23 +493,23 @@ func updateClusterSSHKeys(d *schema.ResourceData, k *kubermaticProviderMeta) err
 		}
 	}
 
-	if err := assignSSHKeysToCluster(projectID, dc, d.Id(), assign, k); err != nil {
+	if err := assignSSHKeysToCluster(projectID, seedDC, clusterID, assign, k); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func assignSSHKeysToCluster(projectID, dc, cluster string, sshkeyIDs []string, k *kubermaticProviderMeta) error {
+func assignSSHKeysToCluster(projectID, seedDC, clusterID string, sshkeyIDs []string, k *kubermaticProviderMeta) error {
 	for _, id := range sshkeyIDs {
 		p := project.NewAssignSSHKeyToClusterParams()
 		p.SetProjectID(projectID)
-		p.SetDC(dc)
-		p.SetClusterID(cluster)
+		p.SetDC(seedDC)
+		p.SetClusterID(clusterID)
 		p.SetKeyID(id)
 		_, err := k.client.Project.AssignSSHKeyToCluster(p, k.auth)
 		if err != nil {
-			return fmt.Errorf("unable to assign sshkeys to cluster '%s': %w", cluster, err)
+			return fmt.Errorf("unable to assign sshkeys to cluster '%s': %w", clusterID, err)
 		}
 	}
 
@@ -472,12 +518,16 @@ func assignSSHKeysToCluster(projectID, dc, cluster string, sshkeyIDs []string, k
 
 func waitClusterReady(k *kubermaticProviderMeta, d *schema.ResourceData) error {
 	return resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
-		hp := project.NewGetClusterHealthParams()
-		hp.SetClusterID(d.Id())
-		hp.SetProjectID(d.Get("project_id").(string))
-		hp.SetDC(d.Get("dc_seed").(string))
+		projectID, seedDC, clusterID, err := kubermaticClusterParseID(d.Id())
+		if err != nil {
+			return resource.NonRetryableError(err)
+		}
+		p := project.NewGetClusterHealthParams()
+		p.SetProjectID(projectID)
+		p.SetDC(seedDC)
+		p.SetClusterID(clusterID)
 
-		r, err := k.client.Project.GetClusterHealth(hp, k.auth)
+		r, err := k.client.Project.GetClusterHealth(p, k.auth)
 		if err != nil {
 			return resource.NonRetryableError(fmt.Errorf("unable to get cluster '%s' health: %s", d.Id(), getErrorResponse(err)))
 		}
@@ -513,14 +563,15 @@ func newClusterPatch(name, version string, auditLogging bool, labels interface{}
 
 func resourceClusterDelete(d *schema.ResourceData, m interface{}) error {
 	k := m.(*kubermaticProviderMeta)
-	cID := d.Id()
-	pID := d.Get("project_id").(string)
-	dc := d.Get("dc_seed").(string)
+	projectID, seedDC, clusterID, err := kubermaticClusterParseID(d.Id())
+	if err != nil {
+		return err
+	}
 	p := project.NewDeleteClusterParams()
 
-	p.SetDC(dc)
-	p.SetProjectID(pID)
-	p.SetClusterID(cID)
+	p.SetProjectID(projectID)
+	p.SetDC(seedDC)
+	p.SetClusterID(clusterID)
 
 	deleteSent := false
 	return resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
@@ -538,30 +589,30 @@ func resourceClusterDelete(d *schema.ResourceData, m interface{}) error {
 				if _, ok := err.(*project.DeleteClusterForbidden); ok {
 					return nil
 				}
-				return resource.NonRetryableError(fmt.Errorf("unable to delete cluster '%s': %s", cID, getErrorResponse(err)))
+				return resource.NonRetryableError(fmt.Errorf("unable to delete cluster '%s': %s", d.Id(), getErrorResponse(err)))
 			}
 			deleteSent = true
 		}
 		p := project.NewGetClusterParams()
 
-		p.SetClusterID(cID)
-		p.SetProjectID(pID)
-		p.SetDC(dc)
+		p.SetProjectID(projectID)
+		p.SetDC(seedDC)
+		p.SetClusterID(clusterID)
 
 		r, err := k.client.Project.GetCluster(p, k.auth)
 		if err != nil {
 			if e, ok := err.(*project.GetClusterDefault); ok && e.Code() == http.StatusNotFound {
-				k.log.Debugf("cluster '%s' has been destroyed, returned http code: %d", cID, e.Code())
+				k.log.Debugf("cluster '%s' has been destroyed, returned http code: %d", d.Id(), e.Code())
 				return nil
 			}
 			if _, ok := err.(*project.GetClusterForbidden); ok {
 				return nil
 			}
-			return resource.NonRetryableError(fmt.Errorf("unable to get cluster '%s': %s", cID, getErrorResponse(err)))
+			return resource.NonRetryableError(fmt.Errorf("unable to get cluster '%s': %s", d.Id(), getErrorResponse(err)))
 		}
 
 		k.log.Debugf("cluster '%s' deletion in progress, deletionTimestamp: %s",
-			cID, r.Payload.DeletionTimestamp.String())
-		return resource.RetryableError(fmt.Errorf("cluster '%s' deletion in progress", cID))
+			d.Id(), r.Payload.DeletionTimestamp.String())
+		return resource.RetryableError(fmt.Errorf("cluster '%s' deletion in progress", d.Id()))
 	})
 }

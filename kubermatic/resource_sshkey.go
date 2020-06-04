@@ -15,6 +15,9 @@ func resourceSSHKey() *schema.Resource {
 		Create: resourceSSHKeyCreate,
 		Read:   resourceSSHKeyRead,
 		Delete: resourceSSHKeyDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"project_id": {

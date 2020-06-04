@@ -3,6 +3,7 @@ package kubermatic
 import (
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
@@ -17,22 +18,16 @@ func resourceNodeDeployment() *schema.Resource {
 		Read:   resourceNodeDeploymentRead,
 		Update: resourceNodeDeploymentUpdate,
 		Delete: resourceNodeDeploymentDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
-			"dc": {
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "Data center name",
-			},
-			"project_id": {
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "Reference project identifier",
-			},
 			"cluster_id": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: "Reference cluster identifier",
+				ForceNew:    true,
+				Description: "Reference full cluster identifier of format <project id>:<seed dc>:<cluster id>",
 			},
 			"name": {
 				Type: schema.TypeString,
@@ -65,15 +60,17 @@ func resourceNodeDeployment() *schema.Resource {
 }
 
 func resourceNodeDeploymentCreate(d *schema.ResourceData, m interface{}) error {
-	k := m.(*kubermaticProviderMeta)
-	dc := d.Get("dc").(string)
-	pID := d.Get("project_id").(string)
-	cID := d.Get("cluster_id").(string)
-	p := project.NewCreateNodeDeploymentParams()
+	projectID, seedDC, clusterID, err := kubermaticClusterParseID(d.Get("cluster_id").(string))
+	if err != nil {
+		return err
+	}
 
-	p.SetProjectID(pID)
-	p.SetClusterID(cID)
-	p.SetDC(dc)
+	k := m.(*kubermaticProviderMeta)
+
+	p := project.NewCreateNodeDeploymentParams()
+	p.SetProjectID(projectID)
+	p.SetDC(seedDC)
+	p.SetClusterID(clusterID)
 	p.SetBody(&models.NodeDeployment{
 		Name: d.Get("name").(string),
 		Spec: expandNodeDeploymentSpec(d.Get("spec").([]interface{})),
@@ -83,23 +80,40 @@ func resourceNodeDeploymentCreate(d *schema.ResourceData, m interface{}) error {
 	if err != nil {
 		return fmt.Errorf("unable to create a node deployment: %s", getErrorResponse(err))
 	}
-	d.SetId(r.Payload.ID)
+	d.SetId(kubermaticNodeDeploymentMakeID(projectID, seedDC, clusterID, r.Payload.ID))
 
-	if err := waitForNodeDeploymentRead(k, d.Timeout(schema.TimeoutCreate), pID, dc, cID, r.Payload.ID); err != nil {
+	if err := waitForNodeDeploymentRead(k, d.Timeout(schema.TimeoutCreate), projectID, seedDC, clusterID, r.Payload.ID); err != nil {
 		return err
 	}
 
 	return resourceNodeDeploymentRead(d, m)
 }
 
+func kubermaticNodeDeploymentMakeID(projectID, seedDC, clusterID, id string) string {
+	return fmt.Sprintf("%s:%s:%s:%s", projectID, seedDC, clusterID, id)
+}
+
+func kubermaticNodeDeploymentParseID(id string) (string, string, string, string, error) {
+	parts := strings.SplitN(id, ":", 4)
+
+	if len(parts) != 4 || parts[0] == "" || parts[1] == "" || parts[2] == "" || parts[3] == "" {
+		return "", "", "", "", fmt.Errorf("unexpected format of ID (%s), expected project_id:seed_dc:cluster_id:id", id)
+	}
+
+	return parts[0], parts[1], parts[2], parts[3], nil
+}
+
 func resourceNodeDeploymentRead(d *schema.ResourceData, m interface{}) error {
 	k := m.(*kubermaticProviderMeta)
+	projectID, seedDC, clusterID, nodeDeplID, err := kubermaticNodeDeploymentParseID(d.Id())
+	if err != nil {
+		return err
+	}
 	p := project.NewGetNodeDeploymentParams()
-
-	p.SetDC(d.Get("dc").(string))
-	p.SetProjectID(d.Get("project_id").(string))
-	p.SetClusterID(d.Get("cluster_id").(string))
-	p.SetNodeDeploymentID(d.Id())
+	p.SetProjectID(projectID)
+	p.SetDC(seedDC)
+	p.SetClusterID(clusterID)
+	p.SetNodeDeploymentID(nodeDeplID)
 
 	r, err := k.client.Project.GetNodeDeployment(p, k.auth)
 	if err != nil {
@@ -116,25 +130,15 @@ func resourceNodeDeploymentRead(d *schema.ResourceData, m interface{}) error {
 		return fmt.Errorf("unable to get node deployment '%s': %s", d.Id(), getErrorResponse(err))
 	}
 
-	err = d.Set("name", r.Payload.Name)
-	if err != nil {
-		return err
-	}
+	d.Set("cluster_id", kubermaticClusterMakeID(projectID, seedDC, clusterID))
 
-	err = d.Set("spec", flattenNodeDeploymentSpec(r.Payload.Spec))
-	if err != nil {
-		return err
-	}
+	d.Set("name", r.Payload.Name)
 
-	err = d.Set("creation_timestamp", r.Payload.CreationTimestamp.String())
-	if err != nil {
-		return err
-	}
+	d.Set("spec", flattenNodeDeploymentSpec(r.Payload.Spec))
 
-	err = d.Set("deletion_timestamp", r.Payload.DeletionTimestamp.String())
-	if err != nil {
-		return err
-	}
+	d.Set("creation_timestamp", r.Payload.CreationTimestamp.String())
+
+	d.Set("deletion_timestamp", r.Payload.DeletionTimestamp.String())
 
 	return nil
 }
@@ -142,40 +146,40 @@ func resourceNodeDeploymentRead(d *schema.ResourceData, m interface{}) error {
 func resourceNodeDeploymentUpdate(d *schema.ResourceData, m interface{}) error {
 	// TODO(furkhat): uncomment and adjust when client is fixed.
 	k := m.(*kubermaticProviderMeta)
-	dc := d.Get("dc").(string)
-	pID := d.Get("project_id").(string)
-	cID := d.Get("cluster_id").(string)
+	projectID, seedDC, clusterID, nodeDeplID, err := kubermaticNodeDeploymentParseID(d.Id())
+	if err != nil {
+		return err
+	}
 	p := project.NewPatchNodeDeploymentParams()
-
-	p.SetProjectID(pID)
-	p.SetDC(dc)
-	p.SetClusterID(cID)
-	p.SetNodeDeploymentID(d.Id())
+	p.SetProjectID(projectID)
+	p.SetDC(seedDC)
+	p.SetClusterID(clusterID)
+	p.SetNodeDeploymentID(nodeDeplID)
 	p.SetPatch(models.NodeDeployment{
 		Spec: expandNodeDeploymentSpec(d.Get("spec").([]interface{})),
 	})
 
 	r, err := k.client.Project.PatchNodeDeployment(p, k.auth)
 	if err != nil {
-		if e, ok := err.(*project.PatchNodeDeploymentDefault); ok {
-			return fmt.Errorf("%+v", e.Payload.Error)
+		if e, ok := err.(*project.PatchNodeDeploymentDefault); ok && e.Payload != nil && e.Payload.Error != nil && e.Payload.Error.Message != nil {
+			return fmt.Errorf(*e.Payload.Error.Message)
 		}
 		return fmt.Errorf("unable to update a node deployment: %v", err)
 	}
 
-	if err := waitForNodeDeploymentRead(k, d.Timeout(schema.TimeoutCreate), pID, dc, cID, r.Payload.ID); err != nil {
+	if err := waitForNodeDeploymentRead(k, d.Timeout(schema.TimeoutCreate), projectID, seedDC, clusterID, r.Payload.ID); err != nil {
 		return err
 	}
 
 	return resourceNodeDeploymentRead(d, m)
 }
 
-func waitForNodeDeploymentRead(k *kubermaticProviderMeta, timeout time.Duration, proj, dc, cluster, id string) error {
+func waitForNodeDeploymentRead(k *kubermaticProviderMeta, timeout time.Duration, projectID, seedDC, clusterID, id string) error {
 	err := resource.Retry(timeout, func() *resource.RetryError {
 		p := project.NewGetNodeDeploymentParams()
-		p.SetProjectID(proj)
-		p.SetClusterID(cluster)
-		p.SetDC(dc)
+		p.SetProjectID(projectID)
+		p.SetClusterID(clusterID)
+		p.SetDC(seedDC)
 		p.SetNodeDeploymentID(id)
 
 		r, err := k.client.Project.GetNodeDeployment(p, k.auth)
@@ -197,18 +201,17 @@ func waitForNodeDeploymentRead(k *kubermaticProviderMeta, timeout time.Duration,
 
 func resourceNodeDeploymentDelete(d *schema.ResourceData, m interface{}) error {
 	k := m.(*kubermaticProviderMeta)
-	dc := d.Get("dc").(string)
-	pID := d.Get("project_id").(string)
-	cID := d.Get("cluster_id").(string)
-	nID := d.Id()
+	projectID, seedDC, clusterID, nodeDeplID, err := kubermaticNodeDeploymentParseID(d.Id())
+	if err != nil {
+		return err
+	}
 	p := project.NewDeleteNodeDeploymentParams()
+	p.SetProjectID(projectID)
+	p.SetDC(seedDC)
+	p.SetClusterID(clusterID)
+	p.SetNodeDeploymentID(nodeDeplID)
 
-	p.SetDC(dc)
-	p.SetProjectID(pID)
-	p.SetClusterID(cID)
-	p.SetNodeDeploymentID(nID)
-
-	_, err := k.client.Project.DeleteNodeDeployment(p, k.auth)
+	_, err = k.client.Project.DeleteNodeDeployment(p, k.auth)
 	if err != nil {
 		// TODO: check if not found
 		return fmt.Errorf("unable to delete node deployment '%s': %s", nID, getErrorResponse(err))
@@ -216,15 +219,15 @@ func resourceNodeDeploymentDelete(d *schema.ResourceData, m interface{}) error {
 
 	return resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
 		p := project.NewGetNodeDeploymentParams()
-		p.SetDC(dc)
-		p.SetProjectID(pID)
-		p.SetClusterID(cID)
-		p.SetNodeDeploymentID(nID)
+		p.SetProjectID(projectID)
+		p.SetDC(seedDC)
+		p.SetClusterID(clusterID)
+		p.SetNodeDeploymentID(nodeDeplID)
 
 		r, err := k.client.Project.GetNodeDeployment(p, k.auth)
 		if err != nil {
 			if e, ok := err.(*project.GetNodeDeploymentDefault); ok && e.Code() == http.StatusNotFound {
-				k.log.Debugf("node deployment '%s' has been destroyed, returned http code: %d", nID, e.Code())
+				k.log.Debugf("node deployment '%s' has been destroyed, returned http code: %d", d.Id(), e.Code())
 				d.SetId("")
 				return nil
 			}
@@ -232,7 +235,7 @@ func resourceNodeDeploymentDelete(d *schema.ResourceData, m interface{}) error {
 		}
 
 		k.log.Debugf("node deployment '%s' deletion in progress, deletionTimestamp: %s",
-			nID, r.Payload.DeletionTimestamp.String())
-		return resource.RetryableError(fmt.Errorf("node deployment '%s' deletion in progress", nID))
+			d.Id(), r.Payload.DeletionTimestamp.String())
+		return resource.RetryableError(fmt.Errorf("node deployment '%s' deletion in progress", d.Id()))
 	})
 }

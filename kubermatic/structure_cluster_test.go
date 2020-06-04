@@ -25,8 +25,9 @@ func TestFlattenClusterSpec(t *testing.T) {
 			},
 			[]interface{}{
 				map[string]interface{}{
-					"version":       "1.15.6",
-					"audit_logging": false,
+					"version":             "1.15.6",
+					"audit_logging":       false,
+					"pod_security_policy": false,
 					"cloud": []interface{}{
 						map[string]interface{}{
 							"bringyourown": []interface{}{map[string]interface{}{}},
@@ -38,7 +39,10 @@ func TestFlattenClusterSpec(t *testing.T) {
 		{
 			&models.ClusterSpec{},
 			[]interface{}{
-				map[string]interface{}{"audit_logging": false},
+				map[string]interface{}{
+					"audit_logging":       false,
+					"pod_security_policy": false,
+				},
 			},
 		},
 		{
@@ -259,9 +263,10 @@ func TestExpandClusterSpec(t *testing.T) {
 		{
 			[]interface{}{
 				map[string]interface{}{
-					"version":          "1.15.6",
-					"machine_networks": []interface{}{},
-					"audit_logging":    false,
+					"version":             "1.15.6",
+					"machine_networks":    []interface{}{},
+					"audit_logging":       false,
+					"pod_security_policy": true,
 					"cloud": []interface{}{
 						map[string]interface{}{
 							"bringyourown": []interface{}{
@@ -272,9 +277,10 @@ func TestExpandClusterSpec(t *testing.T) {
 				},
 			},
 			&models.ClusterSpec{
-				Version:         "1.15.6",
-				MachineNetworks: nil,
-				AuditLogging:    &models.AuditLoggingSettings{},
+				Version:                             "1.15.6",
+				MachineNetworks:                     nil,
+				AuditLogging:                        &models.AuditLoggingSettings{},
+				UsePodSecurityPolicyAdmissionPlugin: true,
 				Cloud: &models.CloudSpec{
 					DatacenterName: "eu-west-1",
 					Bringyourown:   map[string]interface{}{},

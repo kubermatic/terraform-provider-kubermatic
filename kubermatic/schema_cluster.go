@@ -81,6 +81,12 @@ func clusterSpecFields() map[string]*schema.Schema {
 			Default:     false,
 			Description: "Whether to enable audit logging or not",
 		},
+		"pod_security_policy": {
+			Type:        schema.TypeBool,
+			Optional:    true,
+			Default:     false,
+			Description: "Pod security policies allow detailed authorization of pod creation and updates.",
+		},
 	}
 }
 
@@ -137,14 +143,12 @@ func openstackCloudSpecFields() map[string]*schema.Schema {
 		"username": {
 			Type:         schema.TypeString,
 			Required:     true,
-			ForceNew:     true,
 			Sensitive:    true,
 			ValidateFunc: validation.NoZeroValues,
 		},
 		"password": {
 			Type:         schema.TypeString,
 			Required:     true,
-			ForceNew:     true,
 			Sensitive:    true,
 			ValidateFunc: validation.NoZeroValues,
 		},
@@ -152,6 +156,23 @@ func openstackCloudSpecFields() map[string]*schema.Schema {
 			Type:     schema.TypeString,
 			Required: true,
 			ForceNew: true,
+		},
+	}
+}
+
+func kubernetesConfigSchema() *schema.Schema {
+	return &schema.Schema{
+		Type:      schema.TypeList,
+		MaxItems:  1,
+		Computed:  true,
+		Sensitive: true,
+		Elem: &schema.Resource{
+			Schema: map[string]*schema.Schema{
+				"raw_config": {
+					Type:     schema.TypeString,
+					Computed: true,
+				},
+			},
 		},
 	}
 }
