@@ -6,7 +6,9 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 	"github.com/kubermatic/go-kubermatic/client/project"
+	"github.com/kubermatic/go-kubermatic/client/users"
 	"github.com/kubermatic/go-kubermatic/models"
 )
 
@@ -37,6 +39,12 @@ func resourceProject() *schema.Resource {
 				Description: "Project labels",
 				Elem:        schema.TypeString,
 			},
+			"user": {
+				Type:        schema.TypeSet,
+				Optional:    true,
+				Description: "Project user",
+				Elem:        projectUsersSchema(),
+			},
 			"status": {
 				Type:        schema.TypeString,
 				Computed:    true,
@@ -51,6 +59,25 @@ func resourceProject() *schema.Resource {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "Deletion timestamp",
+			},
+		},
+	}
+}
+
+func projectUsersSchema() *schema.Resource {
+	return &schema.Resource{
+		Schema: map[string]*schema.Schema{
+			"email": {
+				Type:         schema.TypeString,
+				Required:     true,
+				ValidateFunc: validation.NoZeroValues,
+				Description:  "User's email address",
+			},
+			"group": {
+				Type:         schema.TypeString,
+				Required:     true,
+				ValidateFunc: validation.StringInSlice([]string{"owners", "editors", "viewers"}, false),
+				Description:  "User's role in the project",
 			},
 		},
 	}
@@ -104,6 +131,11 @@ func resourceProjectCreate(d *schema.ResourceData, m interface{}) error {
 		k.log.Debugf("error while waiting for project '%s' to be created: %s", id, err)
 		return fmt.Errorf("error while waiting for project '%s' to be created: %s", id, err)
 	}
+
+	if err := kubermaticProjectUpdateUsers(k, d); err != nil {
+		return fmt.Errorf("error updating project's users: %v", err)
+	}
+
 	return resourceProjectRead(d, m)
 }
 
@@ -131,7 +163,32 @@ func resourceProjectRead(d *schema.ResourceData, m interface{}) error {
 	d.Set("status", r.Payload.Status)
 	d.Set("creation_timestamp", r.Payload.CreationTimestamp.String())
 	d.Set("deletion_timestamp", r.Payload.DeletionTimestamp.String())
-	return nil
+
+	users, err := kubermaticProjectPersistedUsers(k, d.Id())
+	if err != nil {
+		return err
+	}
+
+	curUser, err := kubermaticProjectCurrentUser(k)
+	if err != nil {
+		return err
+	}
+
+	return d.Set("user", flattendProjectUsers(curUser, users))
+}
+
+func flattendProjectUsers(cur *models.User, u map[string]models.User) *schema.Set {
+	var items []interface{}
+	for _, v := range u {
+		if v.Email == cur.Email {
+			continue
+		}
+		items = append(items, map[string]interface{}{
+			"email": v.Email,
+			"group": v.Projects[0].GroupPrefix,
+		})
+	}
+	return schema.NewSet(schema.HashResource(projectUsersSchema()), items)
 }
 
 func resourceProjectUpdate(d *schema.ResourceData, m interface{}) error {
@@ -158,7 +215,138 @@ func resourceProjectUpdate(d *schema.ResourceData, m interface{}) error {
 		return fmt.Errorf("unable to update project '%s': %s", d.Id(), getErrorResponse(err))
 	}
 
+	if d.HasChange("user") {
+		if err := kubermaticProjectUpdateUsers(k, d); err != nil {
+			return fmt.Errorf("error updating project's users: %v", err)
+		}
+	}
+
 	return resourceProjectRead(d, m)
+}
+
+func kubermaticProjectUpdateUsers(k *kubermaticProviderMeta, d *schema.ResourceData) error {
+	curUser, err := kubermaticProjectCurrentUser(k)
+	if err != nil {
+		return err
+	}
+
+	persistedUsers, err := kubermaticProjectPersistedUsers(k, d.Id())
+	if err != nil {
+		return err
+	}
+
+	configuredUsers := kubermaticProjectConfiguredUsers(d)
+
+	for email, pu := range persistedUsers {
+		if pu.Email == curUser.Email {
+			continue
+		}
+
+		if cu, ok := configuredUsers[email]; ok {
+			if pu.Projects[0].GroupPrefix != cu.Projects[0].GroupPrefix {
+				pu.Projects[0].GroupPrefix = cu.Projects[0].GroupPrefix
+				if err := kubermaticProjectEditUser(k, d.Id(), &pu); err != nil {
+					return err
+				}
+			}
+			continue
+		}
+		if err := kubermaticProjectDeleteUser(k, d.Id(), pu.ID); err != nil {
+			return err
+		}
+	}
+
+	for email, cu := range configuredUsers {
+		if _, ok := persistedUsers[email]; !ok {
+			if err := kubermaticProjectAddUser(k, d.Id(), &cu); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func kubermaticProjectEditUser(k *kubermaticProviderMeta, pid string, u *models.User) error {
+	p := users.NewEditUserInProjectParams()
+	p.SetProjectID(pid)
+	p.SetUserID(u.ID)
+	p.SetBody(u)
+	_, err := k.client.Users.EditUserInProject(p, k.auth)
+	if err != nil {
+		if e, ok := err.(*users.EditUserInProjectDefault); ok && errorMessage(e.Payload) != "" {
+			return fmt.Errorf("edit user in project errored: %s", errorMessage(e.Payload))
+		}
+		return fmt.Errorf("edit user in project errored: %v", err)
+	}
+	return nil
+}
+
+func kubermaticProjectDeleteUser(k *kubermaticProviderMeta, pid, uid string) error {
+	p := users.NewDeleteUserFromProjectParams()
+	p.SetProjectID(pid)
+	p.SetUserID(uid)
+	_, err := k.client.Users.DeleteUserFromProject(p, k.auth)
+	if err != nil {
+		if e, ok := err.(*users.DeleteUserFromProjectDefault); ok && errorMessage(e.Payload) != "" {
+			return fmt.Errorf("delete user from project: %s", errorMessage(e.Payload))
+		}
+		return fmt.Errorf("delete user from project: %v", err)
+	}
+	return nil
+}
+
+func kubermaticProjectAddUser(k *kubermaticProviderMeta, pid string, u *models.User) error {
+	p := users.NewAddUserToProjectParams()
+	p.SetProjectID(pid)
+	p.SetBody(u)
+	if _, err := k.client.Users.AddUserToProject(p, k.auth); err != nil {
+		if e, ok := err.(*users.AddUserToProjectDefault); ok && errorMessage(e.Payload) != "" {
+			return fmt.Errorf("add user to project: %s", errorMessage(e.Payload))
+		}
+		return fmt.Errorf("add user to project: %v", err)
+	}
+	return nil
+}
+
+func kubermaticProjectCurrentUser(k *kubermaticProviderMeta) (*models.User, error) {
+	r, err := k.client.Users.GetCurrentUser(users.NewGetCurrentUserParams(), k.auth)
+	if err != nil {
+		if e, ok := err.(*users.GetCurrentUserDefault); ok && errorMessage(e.Payload) != "" {
+			return nil, fmt.Errorf("get current user errored: %s", errorMessage(e.Payload))
+		}
+		return nil, fmt.Errorf("get current user errored: %v", err)
+	}
+	return r.Payload, nil
+}
+
+func kubermaticProjectPersistedUsers(k *kubermaticProviderMeta, id string) (map[string]models.User, error) {
+	p := users.NewGetUsersForProjectParams()
+	p.SetProjectID(id)
+	r, err := k.client.Users.GetUsersForProject(p, k.auth)
+	if err != nil {
+		return nil, fmt.Errorf("get users for project errored: %v", err)
+	}
+	ret := make(map[string]models.User)
+	for _, p := range r.Payload {
+		ret[p.Email] = *p
+	}
+	return ret, nil
+}
+
+func kubermaticProjectConfiguredUsers(d *schema.ResourceData) map[string]models.User {
+	ret := make(map[string]models.User)
+	users := d.Get("user").(*schema.Set).List()
+	for _, u := range users {
+		u := u.(map[string]interface{})
+		ret[u["email"].(string)] = models.User{Email: u["email"].(string), Projects: []*models.ProjectGroup{
+			{
+				GroupPrefix: u["group"].(string),
+				ID:          d.Id(),
+			},
+		}}
+	}
+	return ret
 }
 
 func resourceProjectDelete(d *schema.ResourceData, m interface{}) error {

@@ -14,6 +14,8 @@ import (
 const (
 	testNamePrefix = "tf-acc-test-"
 
+	testEnvOtherUserEmail = "KUBERMATIC_ANOTHER_USER_EMAIL"
+
 	testEnvOpenstackNodeDC   = "KUBERMATIC_OPENSTACK_NODE_DC"
 	testEnvOpenstackUsername = "KUBERMATIC_OPENSTACK_USERNAME"
 	testEnvOpenstackPassword = "KUBERMATIC_OPENSTACK_PASSWORD"

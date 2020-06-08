@@ -92,7 +92,11 @@ func resourceNodeDeploymentCreate(d *schema.ResourceData, m interface{}) error {
 
 	r, err := k.client.Project.CreateNodeDeployment(p, k.auth)
 	if err != nil {
-		return fmt.Errorf("unable to create a node deployment: %s", getErrorResponse(err))
+		if e, ok := err.(*project.CreateNodeDeploymentDefault); ok && errorMessage(e.Payload) != "" {
+			return fmt.Errorf("%s: %v", errorMessage(e.Payload), err)
+		}
+
+		return fmt.Errorf("unable to create a node deployment: %v", getErrorResponse(err))
 	}
 	d.SetId(kubermaticNodeDeploymentMakeID(projectID, seedDC, clusterID, r.Payload.ID))
 
@@ -175,8 +179,8 @@ func resourceNodeDeploymentUpdate(d *schema.ResourceData, m interface{}) error {
 
 	r, err := k.client.Project.PatchNodeDeployment(p, k.auth)
 	if err != nil {
-		if e, ok := err.(*project.PatchNodeDeploymentDefault); ok && e.Payload != nil && e.Payload.Error != nil && e.Payload.Error.Message != nil {
-			return fmt.Errorf(*e.Payload.Error.Message)
+		if e, ok := err.(*project.PatchNodeDeploymentDefault); ok && errorMessage(e.Payload) != "" {
+			return fmt.Errorf(errorMessage(e.Payload))
 		}
 		return fmt.Errorf("unable to update a node deployment: %v", err)
 	}
@@ -198,6 +202,10 @@ func waitForNodeDeploymentRead(k *kubermaticProviderMeta, timeout time.Duration,
 
 		r, err := k.client.Project.GetNodeDeployment(p, k.auth)
 		if err != nil {
+			if e, ok := err.(*project.GetNodeDeploymentDefault); ok && errorMessage(e.Payload) != "" {
+				// Sometimes api returns 500 which often means try later
+				return resource.RetryableError(fmt.Errorf("unable to get node deployment '%s' status: %s: %v", id, errorMessage(e.Payload), err))
+			}
 			return resource.NonRetryableError(fmt.Errorf("unable to get node deployment '%s' status: %v", id, getErrorResponse(err)))
 		}
 

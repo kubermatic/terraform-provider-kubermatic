@@ -492,7 +492,7 @@ func testAccCheckKubermaticClusterHasSSHKey(cluster, sshkey *string) resource.Te
 		p.SetClusterID(*cluster)
 		ret, err := k.client.Project.ListSSHKeysAssignedToCluster(p, k.auth)
 		if err != nil {
-			return fmt.Errorf("ListSSHKeysAssignedToCluster %w", err)
+			return fmt.Errorf("ListSSHKeysAssignedToCluster %v", err)
 		}
 
 		var ids []string
@@ -618,7 +618,7 @@ func testAccCheckKubermaticClusterExists(cluster *models.Cluster) resource.TestC
 		p.SetClusterID(clusterID)
 		ret, err := k.client.Project.GetCluster(p, k.auth)
 		if err != nil {
-			return fmt.Errorf("GetCluster %w", err)
+			return fmt.Errorf("GetCluster %v", err)
 		}
 		if ret.Payload == nil {
 			return fmt.Errorf("Record not found")

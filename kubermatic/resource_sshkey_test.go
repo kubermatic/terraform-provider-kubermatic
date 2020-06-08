@@ -72,7 +72,7 @@ func testAccCheckKubermaticSSHKeyDestroy(s *terraform.State) error {
 			if e, ok := err.(*project.ListSSHKeysDefault); ok && e.Code() == http.StatusNotFound {
 				continue
 			}
-			return fmt.Errorf("check destroy: %w", err)
+			return fmt.Errorf("check destroy: %v", err)
 		}
 
 		for _, rs := range s.RootModule().Resources {
@@ -120,7 +120,7 @@ func testAccCheckKubermaticSSHKeyExists(sshkeyN, projectN string, rec *models.SS
 
 		ret, err := k.client.Project.ListSSHKeys(p, k.auth)
 		if err != nil {
-			return fmt.Errorf("Cannot verify record exist, list sshkeys error: %w", err)
+			return fmt.Errorf("Cannot verify record exist, list sshkeys error: %v", err)
 		}
 
 		for _, r := range ret.Payload {
