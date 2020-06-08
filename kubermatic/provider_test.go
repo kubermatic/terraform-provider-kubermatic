@@ -12,14 +12,22 @@ import (
 )
 
 const (
-	testNamePrefix           = "tf-acc-test-"
+	testNamePrefix = "tf-acc-test-"
+
+	testEnvOpenstackNodeDC   = "KUBERMATIC_OPENSTACK_NODE_DC"
 	testEnvOpenstackUsername = "KUBERMATIC_OPENSTACK_USERNAME"
 	testEnvOpenstackPassword = "KUBERMATIC_OPENSTACK_PASSWORD"
 	testEnvOpenstackTenant   = "KUBERMATIC_OPENSTACK_TENANT"
-	testEnvOpenstackNodeDC   = "KUBERMATIC_OPENSTACK_NODE_DC"
 	testEnvOpenstackImage    = "KUBERMATIC_OPENSTACK_IMAGE"
 	testEnvOpenstackImage2   = "KUBERMATIC_OPENSTACK_IMAGE2"
 	testEnvOpenstackFlavor   = "KUBERMATIC_OPENSTACK_FLAVOR"
+
+	testEnvAzureNodeDC         = "KUBERMATIC_AZURE_NODE_DC"
+	testEnvAzureNodeSize       = "KUBERMATIC_AZURE_NODE_SIZE"
+	testEnvAzureClientID       = "KUBERMATIC_AZURE_CLIENT_ID"
+	testEnvAzureClientSecret   = "KUBERMATIC_AZURE_CLIENT_SECRET"
+	testEnvAzureTenantID       = "KUBERMATIC_AZURE_TENANT_ID"
+	testEnvAzureSubscriptionID = "KUBERMATIC_AZURE_SUBSCRIPTION_ID"
 )
 
 var (
@@ -44,6 +52,17 @@ func testAccPreCheckForOpenstack(t *testing.T) {
 	checkEnv(t, testEnvOpenstackImage)
 	checkEnv(t, testEnvOpenstackImage2)
 	checkEnv(t, testEnvOpenstackFlavor)
+}
+
+func testAccPreCheckForAzure(t *testing.T) {
+	t.Helper()
+	testAccPreCheck(t)
+	checkEnv(t, testEnvAzureClientID)
+	checkEnv(t, testEnvAzureClientSecret)
+	checkEnv(t, testEnvAzureSubscriptionID)
+	checkEnv(t, testEnvAzureTenantID)
+	checkEnv(t, testEnvAzureNodeDC)
+	checkEnv(t, testEnvAzureNodeSize)
 }
 
 func testAccPreCheck(t *testing.T) {

@@ -67,6 +67,7 @@ func nodeDeploymentSpecFields() map[string]*schema.Schema {
 										Schema: openstackNodeFields(),
 									},
 								},
+								"azure": nodeDeploymentSpecCloudAzureSchema(),
 							},
 						},
 					},
@@ -269,6 +270,75 @@ func openstackNodeFields() map[string]*schema.Schema {
 			Optional:    true,
 			Default:     false,
 			Description: "Defines whether floating ip should be used",
+		},
+	}
+}
+
+func nodeDeploymentSpecCloudAzureSchema() *schema.Schema {
+	return &schema.Schema{
+		Type:        schema.TypeList,
+		Optional:    true,
+		MaxItems:    1,
+		Description: "Azure node deployment specification",
+		Elem: &schema.Resource{
+			Schema: map[string]*schema.Schema{
+				"image_id": {
+					Type:        schema.TypeString,
+					Optional:    true,
+					Description: "Node image id",
+				},
+				"size": {
+					Type:        schema.TypeString,
+					Required:    true,
+					Description: "VM size",
+				},
+				"assign_public_ip": {
+					Type:        schema.TypeBool,
+					Optional:    true,
+					Default:     false,
+					Description: "whether to have public facing IP or not",
+				},
+				"disk_size_gb": {
+					Type:        schema.TypeInt,
+					Optional:    true,
+					Default:     0,
+					ForceNew:    true,
+					Description: "Data disk size in GB",
+				},
+				"os_disk_size_gb": {
+					Type:        schema.TypeInt,
+					Optional:    true,
+					Default:     0,
+					ForceNew:    true,
+					Description: "OS disk size in GB",
+				},
+				"tags": {
+					Type:        schema.TypeMap,
+					Optional:    true,
+					Computed:    true,
+					Description: "Additional metadata to set",
+					Elem:        schema.TypeString,
+					DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+						return isLabelOrTagReserved(k)
+					},
+					ValidateFunc: func(v interface{}, k string) (strings []string, errors []error) {
+						l := v.(map[string]interface{})
+						for key := range l {
+							if err := validateLabelOrTag(key); err != nil {
+								errors = append(errors, err)
+							}
+						}
+						return
+					},
+				},
+				"zones": {
+					Type:        schema.TypeList,
+					Optional:    true,
+					Computed:    true,
+					Description: "Represents the availablity zones for azure vms",
+					Elem:        &schema.Schema{Type: schema.TypeString},
+				},
+			},
 		},
 	}
 }

@@ -37,7 +37,7 @@ func TestFlattenNodeDeploymentSpec(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		output := flattenNodeDeploymentSpec(tc.Input)
+		output := flattenNodeDeploymentSpec(nil, tc.Input)
 		if diff := cmp.Diff(tc.ExpectedOutput, output); diff != "" {
 			t.Fatalf("Unexpected output from expander: mismatch (-want +got):\n%s", diff)
 		}
@@ -132,7 +132,7 @@ func TestFlattenNodeSpec(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		output := flattenNodeSpec(tc.Input)
+		output := flattenNodeSpec(nil, tc.Input)
 		if diff := cmp.Diff(tc.ExpectedOutput, output); diff != "" {
 			t.Fatalf("Unexpected output from expander: mismatch (-want +got):\n%s", diff)
 		}
@@ -620,6 +620,58 @@ func TestExpandOpenstackNodeSpec(t *testing.T) {
 
 	for _, tc := range cases {
 		output := expandOpenstackNodeSpec(tc.Input)
+		if diff := cmp.Diff(tc.ExpectedOutput, output); diff != "" {
+			t.Fatalf("Unexpected output from expander: mismatch (-want +got):\n%s", diff)
+		}
+	}
+}
+
+func TestExpandAzureNodeSpec(t *testing.T) {
+	cases := []struct {
+		Input          []interface{}
+		ExpectedOutput *models.AzureNodeSpec
+	}{
+		{
+			[]interface{}{
+				map[string]interface{}{
+					"image_id":         "ImageID",
+					"size":             "Size",
+					"assign_public_ip": false,
+					"disk_size_gb":     1,
+					"os_disk_size_gb":  2,
+					"tags": map[string]interface{}{
+						"tag-k": "tag-v",
+					},
+					"zones": []interface{}{"Zone-x"},
+				},
+			},
+			&models.AzureNodeSpec{
+				ImageID:        "ImageID",
+				Size:           strToPtr("Size"),
+				AssignPublicIP: false,
+				DataDiskSize:   1,
+				OSDiskSize:     2,
+				Tags: map[string]string{
+					"tag-k": "tag-v",
+				},
+				Zones: []string{"Zone-x"},
+			},
+		},
+		{
+
+			[]interface{}{
+				map[string]interface{}{},
+			},
+			&models.AzureNodeSpec{},
+		},
+		{
+			[]interface{}{},
+			nil,
+		},
+	}
+
+	for _, tc := range cases {
+		output := expandAzureNodeSpec(tc.Input)
 		if diff := cmp.Diff(tc.ExpectedOutput, output); diff != "" {
 			t.Fatalf("Unexpected output from expander: mismatch (-want +got):\n%s", diff)
 		}

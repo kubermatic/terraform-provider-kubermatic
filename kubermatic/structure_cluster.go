@@ -80,7 +80,11 @@ func flattenClusterCloudSpec(values clusterPreserveValues, in *models.CloudSpec)
 	}
 
 	if in.Openstack != nil {
-		att["openstack"] = flattenOpenstackSpec(values, in.Openstack)
+		att["openstack"] = flattenOpenstackSpec(values.openstack, in.Openstack)
+	}
+
+	if in.Azure != nil {
+		att["azure"] = flattenAzureSpec(values.azure)
 	}
 
 	return []interface{}{att}
@@ -124,7 +128,7 @@ func flattenAWSCloudSpec(in *models.AWSCloudSpec) []interface{} {
 	return []interface{}{att}
 }
 
-func flattenOpenstackSpec(values clusterPreserveValues, in *models.OpenstackCloudSpec) []interface{} {
+func flattenOpenstackSpec(values *clusterOpenstackPreservedValues, in *models.OpenstackCloudSpec) []interface{} {
 	if in == nil {
 		return []interface{}{}
 	}
@@ -143,6 +147,58 @@ func flattenOpenstackSpec(values clusterPreserveValues, in *models.OpenstackClou
 	}
 	if values.openstackPassword != nil {
 		att["password"] = values.openstackPassword
+	}
+
+	return []interface{}{att}
+}
+
+func flattenAzureSpec(in *models.AzureCloudSpec) []interface{} {
+	if in == nil {
+		return []interface{}{}
+	}
+
+	// API returns empty spec for Azure clusters, so we just preserve values used for creation
+
+	att := make(map[string]interface{})
+
+	if in.AvailabilitySet != "" {
+		att["availability_set"] = in.AvailabilitySet
+	}
+
+	if in.ClientID != "" {
+		att["client_id"] = in.ClientID
+	}
+
+	if in.ClientSecret != "" {
+		att["client_secret"] = in.ClientSecret
+	}
+
+	if in.SubscriptionID != "" {
+		att["subscription_id"] = in.SubscriptionID
+	}
+
+	if in.TenantID != "" {
+		att["tenant_id"] = in.TenantID
+	}
+
+	if in.ResourceGroup != "" {
+		att["resource_group"] = in.ResourceGroup
+	}
+
+	if in.RouteTableName != "" {
+		att["route_table"] = in.RouteTableName
+	}
+
+	if in.SecurityGroup != "" {
+		att["security_group"] = in.SecurityGroup
+	}
+
+	if in.SubnetName != "" {
+		att["subnet"] = in.SubnetName
+	}
+
+	if in.VNetName != "" {
+		att["vnet"] = in.VNetName
 	}
 
 	return []interface{}{att}
@@ -242,6 +298,10 @@ func expandClusterCloudSpec(p []interface{}, dcName string) *models.CloudSpec {
 		obj.Openstack = expandOpenstackCloudSpec(v.([]interface{}))
 	}
 
+	if v, ok := in["azure"]; ok {
+		obj.Azure = expandAzureCloudSpec(v.([]interface{}))
+	}
+
 	return obj
 }
 
@@ -298,6 +358,7 @@ func expandOpenstackCloudSpec(p []interface{}) *models.OpenstackCloudSpec {
 	if len(p) < 1 {
 		return nil
 	}
+
 	obj := &models.OpenstackCloudSpec{}
 	if p[0] == nil {
 		return obj
@@ -322,6 +383,62 @@ func expandOpenstackCloudSpec(p []interface{}) *models.OpenstackCloudSpec {
 
 	// HACK(furkhat): API doesn't return domain for cluster. Use 'Default' all the time.
 	obj.Domain = "Default"
+
+	return obj
+}
+
+func expandAzureCloudSpec(p []interface{}) *models.AzureCloudSpec {
+	if len(p) < 1 {
+		return nil
+	}
+
+	obj := &models.AzureCloudSpec{}
+
+	if p[0] == nil {
+		return obj
+	}
+
+	in := p[0].(map[string]interface{})
+
+	if v, ok := in["availability_set"]; ok {
+		obj.AvailabilitySet = v.(string)
+	}
+
+	if v, ok := in["client_id"]; ok {
+		obj.ClientID = v.(string)
+	}
+
+	if v, ok := in["client_secret"]; ok {
+		obj.ClientSecret = v.(string)
+	}
+
+	if v, ok := in["subscription_id"]; ok {
+		obj.SubscriptionID = v.(string)
+	}
+
+	if v, ok := in["tenant_id"]; ok {
+		obj.TenantID = v.(string)
+	}
+
+	if v, ok := in["resource_group"]; ok {
+		obj.ResourceGroup = v.(string)
+	}
+
+	if v, ok := in["route_table"]; ok {
+		obj.RouteTableName = v.(string)
+	}
+
+	if v, ok := in["security_group"]; ok {
+		obj.SecurityGroup = v.(string)
+	}
+
+	if v, ok := in["subnet"]; ok {
+		obj.SubnetName = v.(string)
+	}
+
+	if v, ok := in["vnet"]; ok {
+		obj.VNetName = v.(string)
+	}
 
 	return obj
 }

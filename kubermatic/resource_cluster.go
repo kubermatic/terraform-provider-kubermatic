@@ -382,16 +382,49 @@ func kubermaticClusterGetAssignedSSHKeys(d *schema.ResourceData, k *kubermaticPr
 // even force replacement of a cluster. Solution is to set values for preserved
 // values in flattened object before comitting it to state.
 type clusterPreserveValues struct {
+	openstack *clusterOpenstackPreservedValues
+	// API returns empty spec for Azure clusters, so we just preserve values used for creation
+	azure *models.AzureCloudSpec
+}
+
+type clusterOpenstackPreservedValues struct {
 	openstackUsername interface{}
 	openstackPassword interface{}
 	openstackTenant   interface{}
 }
 
 func readClusterPreserveValues(d *schema.ResourceData) clusterPreserveValues {
+	key := func(s string) string {
+		return fmt.Sprint("spec.0.cloud.0.", s)
+	}
+	var openstack *clusterOpenstackPreservedValues
+	if _, ok := d.GetOkExists(key("openstack.0")); ok {
+		openstack = &clusterOpenstackPreservedValues{
+			openstackUsername: d.Get(key("openstack.0.username")),
+			openstackPassword: d.Get(key("openstack.0.password")),
+			openstackTenant:   d.Get(key("openstack.0.tenant")),
+		}
+	}
+
+	var azure *models.AzureCloudSpec
+	if _, ok := d.GetOkExists(key("azure.0")); ok {
+		azure = &models.AzureCloudSpec{
+			AvailabilitySet: d.Get(key("azure.0.availability_set")).(string),
+			ClientID:        d.Get(key("azure.0.client_id")).(string),
+			ClientSecret:    d.Get(key("azure.0.client_secret")).(string),
+			SubscriptionID:  d.Get(key("azure.0.subscription_id")).(string),
+			TenantID:        d.Get(key("azure.0.tenant_id")).(string),
+			ResourceGroup:   d.Get(key("azure.0.resource_group")).(string),
+			RouteTableName:  d.Get(key("azure.0.route_table")).(string),
+			SecurityGroup:   d.Get(key("azure.0.security_group")).(string),
+			SubnetName:      d.Get(key("azure.0.subnet")).(string),
+			VNetName:        d.Get(key("azure.0.vnet")).(string),
+		}
+	}
+
 	return clusterPreserveValues{
-		openstackUsername: d.Get("spec.0.cloud.0.openstack.0.username"),
-		openstackPassword: d.Get("spec.0.cloud.0.openstack.0.password"),
-		openstackTenant:   d.Get("spec.0.cloud.0.openstack.0.tenant"),
+		openstack,
+		azure,
 	}
 }
 

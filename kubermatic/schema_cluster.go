@@ -46,6 +46,7 @@ func clusterSpecFields() map[string]*schema.Schema {
 							Schema: openstackCloudSpecFields(),
 						},
 					},
+					"azure": azureCloudSpecSchema(),
 				},
 			},
 		},
@@ -86,6 +87,65 @@ func clusterSpecFields() map[string]*schema.Schema {
 			Optional:    true,
 			Default:     false,
 			Description: "Pod security policies allow detailed authorization of pod creation and updates.",
+		},
+	}
+}
+
+func azureCloudSpecSchema() *schema.Schema {
+	return &schema.Schema{
+		Type:        schema.TypeList,
+		Optional:    true,
+		ForceNew:    true,
+		Description: "Azire cluster specification",
+		Elem: &schema.Resource{
+			Schema: map[string]*schema.Schema{
+				"availability_set": {
+					Type:     schema.TypeString,
+					Optional: true,
+				},
+				"client_id": {
+					Type:     schema.TypeString,
+					Required: true,
+				},
+				"client_secret": {
+					Type:      schema.TypeString,
+					Required:  true,
+					Sensitive: true,
+				},
+				"subscription_id": {
+					Type:     schema.TypeString,
+					Required: true,
+				},
+				"tenant_id": {
+					Type:     schema.TypeString,
+					Required: true,
+				},
+				"resource_group": {
+					Type:     schema.TypeString,
+					Computed: true,
+					Optional: true,
+				},
+				"route_table": {
+					Type:     schema.TypeString,
+					Computed: true,
+					Optional: true,
+				},
+				"security_group": {
+					Type:     schema.TypeString,
+					Computed: true,
+					Optional: true,
+				},
+				"subnet": {
+					Type:     schema.TypeString,
+					Computed: true,
+					Optional: true,
+				},
+				"vnet": {
+					Type:     schema.TypeString,
+					Computed: true,
+					Optional: true,
+				},
+			},
 		},
 	}
 }

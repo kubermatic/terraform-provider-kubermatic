@@ -5,7 +5,7 @@ import (
 )
 
 // flatteners
-func flattenNodeDeploymentSpec(in *models.NodeDeploymentSpec) []interface{} {
+func flattenNodeDeploymentSpec(values *nodeSpecPreservedValues, in *models.NodeDeploymentSpec) []interface{} {
 	if in == nil {
 		return []interface{}{}
 	}
@@ -17,13 +17,13 @@ func flattenNodeDeploymentSpec(in *models.NodeDeploymentSpec) []interface{} {
 	}
 
 	if in.Template != nil {
-		att["template"] = flattenNodeSpec(in.Template)
+		att["template"] = flattenNodeSpec(values, in.Template)
 	}
 
 	return []interface{}{att}
 }
 
-func flattenNodeSpec(in *models.NodeSpec) []interface{} {
+func flattenNodeSpec(values *nodeSpecPreservedValues, in *models.NodeSpec) []interface{} {
 	if in == nil {
 		return []interface{}{}
 	}
@@ -55,7 +55,7 @@ func flattenNodeSpec(in *models.NodeSpec) []interface{} {
 	}
 
 	if in.Cloud != nil {
-		att["cloud"] = flattenNodeCloudSpec(in.Cloud)
+		att["cloud"] = flattenNodeCloudSpec(values, in.Cloud)
 	}
 
 	return []interface{}{att}
@@ -155,7 +155,7 @@ func flattenTaintSpec(in *models.TaintSpec) map[string]interface{} {
 	return att
 }
 
-func flattenNodeCloudSpec(in *models.NodeCloudSpec) []interface{} {
+func flattenNodeCloudSpec(values *nodeSpecPreservedValues, in *models.NodeCloudSpec) []interface{} {
 	if in == nil {
 		return []interface{}{}
 	}
@@ -168,6 +168,12 @@ func flattenNodeCloudSpec(in *models.NodeCloudSpec) []interface{} {
 
 	if in.Openstack != nil {
 		att["openstack"] = flattenOpenstackNodeSpec(in.Openstack)
+	}
+
+	if in.Azure != nil {
+		// Azure returns empty `{}` properties list, so we are there not writing anything
+		// and preserving values already there.
+		att["azure"] = flattendAzureNodeSpec(values.azure)
 	}
 
 	// TODO: add all cloud providers
@@ -242,6 +248,38 @@ func flattenOpenstackNodeSpec(in *models.OpenstackNodeSpec) []interface{} {
 
 	if in.RootDiskSizeGB != 0 {
 		att["disk_size"] = in.RootDiskSizeGB
+	}
+
+	return []interface{}{att}
+}
+
+func flattendAzureNodeSpec(in *models.AzureNodeSpec) []interface{} {
+	if in == nil {
+		return []interface{}{}
+	}
+
+	att := make(map[string]interface{})
+
+	if in.ImageID != "" {
+		att["image_id"] = in.ImageID
+	}
+
+	if in.Size != nil {
+		att["size"] = *in.Size
+	}
+
+	att["assign_public_ip"] = in.AssignPublicIP
+
+	att["disk_size_gb"] = in.DataDiskSize
+
+	att["os_disk_size_gb"] = in.OSDiskSize
+
+	if in.Tags != nil {
+		att["tags"] = in.Tags
+	}
+
+	if in.Zones != nil {
+		att["zones"] = in.Zones
 	}
 
 	return []interface{}{att}
@@ -438,6 +476,10 @@ func expandNodeCloudSpec(p []interface{}) *models.NodeCloudSpec {
 		obj.Openstack = expandOpenstackNodeSpec(v.([]interface{}))
 	}
 
+	if v, ok := in["azure"]; ok {
+		obj.Azure = expandAzureNodeSpec(v.([]interface{}))
+	}
+
 	return obj
 }
 
@@ -520,6 +562,59 @@ func expandOpenstackNodeSpec(p []interface{}) *models.OpenstackNodeSpec {
 
 	if v, ok := in["disk_size"]; ok {
 		obj.RootDiskSizeGB = int64(v.(int))
+	}
+
+	return obj
+}
+
+func expandAzureNodeSpec(p []interface{}) *models.AzureNodeSpec {
+	if len(p) < 1 {
+		return nil
+	}
+
+	obj := &models.AzureNodeSpec{}
+
+	if p[0] == nil {
+		return obj
+	}
+
+	in := p[0].(map[string]interface{})
+
+	if v, ok := in["image_id"]; ok {
+		obj.ImageID = v.(string)
+	}
+
+	if v, ok := in["size"]; ok {
+		obj.Size = strToPtr(v.(string))
+	}
+
+	if v, ok := in["assign_public_ip"]; ok {
+		obj.AssignPublicIP = v.(bool)
+	}
+
+	if v, ok := in["disk_size_gb"]; ok {
+		obj.DataDiskSize = int32(v.(int))
+	}
+
+	if v, ok := in["os_disk_size_gb"]; ok {
+		obj.OSDiskSize = int32(v.(int))
+	}
+
+	if v, ok := in["tags"]; ok {
+		obj.Tags = make(map[string]string)
+		for key, val := range v.(map[string]interface{}) {
+			obj.Tags[key] = val.(string)
+		}
+	}
+
+	if v, ok := in["zones"]; ok {
+		v := v.([]interface{})
+		if len(v) > 0 {
+			obj.Zones = make([]string, len(v))
+			for i, z := range v {
+				obj.Zones[i] = z.(string)
+			}
+		}
 	}
 
 	return obj

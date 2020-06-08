@@ -59,6 +59,20 @@ func resourceNodeDeployment() *schema.Resource {
 	}
 }
 
+type nodeSpecPreservedValues struct {
+	// API returns empty spec for Azure clusters, so we just preserve values used for creation
+	azure *models.AzureNodeSpec
+}
+
+func readNodeDeploymentPreservedValues(d *schema.ResourceData) *nodeSpecPreservedValues {
+	if _, ok := d.GetOkExists("spec.0.template.0.cloud.0.azure.0"); !ok {
+		return &nodeSpecPreservedValues{}
+	}
+	return &nodeSpecPreservedValues{
+		azure: expandAzureNodeSpec(d.Get("spec.0.template.0.cloud.0.azure").([]interface{})),
+	}
+}
+
 func resourceNodeDeploymentCreate(d *schema.ResourceData, m interface{}) error {
 	projectID, seedDC, clusterID, err := kubermaticClusterParseID(d.Get("cluster_id").(string))
 	if err != nil {
@@ -134,7 +148,7 @@ func resourceNodeDeploymentRead(d *schema.ResourceData, m interface{}) error {
 
 	d.Set("name", r.Payload.Name)
 
-	d.Set("spec", flattenNodeDeploymentSpec(r.Payload.Spec))
+	d.Set("spec", flattenNodeDeploymentSpec(readNodeDeploymentPreservedValues(d), r.Payload.Spec))
 
 	d.Set("creation_timestamp", r.Payload.CreationTimestamp.String())
 

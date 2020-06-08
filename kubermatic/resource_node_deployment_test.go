@@ -187,40 +187,6 @@ func testAccCheckKubermaticNodeDeploymentDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckKubermaticNodeDeploymentExists(n string, rec *models.NodeDeployment) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		rs, ok := s.RootModule().Resources[n]
-
-		if !ok {
-			return fmt.Errorf("Not found: %s", n)
-		}
-
-		if rs.Primary.ID == "" {
-			return fmt.Errorf("No Record ID is set")
-		}
-
-		k := testAccProvider.Meta().(*kubermaticProviderMeta)
-
-		projectID, seedDC, clusterID, nodeDeplID, err := kubermaticNodeDeploymentParseID(rs.Primary.ID)
-		if err != nil {
-			return err
-		}
-
-		p := project.NewGetNodeDeploymentParams()
-		p.SetProjectID(projectID)
-		p.SetClusterID(clusterID)
-		p.SetDC(seedDC)
-		p.SetNodeDeploymentID(nodeDeplID)
-		r, err := k.client.Project.GetNodeDeployment(p, k.auth)
-		if err != nil {
-			return fmt.Errorf("GetNodeDeployment: %v", err)
-		}
-		*rec = *r.Payload
-
-		return nil
-	}
-}
-
 func testAccCheckKubermaticNodeDeploymentFields(rec *models.NodeDeployment, flavor, image, kubeletVersion string, replicas, diskSize int, floatingIP, distUpgrade bool) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		if rec == nil {
@@ -282,6 +248,117 @@ func testAccCheckKubermaticNodeDeploymentFields(rec *models.NodeDeployment, flav
 		if rec.Spec.Replicas == nil || *rec.Spec.Replicas != int32(replicas) {
 			return fmt.Errorf("Replicas=%d, want %d", rec.Spec.Replicas, replicas)
 		}
+
+		return nil
+	}
+}
+
+func TestAccKubermaticNodeDeployment_Azure_Basic(t *testing.T) {
+	var nodedepl models.NodeDeployment
+	testName := randomTestName()
+
+	clientID := os.Getenv(testEnvAzureClientID)
+	clientSecret := os.Getenv(testEnvAzureClientSecret)
+	tenantID := os.Getenv(testEnvAzureTenantID)
+	subsID := os.Getenv(testEnvAzureSubscriptionID)
+	nodeDC := os.Getenv(testEnvAzureNodeDC)
+	nodeSize := os.Getenv(testEnvAzureNodeSize)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheckForAzure(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckKubermaticNodeDeploymentDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCheckKubermaticNodeDeploymentAzureBasic(testName, clientID, clientSecret, tenantID, subsID, nodeDC, nodeSize),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccCheckKubermaticNodeDeploymentExists("kubermatic_node_deployment.acctest_nd", &nodedepl),
+					resource.TestCheckResourceAttr("kubermatic_node_deployment.acctest_nd", "spec.0.template.0.cloud.0.azure.0.size", nodeSize),
+				),
+			},
+		},
+	})
+}
+
+func testAccCheckKubermaticNodeDeploymentAzureBasic(n, clientID, clientSecret, tenantID, subscID, nodeDC, nodeSize string) string {
+	return fmt.Sprintf(`
+	provider "kubermatic" {}
+
+	resource "kubermatic_project" "acctest_project" {
+		name = "%s"
+	}
+
+	resource "kubermatic_cluster" "acctest_cluster" {
+		name = "%s"
+		dc_name = "%s"
+		project_id = kubermatic_project.acctest_project.id
+
+		spec {
+			version = "1.17.5"
+			cloud {
+				azure {
+					client_id = "%s"
+					client_secret = "%s"
+					tenant_id = "%s"
+					subscription_id = "%s"
+				}
+			}
+		}
+	}
+
+	resource "kubermatic_node_deployment" "acctest_nd" {
+		cluster_id = kubermatic_cluster.acctest_cluster.id
+		name = "%s"
+		spec {
+			replicas = 2
+			template {
+				cloud {
+					azure {
+						size = "%s"
+					}
+				}
+				operating_system {
+					ubuntu {
+						dist_upgrade_on_boot = false
+					}
+				}
+				versions {
+					kubelet = "1.17.5"
+				}
+			}
+		}
+	}`, n, n, nodeDC, clientID, clientSecret, tenantID, subscID, n, nodeSize)
+}
+
+func testAccCheckKubermaticNodeDeploymentExists(n string, rec *models.NodeDeployment) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[n]
+
+		if !ok {
+			return fmt.Errorf("Not found: %s", n)
+		}
+
+		if rs.Primary.ID == "" {
+			return fmt.Errorf("No Record ID is set")
+		}
+
+		k := testAccProvider.Meta().(*kubermaticProviderMeta)
+
+		projectID, seedDC, clusterID, nodeDeplID, err := kubermaticNodeDeploymentParseID(rs.Primary.ID)
+		if err != nil {
+			return err
+		}
+
+		p := project.NewGetNodeDeploymentParams()
+		p.SetProjectID(projectID)
+		p.SetClusterID(clusterID)
+		p.SetDC(seedDC)
+		p.SetNodeDeploymentID(nodeDeplID)
+		r, err := k.client.Project.GetNodeDeployment(p, k.auth)
+		if err != nil {
+			return fmt.Errorf("GetNodeDeployment: %v", err)
+		}
+		*rec = *r.Payload
 
 		return nil
 	}

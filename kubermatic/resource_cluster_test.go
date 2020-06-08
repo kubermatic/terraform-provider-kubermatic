@@ -474,6 +474,102 @@ func testAccCheckKubermaticClusterOpenstackBasicWithSSHKey2(testName, username, 
 	return fmt.Sprintf(config, testName, testName, nodeDC, tenant, username, password)
 }
 
+func testAccCheckKubermaticClusterHasSSHKey(cluster, sshkey *string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources["kubermatic_cluster.acctest_cluster"]
+		if !ok {
+			return fmt.Errorf("Not found: %s", "kubermatic_project.acctest_project")
+		}
+
+		projectID, seedDC, _, err := kubermaticClusterParseID(rs.Primary.ID)
+		if err != nil {
+			return err
+		}
+		k := testAccProvider.Meta().(*kubermaticProviderMeta)
+		p := project.NewListSSHKeysAssignedToClusterParams()
+		p.SetProjectID(projectID)
+		p.SetDC(seedDC)
+		p.SetClusterID(*cluster)
+		ret, err := k.client.Project.ListSSHKeysAssignedToCluster(p, k.auth)
+		if err != nil {
+			return fmt.Errorf("ListSSHKeysAssignedToCluster %w", err)
+		}
+
+		var ids []string
+		for _, v := range ret.Payload {
+			ids = append(ids, v.ID)
+		}
+
+		var sshkeys []string
+		if *sshkey != "" {
+			sshkeys = []string{*sshkey}
+		}
+		if diff := cmp.Diff(sshkeys, ids); diff != "" {
+			return fmt.Errorf("wrong sshkeys: %s, %s", *sshkey, diff)
+		}
+
+		return nil
+	}
+}
+
+func TestAccKubermaticCluster_Azure_Basic(t *testing.T) {
+	t.Skip()
+
+	var cluster models.Cluster
+	testName := randomTestName()
+
+	clientID := os.Getenv(testEnvAzureClientID)
+	clientSecret := os.Getenv(testEnvAzureClientSecret)
+	tenantID := os.Getenv(testEnvAzureTenantID)
+	subsID := os.Getenv(testEnvAzureSubscriptionID)
+	nodeDC := os.Getenv(testEnvAzureNodeDC)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheckForAzure(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckKubermaticClusterDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCheckKubermaticClusterAzureBasic(testName, clientID, clientSecret, tenantID, subsID, nodeDC),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccCheckKubermaticClusterExists(&cluster),
+					resource.TestCheckResourceAttr("kubermatic_cluster.acctest_cluster", "spec.0.cloud.0.azure.0.client_id", clientID),
+					resource.TestCheckResourceAttr("kubermatic_cluster.acctest_cluster", "spec.0.cloud.0.azure.0.client_secret", clientSecret),
+					resource.TestCheckResourceAttr("kubermatic_cluster.acctest_cluster", "spec.0.cloud.0.azure.0.tenant_id", tenantID),
+					resource.TestCheckResourceAttr("kubermatic_cluster.acctest_cluster", "spec.0.cloud.0.azure.0.subscription_id", subsID),
+				),
+			},
+		},
+	})
+}
+
+func testAccCheckKubermaticClusterAzureBasic(n, clientID, clientSecret, tenantID, subscID, nodeDC string) string {
+	return fmt.Sprintf(`
+	provider "kubermatic" {}
+
+	resource "kubermatic_project" "acctest_project" {
+		name = "%s"
+	}
+
+	resource "kubermatic_cluster" "acctest_cluster" {
+		name = "%s"
+		dc_name = "%s"
+		project_id = kubermatic_project.acctest_project.id
+
+		spec {
+			version = "1.17.5"
+			cloud {
+				azure {
+					client_id = "%s"
+					client_secret = "%s"
+					tenant_id = "%s"
+					subscription_id = "%s"
+				}
+			}
+		}
+	}`, n, n, nodeDC, clientID, clientSecret, tenantID, subscID)
+}
+
 func testAccCheckKubermaticClusterDestroy(s *terraform.State) error {
 	k := testAccProvider.Meta().(*kubermaticProviderMeta)
 
@@ -529,44 +625,6 @@ func testAccCheckKubermaticClusterExists(cluster *models.Cluster) resource.TestC
 		}
 
 		*cluster = *ret.Payload
-
-		return nil
-	}
-}
-
-func testAccCheckKubermaticClusterHasSSHKey(cluster, sshkey *string) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		rs, ok := s.RootModule().Resources["kubermatic_cluster.acctest_cluster"]
-		if !ok {
-			return fmt.Errorf("Not found: %s", "kubermatic_project.acctest_project")
-		}
-
-		projectID, seedDC, _, err := kubermaticClusterParseID(rs.Primary.ID)
-		if err != nil {
-			return err
-		}
-		k := testAccProvider.Meta().(*kubermaticProviderMeta)
-		p := project.NewListSSHKeysAssignedToClusterParams()
-		p.SetProjectID(projectID)
-		p.SetDC(seedDC)
-		p.SetClusterID(*cluster)
-		ret, err := k.client.Project.ListSSHKeysAssignedToCluster(p, k.auth)
-		if err != nil {
-			return fmt.Errorf("ListSSHKeysAssignedToCluster %w", err)
-		}
-
-		var ids []string
-		for _, v := range ret.Payload {
-			ids = append(ids, v.ID)
-		}
-
-		var sshkeys []string
-		if *sshkey != "" {
-			sshkeys = []string{*sshkey}
-		}
-		if diff := cmp.Diff(sshkeys, ids); diff != "" {
-			return fmt.Errorf("wrong sshkeys: %s, %s", *sshkey, diff)
-		}
 
 		return nil
 	}
