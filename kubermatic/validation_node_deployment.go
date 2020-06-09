@@ -3,9 +3,53 @@ package kubermatic
 import (
 	"fmt"
 
+	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/kubermatic/go-kubermatic/client/project"
 	"github.com/kubermatic/go-kubermatic/client/versions"
 )
+
+func getClusterVersion(id string, k *kubermaticProviderMeta) (*version.Version, error) {
+	projectID, seedDC, clusterID, err := kubermaticClusterParseID(id)
+	if err != nil {
+		return nil, err
+	}
+
+	p := project.NewGetClusterParams()
+	p.SetProjectID(projectID)
+	p.SetDC(seedDC)
+	p.SetClusterID(clusterID)
+	r, err := k.client.Project.GetCluster(p, k.auth)
+	if err != nil {
+		return nil, fmt.Errorf("unable to get cluster %s in project %s in seed dc %s", clusterID, projectID, seedDC)
+	}
+
+	v, err := version.NewVersion(r.Payload.Spec.Version.(string))
+	if err != nil {
+		return nil, err
+	}
+	return v, nil
+}
+
+func validateVersionAgainstCluster() schema.CustomizeDiffFunc {
+	return func(d *schema.ResourceDiff, meta interface{}) error {
+		k := meta.(*kubermaticProviderMeta)
+		v, err := version.NewVersion(d.Get("spec.0.template.0.versions.0.kubelet").(string))
+		if err != nil {
+			return fmt.Errorf("unable to parse node deployment version")
+		}
+
+		clusterVersion, err := getClusterVersion(d.Get("cluster_id").(string), k)
+		if err != nil {
+			return err
+		}
+
+		if clusterVersion.LessThan(v) {
+			return fmt.Errorf("node deployment version (%s) cannot be greater than cluster version (%s)", v, clusterVersion)
+		}
+		return nil
+	}
+}
 
 func validateKubeletVersionExists() schema.CustomizeDiffFunc {
 	return func(d *schema.ResourceDiff, meta interface{}) error {
