@@ -11,8 +11,8 @@ import (
 	"github.com/kubermatic/go-kubermatic/models"
 )
 
-const testKubeletVersion16 = "1.16.9"
-const testKubeletVersion17 = "1.17.5"
+const testKubeletVersion16 = "1.16.10"
+const testKubeletVersion17 = "1.17.6"
 
 func TestAccKubermaticNodeDeployment_Openstack_Basic(t *testing.T) {
 	var ndepl models.NodeDeployment
@@ -288,7 +288,7 @@ func testAccCheckKubermaticNodeDeploymentAzureBasic(n, clientID, clientSecret, t
 		project_id = kubermatic_project.acctest_project.id
 
 		spec {
-			version = "1.17.5"
+			version = "1.17.6"
 			cloud {
 				azure {
 					client_id = "%s"
@@ -317,7 +317,7 @@ func testAccCheckKubermaticNodeDeploymentAzureBasic(n, clientID, clientSecret, t
 					}
 				}
 				versions {
-					kubelet = "1.17.5"
+					kubelet = "1.17.6"
 				}
 			}
 		}

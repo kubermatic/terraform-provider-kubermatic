@@ -13,8 +13,8 @@ import (
 	"github.com/kubermatic/go-kubermatic/models"
 )
 
-const testClusterVersion16 = "1.16.9"
-const testClusterVersion17 = "1.17.5"
+const testClusterVersion16 = "1.16.10"
+const testClusterVersion17 = "1.17.6"
 
 func TestAccKubermaticCluster_Openstack_Basic(t *testing.T) {
 	var cluster models.Cluster
@@ -38,7 +38,7 @@ func TestAccKubermaticCluster_Openstack_Basic(t *testing.T) {
 					resource.TestCheckResourceAttr("kubermatic_cluster.acctest_cluster", "name", testName),
 					resource.TestCheckResourceAttr("kubermatic_cluster.acctest_cluster", "labels.%", "0"),
 					resource.TestCheckResourceAttr("kubermatic_cluster.acctest_cluster", "spec.#", "1"),
-					resource.TestCheckResourceAttr("kubermatic_cluster.acctest_cluster", "spec.0.version", "1.17.5"),
+					resource.TestCheckResourceAttr("kubermatic_cluster.acctest_cluster", "spec.0.version", "1.17.6"),
 					resource.TestCheckResourceAttr("kubermatic_cluster.acctest_cluster", "spec.0.cloud.#", "1"),
 					resource.TestCheckResourceAttr("kubermatic_cluster.acctest_cluster", "spec.0.cloud.0.bringyourown.#", "0"),
 					resource.TestCheckResourceAttr("kubermatic_cluster.acctest_cluster", "spec.0.cloud.0.aws.#", "0"),
@@ -131,7 +131,7 @@ func TestAccKubermaticCluster_Openstack_Basic(t *testing.T) {
 					resource.TestCheckResourceAttr("kubermatic_cluster.acctest_cluster", "labels.%", "1"),
 					resource.TestCheckResourceAttr("kubermatic_cluster.acctest_cluster", "labels.test-key", "test-value"),
 					resource.TestCheckResourceAttr("kubermatic_cluster.acctest_cluster", "spec.#", "1"),
-					resource.TestCheckResourceAttr("kubermatic_cluster.acctest_cluster", "spec.0.version", "1.17.5"),
+					resource.TestCheckResourceAttr("kubermatic_cluster.acctest_cluster", "spec.0.version", "1.17.6"),
 					resource.TestCheckResourceAttr("kubermatic_cluster.acctest_cluster", "spec.0.cloud.#", "1"),
 					resource.TestCheckResourceAttr("kubermatic_cluster.acctest_cluster", "spec.0.cloud.0.bringyourown.#", "0"),
 					resource.TestCheckResourceAttr("kubermatic_cluster.acctest_cluster", "spec.0.cloud.0.aws.#", "0"),
@@ -298,7 +298,7 @@ func testAccCheckKubermaticClusterOpenstackBasic2(testName, username, password, 
 		}
 
 		spec {
-			version = "1.17.5"
+			version = "1.17.6"
 			cloud {
 				openstack {
 					tenant = "%s"
@@ -335,7 +335,7 @@ func testAccCheckKubermaticClusterOpenstackAttributes(cluster *models.Cluster, n
 
 		if v, ok := cluster.Spec.Version.(string); !ok || v == "" {
 			return fmt.Errorf("cluster version is empty")
-		} else if v != "1.17.5" {
+		} else if v != "1.17.6" {
 			return fmt.Errorf("want .Spec.Version=1.7.4, got %s", v)
 		}
 
@@ -420,7 +420,7 @@ func testAccCheckKubermaticClusterOpenstackBasicWithSSHKey1(testName, username, 
 		]
 
 		spec {
-			version = "1.17.5"
+			version = "1.17.6"
 			cloud {
 				openstack {
 					tenant = "%s"
@@ -456,7 +456,7 @@ func testAccCheckKubermaticClusterOpenstackBasicWithSSHKey2(testName, username, 
 		]
 
 		spec {
-			version = "1.17.5"
+			version = "1.17.6"
 			cloud {
 				openstack {
 					tenant = "%s"
@@ -515,8 +515,6 @@ func testAccCheckKubermaticClusterHasSSHKey(cluster, sshkey *string) resource.Te
 }
 
 func TestAccKubermaticCluster_Azure_Basic(t *testing.T) {
-	t.Skip()
-
 	var cluster models.Cluster
 	testName := randomTestName()
 
@@ -557,7 +555,7 @@ func testAccCheckKubermaticClusterAzureBasic(n, clientID, clientSecret, tenantID
 		project_id = kubermatic_project.acctest_project.id
 
 		spec {
-			version = "1.17.5"
+			version = "1.17.6"
 			cloud {
 				azure {
 					client_id = "%s"
