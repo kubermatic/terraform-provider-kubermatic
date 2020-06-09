@@ -76,8 +76,6 @@ func TestAccKubermaticNodeDeployment_Openstack_Basic(t *testing.T) {
 
 func testAccCheckKubermaticNodeDeploymentBasic(testName, nodeDC, username, password, tenant, clusterVersion, kubeletVersion, image, flavor string) string {
 	return fmt.Sprintf(`
-	provider "kubermatic" {}
-
 	resource "kubermatic_project" "acctest_project" {
 		name = "%s"
 	}
@@ -124,8 +122,6 @@ func testAccCheckKubermaticNodeDeploymentBasic(testName, nodeDC, username, passw
 
 func testAccCheckKubermaticNodeDeploymentBasic2(testName, nodeDC, username, password, tenant, clusterVersion, kubeletVersion, image, flavor string) string {
 	return fmt.Sprintf(`
-	provider "kubermatic" {}
-
 	resource "kubermatic_project" "acctest_project" {
 		name = "%s"
 		labels = {
@@ -282,8 +278,6 @@ func TestAccKubermaticNodeDeployment_Azure_Basic(t *testing.T) {
 
 func testAccCheckKubermaticNodeDeploymentAzureBasic(n, clientID, clientSecret, tenantID, subscID, nodeDC, nodeSize string) string {
 	return fmt.Sprintf(`
-	provider "kubermatic" {}
-
 	resource "kubermatic_project" "acctest_project" {
 		name = "%s"
 	}

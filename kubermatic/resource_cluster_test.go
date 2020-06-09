@@ -112,6 +112,16 @@ func TestAccKubermaticCluster_Openstack_Basic(t *testing.T) {
 			{
 				Config: testAccCheckKubermaticClusterOpenstackBasic2(testName+"-changed", username, password, tenant, nodeDC),
 				Check: resource.ComposeAggregateTestCheckFunc(
+					testResourceInstanceState("kubermatic_cluster.acctest_cluster", func(is *terraform.InstanceState) error {
+						_, _, id, err := kubermaticClusterParseID(is.ID)
+						if err != nil {
+							return err
+						}
+						if id != cluster.ID {
+							return fmt.Errorf("cluster not updated: wrong ID")
+						}
+						return nil
+					}),
 					testAccCheckKubermaticClusterExists(&cluster),
 					testAccCheckKubermaticClusterOpenstackAttributes(&cluster, testName+"-changed", username, password, tenant, nodeDC, map[string]string{
 						"foo":      "bar", // label propogated from project
@@ -241,8 +251,6 @@ func TestAccKubermaticCluster_Openstack_UpgradeVersion(t *testing.T) {
 }
 func testAccCheckKubermaticClusterOpenstackBasic(testName, username, password, tenant, nodeDC, version string) string {
 	config := `
-	provider "kubermatic" {}
-
 	resource "kubermatic_project" "acctest_project" {
 		name = "%s"
 	}
@@ -270,8 +278,6 @@ func testAccCheckKubermaticClusterOpenstackBasic(testName, username, password, t
 
 func testAccCheckKubermaticClusterOpenstackBasic2(testName, username, password, tenant, nodeDC string) string {
 	config := `
-	provider "kubermatic" {}
-
 	resource "kubermatic_project" "acctest_project" {
 		name = "%s"
 		labels = {
@@ -400,8 +406,6 @@ func TestAccKubermaticCluster_SSHKeys(t *testing.T) {
 
 func testAccCheckKubermaticClusterOpenstackBasicWithSSHKey1(testName, username, password, tenant, nodeDC string) string {
 	config := `
-	provider "kubermatic" {}
-
 	resource "kubermatic_project" "acctest_project" {
 		name = "%s"
 	}
@@ -438,8 +442,6 @@ func testAccCheckKubermaticClusterOpenstackBasicWithSSHKey1(testName, username, 
 
 func testAccCheckKubermaticClusterOpenstackBasicWithSSHKey2(testName, username, password, tenant, nodeDC string) string {
 	config := `
-	provider "kubermatic" {}
-
 	resource "kubermatic_project" "acctest_project" {
 		name = "%s"
 	}
@@ -545,8 +547,6 @@ func TestAccKubermaticCluster_Azure_Basic(t *testing.T) {
 
 func testAccCheckKubermaticClusterAzureBasic(n, clientID, clientSecret, tenantID, subscID, nodeDC string) string {
 	return fmt.Sprintf(`
-	provider "kubermatic" {}
-
 	resource "kubermatic_project" "acctest_project" {
 		name = "%s"
 	}
