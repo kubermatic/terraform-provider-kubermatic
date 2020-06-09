@@ -33,13 +33,18 @@ func getClusterVersion(id string, k *kubermaticProviderMeta) (*version.Version, 
 
 func validateVersionAgainstCluster() schema.CustomizeDiffFunc {
 	return func(d *schema.ResourceDiff, meta interface{}) error {
-		k := meta.(*kubermaticProviderMeta)
-		v, err := version.NewVersion(d.Get("spec.0.template.0.versions.0.kubelet").(string))
+		dataVersion, ok := d.Get("spec.0.template.0.versions.0.kubelet").(string)
+		if dataVersion == "" || !ok {
+			return nil
+		}
+
+		v, err := version.NewVersion(dataVersion)
+
 		if err != nil {
 			return fmt.Errorf("unable to parse node deployment version")
 		}
 
-		clusterVersion, err := getClusterVersion(d.Get("cluster_id").(string), k)
+		clusterVersion, err := getClusterVersion(d.Get("cluster_id").(string), meta.(*kubermaticProviderMeta))
 		if err != nil {
 			return err
 		}
