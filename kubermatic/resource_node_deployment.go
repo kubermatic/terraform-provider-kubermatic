@@ -21,7 +21,7 @@ func resourceNodeDeployment() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
-		CustomizeDiff: validateVersionAgainstCluster(),
+		CustomizeDiff: validateNodeSpecMatchesCluster(),
 
 		Schema: map[string]*schema.Schema{
 			"cluster_id": {
