@@ -9,7 +9,7 @@ import (
 	"github.com/kubermatic/go-kubermatic/client/versions"
 )
 
-func getClusterVersion(id string, k *kubermaticProviderMeta) (*version.Version, error) {
+func getClusterForNodeDeployment(id string, k *kubermaticProviderMeta) (*models.Cluster, error) {
 	projectID, seedDC, clusterID, err := kubermaticClusterParseID(id)
 	if err != nil {
 		return nil, err
@@ -21,10 +21,19 @@ func getClusterVersion(id string, k *kubermaticProviderMeta) (*version.Version, 
 	p.SetClusterID(clusterID)
 	r, err := k.client.Project.GetCluster(p, k.auth)
 	if err != nil {
-		return nil, fmt.Errorf("unable to get cluster %s in project %s in seed dc %s", clusterID, projectID, seedDC)
+		return nil, fmt.Errorf("unable to get cluster %s in project %s in seed dc %s - error: %v", clusterID, projectID, seedDC, err)
 	}
 
-	v, err := version.NewVersion(r.Payload.Spec.Version.(string))
+	return r.Payload, nil
+}
+
+func getClusterVersion(id string, k *kubermaticProviderMeta) (*version.Version, error) {
+	cluster, err := getClusterForNodeDeployment(id, k)
+	if err != nil {
+		return nil, err
+	}
+
+	v, err := version.NewVersion(cluster.Spec.Version.(string))
 	if err != nil {
 		return nil, err
 	}
