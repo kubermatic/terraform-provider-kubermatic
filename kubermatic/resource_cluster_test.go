@@ -568,6 +568,56 @@ func testAccCheckKubermaticClusterAzureBasic(n, clientID, clientSecret, tenantID
 	}`, n, n, nodeDC, clientID, clientSecret, tenantID, subscID)
 }
 
+func TestAccKubermaticCluster_AWS_Basic(t *testing.T) {
+	var cluster models.Cluster
+	testName := randomTestName()
+
+	awsAccessKeyID := os.Getenv(testEnvAWSAccessKeyID)
+	awsSecretAccessKey := os.Getenv(testAWSSecretAccessKey)
+	vpcID := os.Getenv(testEnvAWSVPCID)
+	nodeDC := os.Getenv(testEnvAWSNodeDC)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheckForAWS(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckKubermaticClusterDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCheckKubermaticClusterAWSBasic(testName, awsAccessKeyID, awsSecretAccessKey, vpcID, nodeDC),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccCheckKubermaticClusterExists(&cluster),
+					resource.TestCheckResourceAttr("kubermatic_cluster.acctest_cluster", "spec.0.cloud.0.aws.0.vpc_id", vpcID),
+					resource.TestCheckResourceAttrPtr("kubermatic_cluster.acctest_cluster", "spec.0.cloud.0.aws.0.vpc_id", &cluster.Spec.Cloud.Aws.VPCID),
+				),
+			},
+		},
+	})
+}
+
+func testAccCheckKubermaticClusterAWSBasic(n, keyID, keySecret, vpcID, nodeDC string) string {
+	return fmt.Sprintf(`
+	resource "kubermatic_project" "acctest_project" {
+		name = "%s"
+	}
+
+	resource "kubermatic_cluster" "acctest_cluster" {
+		name = "%s"
+		dc_name = "%s"
+		project_id = kubermatic_project.acctest_project.id
+
+		spec {
+			version = "1.17.6"
+			cloud {
+				aws {
+					access_key_id = "%s"
+					secret_access_key = "%s"
+					vpc_id = "%s"
+				}
+			}
+		}
+	}`, n, n, nodeDC, keyID, keySecret, vpcID)
+}
+
 func testAccCheckKubermaticClusterDestroy(s *terraform.State) error {
 	k := testAccProvider.Meta().(*kubermaticProviderMeta)
 

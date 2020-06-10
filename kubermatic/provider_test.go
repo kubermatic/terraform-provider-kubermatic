@@ -30,6 +30,15 @@ const (
 	testEnvAzureClientSecret   = "KUBERMATIC_AZURE_CLIENT_SECRET"
 	testEnvAzureTenantID       = "KUBERMATIC_AZURE_TENANT_ID"
 	testEnvAzureSubscriptionID = "KUBERMATIC_AZURE_SUBSCRIPTION_ID"
+
+	testEnvAWSAccessKeyID      = "KUBERMATIC_AWS_ACCESS_KEY_ID"
+	testAWSSecretAccessKey     = "KUBERMATIC_AWS_ACCESS_KEY_SECRET"
+	testEnvAWSVPCID            = "KUBERMATIC_AWS_VPC_ID"
+	testEnvAWSNodeDC           = "KUBERMATIC_AWS_NODE_DC"
+	testEnvAWSInstanceType     = "KUBERMATIC_AWS_INSTANCE_TYPE"
+	testEnvAWSSubnetID         = "KUBERMATIC_AWS_SUBNET_ID"
+	testEnvAWSAvailabilityZone = "KUBERMATIC_AWS_AVAILABILITY_ZONE"
+	testEnvAWSDiskSize         = "KUBERMATIC_AWS_DISK_SIZE"
 )
 
 var (
@@ -65,6 +74,15 @@ func testAccPreCheckForAzure(t *testing.T) {
 	checkEnv(t, testEnvAzureTenantID)
 	checkEnv(t, testEnvAzureNodeDC)
 	checkEnv(t, testEnvAzureNodeSize)
+}
+
+func testAccPreCheckForAWS(t *testing.T) {
+	t.Helper()
+	testAccPreCheck(t)
+	checkEnv(t, testEnvAWSAccessKeyID)
+	checkEnv(t, testAWSSecretAccessKey)
+	checkEnv(t, testEnvAWSVPCID)
+	checkEnv(t, testEnvAWSNodeDC)
 }
 
 func testAccPreCheck(t *testing.T) {

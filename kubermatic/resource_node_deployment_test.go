@@ -324,6 +324,96 @@ func testAccCheckKubermaticNodeDeploymentAzureBasic(n, clientID, clientSecret, t
 	}`, n, n, nodeDC, clientID, clientSecret, tenantID, subscID, n, nodeSize)
 }
 
+func TestAccKubermaticNodeDeployment_AWS_Basic(t *testing.T) {
+	var nodedepl models.NodeDeployment
+	testName := randomTestName()
+
+	accessKeyID := os.Getenv(testEnvAWSAccessKeyID)
+	accessKeySecret := os.Getenv(testAWSSecretAccessKey)
+	vpcID := os.Getenv(testEnvAWSVPCID)
+	nodeDC := os.Getenv(testEnvAWSNodeDC)
+	instanceType := os.Getenv(testEnvAWSInstanceType)
+	subnetID := os.Getenv(testEnvAWSSubnetID)
+	availabilityZone := os.Getenv(testEnvAWSAvailabilityZone)
+	diskSize := os.Getenv(testEnvAWSDiskSize)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheckForAWS(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckKubermaticNodeDeploymentDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCheckKubermaticNodeDeploymentAWSBasic(testName, accessKeyID, accessKeySecret, vpcID, nodeDC, instanceType, subnetID, availabilityZone, diskSize),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccCheckKubermaticNodeDeploymentExists("kubermatic_node_deployment.acctest_nd", &nodedepl),
+					resource.TestCheckResourceAttr("kubermatic_node_deployment.acctest_nd", "spec.0.template.0.cloud.0.aws.0.instance_type", instanceType),
+					resource.TestCheckResourceAttrPtr("kubermatic_node_deployment.acctest_nd", "spec.0.template.0.cloud.0.aws.0.instance_type", nodedepl.Spec.Template.Cloud.Aws.InstanceType),
+					resource.TestCheckResourceAttr("kubermatic_node_deployment.acctest_nd", "spec.0.template.0.cloud.0.aws.0.disk_size", diskSize),
+					resource.TestCheckResourceAttr("kubermatic_node_deployment.acctest_nd", "spec.0.template.0.cloud.0.aws.0.volume_type", "standart"),
+					resource.TestCheckResourceAttrPtr("kubermatic_node_deployment.acctest_nd", "spec.0.template.0.cloud.0.aws.0.volume_type", nodedepl.Spec.Template.Cloud.Aws.VolumeType),
+					resource.TestCheckResourceAttr("kubermatic_node_deployment.acctest_nd", "spec.0.template.0.cloud.0.aws.0.subnet_id", subnetID),
+					resource.TestCheckResourceAttrPtr("kubermatic_node_deployment.acctest_nd", "spec.0.template.0.cloud.0.aws.0.subnet_id", &nodedepl.Spec.Template.Cloud.Aws.SubnetID),
+					resource.TestCheckResourceAttr("kubermatic_node_deployment.acctest_nd", "spec.0.template.0.cloud.0.aws.0.availability_zone", availabilityZone),
+					resource.TestCheckResourceAttrPtr("kubermatic_node_deployment.acctest_nd", "spec.0.template.0.cloud.0.aws.0.availability_zone", &nodedepl.Spec.Template.Cloud.Aws.AvailabilityZone),
+					resource.TestCheckResourceAttr("kubermatic_node_deployment.acctest_nd", "spec.0.template.0.cloud.0.aws.0.assign_public_ip", "true"),
+				),
+			},
+		},
+	})
+}
+
+func testAccCheckKubermaticNodeDeploymentAWSBasic(n, keyID, keySecret, vpcID, nodeDC, instanceType, subnetID, availabilityZone, diskSize string) string {
+	return fmt.Sprintf(`
+	resource "kubermatic_project" "acctest_project" {
+		name = "%s"
+	}
+
+	resource "kubermatic_cluster" "acctest_cluster" {
+		name = "%s"
+		dc_name = "%s"
+		project_id = kubermatic_project.acctest_project.id
+
+		spec {
+			version = "1.17.6"
+			cloud {
+				aws {
+					access_key_id = "%s"
+					access_key_secret = "%s"
+					vpc_id = "%s'
+				}
+			}
+		}
+	}
+
+	resource "kubermatic_node_deployment" "acctest_nd" {
+		cluster_id = kubermatic_cluster.acctest_cluster.id
+		name = "%s"
+		spec {
+			replicas = 2
+			template {
+				cloud {
+					aws {
+						instance_type = "%s"
+						disk_size = "%s"
+						volume_type = "standart"
+						subnet_id = "%s"
+						availability_zone = "%s"
+						assign_public_ip = true
+					}
+				}
+				operating_system {
+					ubuntu {
+						dist_upgrade_on_boot = false
+					}
+				}
+				versions {
+					kubelet = "1.17.6"
+				}
+			}
+		}
+	}`, n, n, nodeDC, keyID, keySecret, vpcID, n, instanceType, diskSize, subnetID, availabilityZone)
+}
+
 func testAccCheckKubermaticNodeDeploymentExists(n string, rec *models.NodeDeployment) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
