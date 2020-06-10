@@ -49,6 +49,8 @@ func getClusterCloudProvider(c *models.Cluster) (string, error) {
 		return "aws", nil
 	case c.Spec.Cloud.Openstack != nil:
 		return "openstack", nil
+	case c.Spec.Cloud.Azure != nil:
+		return "azure", nil
 	default:
 		return "", fmt.Errorf("could not find cloud provider for cluster")
 
@@ -56,7 +58,7 @@ func getClusterCloudProvider(c *models.Cluster) (string, error) {
 }
 
 func validateProviderMatchesCluster(d *schema.ResourceDiff, clusterProvider string) error {
-	var availableProviders = []string{"bringyourown", "aws", "openstack"}
+	var availableProviders = []string{"bringyourown", "aws", "openstack", "azure"}
 	var provider string
 
 	for _, p := range availableProviders {
