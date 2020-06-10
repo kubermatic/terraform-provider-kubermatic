@@ -114,7 +114,6 @@ func nodeDeploymentSpecFields() map[string]*schema.Schema {
 									Description: "Kubelet version",
 								},
 							},
-							CustomizeDiff: validateKubeletVersionExists(),
 						},
 					},
 					"labels": {

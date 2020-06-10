@@ -12,28 +12,33 @@ import (
 
 func validateNodeSpecMatchesCluster() schema.CustomizeDiffFunc {
 	return func(d *schema.ResourceDiff, meta interface{}) error {
-		cluster, err := getClusterForNodeDeployment(d.Get("cluster_id").(string), meta.(*kubermaticProviderMeta))
+		k := meta.(*kubermaticProviderMeta)
+		cluster, err := getClusterForNodeDeployment(d.Get("cluster_id").(string), k)
 		if err != nil {
 			return err
 		}
-		err = validateVersionAgainstCluster(d, cluster)
+		clusterVersion := cluster.Spec.Version.(string)
 		if err != nil {
 			return err
 		}
-		err = validateProviderMatchesCluster(d, cluster)
+		err = validateVersionAgainstCluster(d, clusterVersion)
+		if err != nil {
+			return err
+		}
+		clusterProvider, err := getClusterCloudProvider(cluster)
+		if err != nil {
+			return err
+		}
+		err = validateProviderMatchesCluster(d, clusterProvider)
+		if err != nil {
+			return err
+		}
+		err = validateKubeletVersionIsAvailable(d, k, clusterVersion)
 		if err != nil {
 			return err
 		}
 		return nil
 	}
-}
-
-func getClusterVersion(cluster *models.Cluster) (*version.Version, error) {
-	v, err := version.NewVersion(cluster.Spec.Version.(string))
-	if err != nil {
-		return nil, err
-	}
-	return v, nil
 }
 
 func getClusterCloudProvider(c *models.Cluster) (string, error) {
@@ -50,7 +55,7 @@ func getClusterCloudProvider(c *models.Cluster) (string, error) {
 	}
 }
 
-func validateProviderMatchesCluster(d *schema.ResourceDiff, c *models.Cluster) error {
+func validateProviderMatchesCluster(d *schema.ResourceDiff, clusterProvider string) error {
 	var availableProviders = []string{"bringyourown", "aws", "openstack"}
 	var provider string
 
@@ -62,10 +67,6 @@ func validateProviderMatchesCluster(d *schema.ResourceDiff, c *models.Cluster) e
 			break
 		}
 	}
-	clusterProvider, err := getClusterCloudProvider(c)
-	if err != nil {
-		return err
-	}
 	if provider != clusterProvider {
 		return fmt.Errorf("provider for node deployment must (%s) match cluster provider (%s)", provider, clusterProvider)
 	}
@@ -73,53 +74,55 @@ func validateProviderMatchesCluster(d *schema.ResourceDiff, c *models.Cluster) e
 
 }
 
-func validateVersionAgainstCluster(d *schema.ResourceDiff, c *models.Cluster) error {
-	dataVersion, ok := d.Get("spec.0.template.0.versions.0.kubelet").(string)
-	if dataVersion == "" || !ok {
+func validateVersionAgainstCluster(d *schema.ResourceDiff, clusterVersion string) error {
+	nodeVersion, ok := d.Get("spec.0.template.0.versions.0.kubelet").(string)
+	if nodeVersion == "" || !ok {
 		return nil
 	}
 
-	v, err := version.NewVersion(dataVersion)
+	clusterSemverVersion, err := version.NewVersion(clusterVersion)
+	if err != nil {
+		return err
+	}
+
+	v, err := version.NewVersion(nodeVersion)
 
 	if err != nil {
 		return fmt.Errorf("unable to parse node deployment version")
 	}
 
-	clusterVersion, err := getClusterVersion(c)
-	if err != nil {
-		return err
-	}
-
-	if clusterVersion.LessThan(v) {
+	if clusterSemverVersion.LessThan(v) {
 		return fmt.Errorf("node deployment version (%s) cannot be greater than cluster version (%s)", v, clusterVersion)
 	}
 	return nil
 }
 
-func validateKubeletVersionExists() schema.CustomizeDiffFunc {
-	return func(d *schema.ResourceDiff, meta interface{}) error {
-		k := meta.(*kubermaticProviderMeta)
-		version := d.Get("kubelet").(string)
-		versionType := "kubernetes"
-		p := versions.NewGetNodeUpgradesParams()
-		p.SetType(&versionType)
-		p.SetControlPlaneVersion(&version)
-		r, err := k.client.Versions.GetNodeUpgrades(p, k.auth)
-		if err != nil {
-			if e, ok := err.(*versions.GetNodeUpgradesDefault); ok && e.Payload != nil && e.Payload.Error != nil && e.Payload.Error.Message != nil {
-				return fmt.Errorf("get node_deployment upgrades: %s", *e.Payload.Error.Message)
-			}
-			return err
-		}
+func validateKubeletVersionIsAvailable(d *schema.ResourceDiff, k *kubermaticProviderMeta, clusterVersion string) error {
+	version := d.Get("spec.0.template.0.versions.0.kubelet").(string)
+	versionType := "kubernetes"
 
-		for _, v := range r.Payload {
-			if s, ok := v.Version.(string); ok && s == version {
-				return nil
-			}
-		}
+	p := versions.NewGetNodeUpgradesParams()
+	p.SetType(&versionType)
+	p.SetControlPlaneVersion(&clusterVersion)
+	r, err := k.client.Versions.GetNodeUpgrades(p, k.auth)
 
-		return fmt.Errorf("unknown version %s", version)
+	if err != nil {
+		if e, ok := err.(*versions.GetNodeUpgradesDefault); ok && e.Payload != nil && e.Payload.Error != nil && e.Payload.Error.Message != nil {
+			return fmt.Errorf("get node_deployment upgrades: %s", *e.Payload.Error.Message)
+		}
+		return err
 	}
+
+	var availableVersions []string
+	for _, v := range r.Payload {
+		s, ok := v.Version.(string)
+		if ok && s == version && !v.RestrictedByKubeletVersion {
+			return nil
+		}
+		availableVersions = append(availableVersions, s)
+	}
+
+	return fmt.Errorf("unknown version for node deployment %s, available versions %v", version, availableVersions)
 }
 
 func getClusterForNodeDeployment(id string, k *kubermaticProviderMeta) (*models.Cluster, error) {
