@@ -1,6 +1,7 @@
 package kubermatic
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
@@ -53,7 +54,7 @@ func resourceSSHKeyCreate(d *schema.ResourceData, m interface{}) error {
 	}
 	created, err := k.client.Project.CreateSSHKey(p, k.auth)
 	if err != nil {
-		return err
+		return fmt.Errorf("unable to create SSH key: %s", getErrorResponse(err))
 	}
 	d.SetId(created.Payload.ID)
 	return resourceSSHKeyRead(d, m)
@@ -65,7 +66,7 @@ func resourceSSHKeyRead(d *schema.ResourceData, m interface{}) error {
 	p.SetProjectID(d.Get("project_id").(string))
 	ret, err := k.client.Project.ListSSHKeys(p, k.auth)
 	if err != nil {
-		return err
+		return fmt.Errorf("unable to list SSH keys: %s", getErrorResponse(err))
 	}
 	var sshkey *models.SSHKey
 	for _, r := range ret.Payload {
@@ -89,5 +90,5 @@ func resourceSSHKeyDelete(d *schema.ResourceData, m interface{}) error {
 	p.SetProjectID(d.Get("project_id").(string))
 	p.SetSSHKeyID(d.Id())
 	_, err := k.client.Project.DeleteSSHKey(p, k.auth)
-	return err
+	return fmt.Errorf("unable to delete SSH key: %s", getErrorResponse(err))
 }

@@ -130,7 +130,7 @@ func resourceClusterCreate(d *schema.ResourceData, m interface{}) error {
 
 	r, err := k.client.Project.CreateCluster(p, k.auth)
 	if err != nil {
-		return fmt.Errorf("unable to create cluster for project '%s': %s", pID, err)
+		return fmt.Errorf("unable to create cluster for project '%s': %s", pID, getErrorResponse(err))
 	}
 	d.SetId(r.Payload.ID)
 
@@ -173,7 +173,7 @@ func resourceClusterRead(d *schema.ResourceData, m interface{}) error {
 		// the GET request returns 500 http code instead of 404, probably it's a bug
 		// because of that manual action to clean terraform state file is required
 
-		return fmt.Errorf("unable to get cluster '%s': %v", d.Id(), err)
+		return fmt.Errorf("unable to get cluster '%s': %s", d.Id(), getErrorResponse(err))
 	}
 
 	labels, err := excludeProjectLabels(k, d.Get("project_id").(string), r.Payload.Labels)
@@ -379,7 +379,7 @@ func waitClusterReady(k *kubermaticProviderMeta, d *schema.ResourceData) error {
 
 		r, err := k.client.Project.GetClusterHealth(hp, k.auth)
 		if err != nil {
-			return resource.NonRetryableError(fmt.Errorf("unable to get cluster '%s' health: %v", d.Id(), err))
+			return resource.NonRetryableError(fmt.Errorf("unable to get cluster '%s' health: %s", d.Id(), getErrorResponse(err)))
 		}
 
 		if r.Payload.Apiserver == healthStatusUp &&
@@ -438,7 +438,7 @@ func resourceClusterDelete(d *schema.ResourceData, m interface{}) error {
 				if _, ok := err.(*project.DeleteClusterForbidden); ok {
 					return resource.RetryableError(err)
 				}
-				return resource.NonRetryableError(fmt.Errorf("unable to delete cluster '%s': %v", cID, err))
+				return resource.NonRetryableError(fmt.Errorf("unable to delete cluster '%s': %s", cID, getErrorResponse(err)))
 			}
 			deleteSent = true
 		}
@@ -453,12 +453,12 @@ func resourceClusterDelete(d *schema.ResourceData, m interface{}) error {
 			if e, ok := err.(*project.GetClusterDefault); ok && e.Code() == http.StatusNotFound {
 				k.log.Debugf("cluster '%s' has been destroyed, returned http code: %d", cID, e.Code())
 				d.SetId("")
-				return resource.RetryableError(err)
+				return nil
 			}
 			if _, ok := err.(*project.GetClusterForbidden); ok {
 				return resource.RetryableError(err)
 			}
-			return resource.NonRetryableError(fmt.Errorf("unable to get cluster '%s': %v", cID, err))
+			return resource.NonRetryableError(fmt.Errorf("unable to get cluster '%s': %s", cID, getErrorResponse(err)))
 		}
 
 		k.log.Debugf("cluster '%s' deletion in progress, deletionTimestamp: %s",

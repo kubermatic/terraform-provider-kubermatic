@@ -71,7 +71,7 @@ func resourceProjectCreate(d *schema.ResourceData, m interface{}) error {
 
 	r, err := k.client.Project.CreateProject(p, k.auth)
 	if err != nil {
-		return fmt.Errorf("error when creating a project: %s", err)
+		return fmt.Errorf("error when creating a project: %s", getErrorResponse(err))
 	}
 	d.SetId(r.Payload.ID)
 
@@ -121,7 +121,7 @@ func resourceProjectRead(d *schema.ResourceData, m interface{}) error {
 
 		}
 
-		return fmt.Errorf("unable to get project '%s': %v", d.Id(), err)
+		return fmt.Errorf("unable to get project '%s': %s", d.Id(), getErrorResponse(err))
 	}
 
 	if err := d.Set("labels", r.Payload.Labels); err != nil {
@@ -155,7 +155,7 @@ func resourceProjectUpdate(d *schema.ResourceData, m interface{}) error {
 
 	_, err := k.client.Project.UpdateProject(p.WithProjectID(d.Id()), k.auth)
 	if err != nil {
-		return fmt.Errorf("unable to update project '%s': %v", d.Id(), err)
+		return fmt.Errorf("unable to update project '%s': %s", d.Id(), getErrorResponse(err))
 	}
 
 	return resourceProjectRead(d, m)
@@ -166,7 +166,7 @@ func resourceProjectDelete(d *schema.ResourceData, m interface{}) error {
 	p := project.NewDeleteProjectParams()
 	_, err := k.client.Project.DeleteProject(p.WithProjectID(d.Id()), k.auth)
 	if err != nil {
-		return fmt.Errorf("unable to delete project '%s': %s", d.Id(), err)
+		return fmt.Errorf("unable to delete project '%s': %s", d.Id(), getErrorResponse(err))
 	}
 
 	return resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
