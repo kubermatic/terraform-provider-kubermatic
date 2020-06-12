@@ -2,6 +2,7 @@ package kubermatic
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/url"
@@ -203,4 +204,13 @@ func newAuth(token, tokenPath string) (runtime.ClientAuthInfoWriter, error) {
 	}
 
 	return oclient.BearerToken(token), nil
+}
+
+// getErrorResponse converts the client error response to string
+func getErrorResponse(err error) string {
+	rawData, newErr := json.Marshal(err)
+	if newErr != nil {
+		return err.Error()
+	}
+	return string(rawData)
 }

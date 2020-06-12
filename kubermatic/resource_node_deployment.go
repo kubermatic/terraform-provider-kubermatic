@@ -79,7 +79,7 @@ func resourceNodeDeploymentCreate(d *schema.ResourceData, m interface{}) error {
 
 	r, err := k.client.Project.CreateNodeDeployment(p, k.auth)
 	if err != nil {
-		return fmt.Errorf("unable to create a node deployment: %v", err)
+		return fmt.Errorf("unable to create a node deployment: %s", getErrorResponse(err))
 	}
 	nID := r.Payload.ID
 
@@ -92,7 +92,7 @@ func resourceNodeDeploymentCreate(d *schema.ResourceData, m interface{}) error {
 
 		r, err := k.client.Project.GetNodeDeployment(p, k.auth)
 		if err != nil {
-			return resource.NonRetryableError(fmt.Errorf("unable to get node deployment '%s' status: %v", nID, err))
+			return resource.NonRetryableError(fmt.Errorf("unable to get node deployment '%s' status: %s", nID, getErrorResponse(err)))
 		}
 
 		if r.Payload.Status.ReadyReplicas < *r.Payload.Spec.Replicas {
@@ -130,7 +130,7 @@ func resourceNodeDeploymentRead(d *schema.ResourceData, m interface{}) error {
 			d.SetId("")
 			return nil
 		}
-		return fmt.Errorf("unable to get node deployment '%s': %v", d.Id(), err)
+		return fmt.Errorf("unable to get node deployment '%s': %s", d.Id(), getErrorResponse(err))
 	}
 
 	err = d.Set("name", r.Payload.Name)
@@ -178,7 +178,7 @@ func resourceNodeDeploymentDelete(d *schema.ResourceData, m interface{}) error {
 	_, err := k.client.Project.DeleteNodeDeployment(p, k.auth)
 	if err != nil {
 		// TODO: check if not found
-		return fmt.Errorf("unable to delete node deployment '%s': %v", nID, err)
+		return fmt.Errorf("unable to delete node deployment '%s': %s", nID, getErrorResponse(err))
 	}
 
 	return resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
@@ -195,7 +195,7 @@ func resourceNodeDeploymentDelete(d *schema.ResourceData, m interface{}) error {
 				d.SetId("")
 				return nil
 			}
-			return resource.NonRetryableError(fmt.Errorf("unable to get node deployment '%s': %v", nID, err))
+			return resource.NonRetryableError(fmt.Errorf("unable to get node deployment '%s': %s", nID, getErrorResponse(err)))
 		}
 
 		k.log.Debugf("node deployment '%s' deletion in progress, deletionTimestamp: %s",
