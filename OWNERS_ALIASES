@@ -16,3 +16,6 @@ aliases:
 
   team-ps:
     - mfranczy
+
+  upstream-maintainers:
+    - furkhat

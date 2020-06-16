@@ -4,8 +4,10 @@ approvers:
   - team-lifecycle
   - team-ui
   - team-ps
+  - upstream-maintainers
 
 reviewers:
   - team-lifecycle
   - team-ui
   - team-ps
+  - upstream-maintainers
