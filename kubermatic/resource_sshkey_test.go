@@ -22,10 +22,10 @@ func TestAccKubermaticSSHKey_Basic(t *testing.T) {
 			{
 				Config: fmt.Sprintf(testAccCheckKubermaticSSHKeyConfigBasic, testName, testName),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					testAccCheckKubermaticSSHKeyExists("kubermatic_sshkey.test-sshkey", "kubermatic_project.sshkey-project", &sshkey),
+					testAccCheckKubermaticSSHKeyExists("kubermatic_sshkey.acctest_sshkey", "kubermatic_project.acctest_project", &sshkey),
 					testAccCheckKubermaticSSHKeyAttributes(&sshkey, testName),
-					resource.TestCheckResourceAttr("kubermatic_sshkey.test-sshkey", "name", testName),
-					resource.TestCheckResourceAttr("kubermatic_sshkey.test-sshkey", "public_key", testSSHPubKey),
+					resource.TestCheckResourceAttr("kubermatic_sshkey.acctest_sshkey", "name", testName),
+					resource.TestCheckResourceAttr("kubermatic_sshkey.acctest_sshkey", "public_key", testSSHPubKey),
 				),
 			},
 		},
@@ -35,16 +35,13 @@ func TestAccKubermaticSSHKey_Basic(t *testing.T) {
 const (
 	testSSHPubKey                           = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCzoO6BIidD4Us9a9Kh0GzaUUxosl61GNUZzqcIdmf4EYZDdRtLa+nu88dHPHPQ2dj52BeVV9XVN9EufqdAZCaKpPLj5XxEwMpGcmdrOAl38kk2KKbiswjXkrdhYSBw3w0KkoCPKG/+yNpAUI9z+RJZ9lukeYBvxdDe8nuvUWX7mGRaPaumCpQaBHwYKNn6jMVns2RrumgE9w+Z6jlaKHk1V7T5rCBDcjXwcy6waOX6hKdPPBk84FpUfcfN/SdpwSVGFrcykazrpmzD2nYr71EcOm9T6/yuhBOiIa3H/TOji4G9wr02qtSWuGUpULkqWMFD+BQcYQQA71GSAa+rTZuf user@machine.local"
 	testAccCheckKubermaticSSHKeyConfigBasic = `
-provider "kubermatic" {
-}
-
-resource "kubermatic_project" "sshkey-project" {
+resource "kubermatic_project" "acctest_project" {
 	name = "%s"
 	labels = {}
 }
 
-resource "kubermatic_sshkey" "test-sshkey" {
-	project_id = kubermatic_project.sshkey-project.id
+resource "kubermatic_sshkey" "acctest_sshkey" {
+	project_id = kubermatic_project.acctest_project.id
 
 	name = "%s"
 	public_key = "` + testSSHPubKey + `"
@@ -72,7 +69,7 @@ func testAccCheckKubermaticSSHKeyDestroy(s *terraform.State) error {
 			if e, ok := err.(*project.ListSSHKeysDefault); ok && e.Code() == http.StatusNotFound {
 				continue
 			}
-			return fmt.Errorf("check destroy: %w", err)
+			return fmt.Errorf("check destroy: %v", err)
 		}
 
 		for _, rs := range s.RootModule().Resources {
@@ -120,7 +117,7 @@ func testAccCheckKubermaticSSHKeyExists(sshkeyN, projectN string, rec *models.SS
 
 		ret, err := k.client.Project.ListSSHKeys(p, k.auth)
 		if err != nil {
-			return fmt.Errorf("Cannot verify record exist, list sshkeys error: %w", err)
+			return fmt.Errorf("Cannot verify record exist, list sshkeys error: %v", err)
 		}
 
 		for _, r := range ret.Payload {

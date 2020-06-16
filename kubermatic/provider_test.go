@@ -12,12 +12,33 @@ import (
 )
 
 const (
-	testNamePrefix           = "tf-acc-test-"
+	testNamePrefix = "tf-acc-test-"
+
+	testEnvOtherUserEmail = "KUBERMATIC_ANOTHER_USER_EMAIL"
+
+	testEnvOpenstackNodeDC   = "KUBERMATIC_OPENSTACK_NODE_DC"
 	testEnvOpenstackUsername = "KUBERMATIC_OPENSTACK_USERNAME"
 	testEnvOpenstackPassword = "KUBERMATIC_OPENSTACK_PASSWORD"
 	testEnvOpenstackTenant   = "KUBERMATIC_OPENSTACK_TENANT"
-	testEnvOpenstackSeedDC   = "KUBERMATIC_OPENSTACK_SEED_DC"
-	testEnvOpenstackNodeDC   = "KUBERMATIC_OPENSTACK_NODE_DC"
+	testEnvOpenstackImage    = "KUBERMATIC_OPENSTACK_IMAGE"
+	testEnvOpenstackImage2   = "KUBERMATIC_OPENSTACK_IMAGE2"
+	testEnvOpenstackFlavor   = "KUBERMATIC_OPENSTACK_FLAVOR"
+
+	testEnvAzureNodeDC         = "KUBERMATIC_AZURE_NODE_DC"
+	testEnvAzureNodeSize       = "KUBERMATIC_AZURE_NODE_SIZE"
+	testEnvAzureClientID       = "KUBERMATIC_AZURE_CLIENT_ID"
+	testEnvAzureClientSecret   = "KUBERMATIC_AZURE_CLIENT_SECRET"
+	testEnvAzureTenantID       = "KUBERMATIC_AZURE_TENANT_ID"
+	testEnvAzureSubscriptionID = "KUBERMATIC_AZURE_SUBSCRIPTION_ID"
+
+	testEnvAWSAccessKeyID      = "KUBERMATIC_AWS_ACCESS_KEY_ID"
+	testAWSSecretAccessKey     = "KUBERMATIC_AWS_ACCESS_KEY_SECRET"
+	testEnvAWSVPCID            = "KUBERMATIC_AWS_VPC_ID"
+	testEnvAWSNodeDC           = "KUBERMATIC_AWS_NODE_DC"
+	testEnvAWSInstanceType     = "KUBERMATIC_AWS_INSTANCE_TYPE"
+	testEnvAWSSubnetID         = "KUBERMATIC_AWS_SUBNET_ID"
+	testEnvAWSAvailabilityZone = "KUBERMATIC_AWS_AVAILABILITY_ZONE"
+	testEnvAWSDiskSize         = "KUBERMATIC_AWS_DISK_SIZE"
 )
 
 var (
@@ -38,8 +59,30 @@ func testAccPreCheckForOpenstack(t *testing.T) {
 	checkEnv(t, testEnvOpenstackUsername)
 	checkEnv(t, testEnvOpenstackPassword)
 	checkEnv(t, testEnvOpenstackTenant)
-	checkEnv(t, testEnvOpenstackSeedDC)
 	checkEnv(t, testEnvOpenstackNodeDC)
+	checkEnv(t, testEnvOpenstackImage)
+	checkEnv(t, testEnvOpenstackImage2)
+	checkEnv(t, testEnvOpenstackFlavor)
+}
+
+func testAccPreCheckForAzure(t *testing.T) {
+	t.Helper()
+	testAccPreCheck(t)
+	checkEnv(t, testEnvAzureClientID)
+	checkEnv(t, testEnvAzureClientSecret)
+	checkEnv(t, testEnvAzureSubscriptionID)
+	checkEnv(t, testEnvAzureTenantID)
+	checkEnv(t, testEnvAzureNodeDC)
+	checkEnv(t, testEnvAzureNodeSize)
+}
+
+func testAccPreCheckForAWS(t *testing.T) {
+	t.Helper()
+	testAccPreCheck(t)
+	checkEnv(t, testEnvAWSAccessKeyID)
+	checkEnv(t, testAWSSecretAccessKey)
+	checkEnv(t, testEnvAWSVPCID)
+	checkEnv(t, testEnvAWSNodeDC)
 }
 
 func testAccPreCheck(t *testing.T) {

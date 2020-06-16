@@ -13,8 +13,8 @@ import (
 	"github.com/kubermatic/go-kubermatic/models"
 )
 
-const testClusterVersion16 = "1.16.8"
-const testClusterVersion17 = "1.17.4"
+const testClusterVersion16 = "1.16.10"
+const testClusterVersion17 = "1.17.6"
 
 func TestAccKubermaticCluster_Openstack_Basic(t *testing.T) {
 	var cluster models.Cluster
@@ -23,7 +23,6 @@ func TestAccKubermaticCluster_Openstack_Basic(t *testing.T) {
 	username := os.Getenv(testEnvOpenstackUsername)
 	password := os.Getenv(testEnvOpenstackPassword)
 	tenant := os.Getenv(testEnvOpenstackTenant)
-	seedDC := os.Getenv(testEnvOpenstackSeedDC)
 	nodeDC := os.Getenv(testEnvOpenstackNodeDC)
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheckForOpenstack(t) },
@@ -31,15 +30,15 @@ func TestAccKubermaticCluster_Openstack_Basic(t *testing.T) {
 		CheckDestroy: testAccCheckKubermaticClusterDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCheckKubermaticClusterOpenstackBasic(testName, username, password, tenant, seedDC, nodeDC, testClusterVersion17),
+				Config: testAccCheckKubermaticClusterOpenstackBasic(testName, username, password, tenant, nodeDC, testClusterVersion17),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					testAccCheckKubermaticClusterExists(seedDC, &cluster),
+					testAccCheckKubermaticClusterExists(&cluster),
 					testAccCheckKubermaticClusterOpenstackAttributes(&cluster, testName, username, password, tenant, nodeDC, nil, false),
-					resource.TestCheckResourceAttr("kubermatic_cluster.acctest_cluster", "dc", seedDC),
+					resource.TestCheckResourceAttr("kubermatic_cluster.acctest_cluster", "dc_name", nodeDC),
 					resource.TestCheckResourceAttr("kubermatic_cluster.acctest_cluster", "name", testName),
 					resource.TestCheckResourceAttr("kubermatic_cluster.acctest_cluster", "labels.%", "0"),
 					resource.TestCheckResourceAttr("kubermatic_cluster.acctest_cluster", "spec.#", "1"),
-					resource.TestCheckResourceAttr("kubermatic_cluster.acctest_cluster", "spec.0.version", "1.17.4"),
+					resource.TestCheckResourceAttr("kubermatic_cluster.acctest_cluster", "spec.0.version", "1.17.6"),
 					resource.TestCheckResourceAttr("kubermatic_cluster.acctest_cluster", "spec.0.cloud.#", "1"),
 					resource.TestCheckResourceAttr("kubermatic_cluster.acctest_cluster", "spec.0.cloud.0.bringyourown.#", "0"),
 					resource.TestCheckResourceAttr("kubermatic_cluster.acctest_cluster", "spec.0.cloud.0.aws.#", "0"),
@@ -48,7 +47,6 @@ func TestAccKubermaticCluster_Openstack_Basic(t *testing.T) {
 					resource.TestCheckResourceAttr("kubermatic_cluster.acctest_cluster", "spec.0.cloud.0.openstack.0.username", username),
 					resource.TestCheckResourceAttr("kubermatic_cluster.acctest_cluster", "spec.0.cloud.0.openstack.0.password", password),
 					resource.TestCheckResourceAttr("kubermatic_cluster.acctest_cluster", "spec.0.cloud.0.openstack.0.floating_ip_pool", "ext-net"),
-					resource.TestCheckResourceAttr("kubermatic_cluster.acctest_cluster", "spec.0.cloud.0.dc", nodeDC),
 					// Test spec.0.machine_networks value
 					testResourceInstanceState("kubermatic_cluster.acctest_cluster", func(is *terraform.InstanceState) error {
 						n, err := strconv.Atoi(is.Attributes["spec.0.machine_networks.#"])
@@ -112,19 +110,28 @@ func TestAccKubermaticCluster_Openstack_Basic(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccCheckKubermaticClusterOpenstackBasic2(testName+"-changed", username, password, tenant, seedDC, nodeDC),
+				Config: testAccCheckKubermaticClusterOpenstackBasic2(testName+"-changed", username, password, tenant, nodeDC),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					testAccCheckKubermaticClusterExists(seedDC, &cluster),
+					testResourceInstanceState("kubermatic_cluster.acctest_cluster", func(is *terraform.InstanceState) error {
+						_, _, id, err := kubermaticClusterParseID(is.ID)
+						if err != nil {
+							return err
+						}
+						if id != cluster.ID {
+							return fmt.Errorf("cluster not updated: wrong ID")
+						}
+						return nil
+					}),
+					testAccCheckKubermaticClusterExists(&cluster),
 					testAccCheckKubermaticClusterOpenstackAttributes(&cluster, testName+"-changed", username, password, tenant, nodeDC, map[string]string{
 						"foo":      "bar", // label propogated from project
 						"test-key": "test-value",
 					}, true),
-					resource.TestCheckResourceAttr("kubermatic_cluster.acctest_cluster", "dc", seedDC),
 					resource.TestCheckResourceAttr("kubermatic_cluster.acctest_cluster", "name", testName+"-changed"),
 					resource.TestCheckResourceAttr("kubermatic_cluster.acctest_cluster", "labels.%", "1"),
 					resource.TestCheckResourceAttr("kubermatic_cluster.acctest_cluster", "labels.test-key", "test-value"),
 					resource.TestCheckResourceAttr("kubermatic_cluster.acctest_cluster", "spec.#", "1"),
-					resource.TestCheckResourceAttr("kubermatic_cluster.acctest_cluster", "spec.0.version", "1.17.4"),
+					resource.TestCheckResourceAttr("kubermatic_cluster.acctest_cluster", "spec.0.version", "1.17.6"),
 					resource.TestCheckResourceAttr("kubermatic_cluster.acctest_cluster", "spec.0.cloud.#", "1"),
 					resource.TestCheckResourceAttr("kubermatic_cluster.acctest_cluster", "spec.0.cloud.0.bringyourown.#", "0"),
 					resource.TestCheckResourceAttr("kubermatic_cluster.acctest_cluster", "spec.0.cloud.0.aws.#", "0"),
@@ -133,7 +140,6 @@ func TestAccKubermaticCluster_Openstack_Basic(t *testing.T) {
 					resource.TestCheckResourceAttr("kubermatic_cluster.acctest_cluster", "spec.0.cloud.0.openstack.0.username", username),
 					resource.TestCheckResourceAttr("kubermatic_cluster.acctest_cluster", "spec.0.cloud.0.openstack.0.password", password),
 					resource.TestCheckResourceAttr("kubermatic_cluster.acctest_cluster", "spec.0.cloud.0.openstack.0.floating_ip_pool", "ext-net"),
-					resource.TestCheckResourceAttr("kubermatic_cluster.acctest_cluster", "spec.0.cloud.0.dc", nodeDC),
 					// Test spec.0.machine_networks value
 					testResourceInstanceState("kubermatic_cluster.acctest_cluster", func(is *terraform.InstanceState) error {
 						n, err := strconv.Atoi(is.Attributes["spec.0.machine_networks.#"])
@@ -206,10 +212,9 @@ func TestAccKubermaticCluster_Openstack_UpgradeVersion(t *testing.T) {
 	username := os.Getenv(testEnvOpenstackUsername)
 	password := os.Getenv(testEnvOpenstackPassword)
 	tenant := os.Getenv(testEnvOpenstackTenant)
-	seedDC := os.Getenv(testEnvOpenstackSeedDC)
 	nodeDC := os.Getenv(testEnvOpenstackNodeDC)
 	versionedConfig := func(version string) string {
-		return testAccCheckKubermaticClusterOpenstackBasic(testName, username, password, tenant, seedDC, nodeDC, version)
+		return testAccCheckKubermaticClusterOpenstackBasic(testName, username, password, tenant, nodeDC, version)
 	}
 
 	resource.Test(t, resource.TestCase{
@@ -220,38 +225,44 @@ func TestAccKubermaticCluster_Openstack_UpgradeVersion(t *testing.T) {
 			{
 				Config: versionedConfig(testClusterVersion16),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					testAccCheckKubermaticClusterExists(seedDC, &cluster),
+					testAccCheckKubermaticClusterExists(&cluster),
 					resource.TestCheckResourceAttr("kubermatic_cluster.acctest_cluster", "spec.0.version", testClusterVersion16),
 				),
 			},
 			{
 				Config: versionedConfig(testClusterVersion17),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttrPtr("kubermatic_cluster.acctest_cluster", "id", &cluster.ID),
-					testAccCheckKubermaticClusterExists(seedDC, &cluster),
+					testResourceInstanceState("kubermatic_cluster.acctest_cluster", func(is *terraform.InstanceState) error {
+						_, _, id, err := kubermaticClusterParseID(is.ID)
+						if err != nil {
+							return err
+						}
+						if id != cluster.ID {
+							return fmt.Errorf("cluster not upgraded. Want cluster id=%v, got %v", cluster.ID, id)
+						}
+						return nil
+					}),
+					testAccCheckKubermaticClusterExists(&cluster),
 					resource.TestCheckResourceAttr("kubermatic_cluster.acctest_cluster", "spec.0.version", testClusterVersion17),
 				),
 			},
 		},
 	})
 }
-func testAccCheckKubermaticClusterOpenstackBasic(testName, username, password, tenant, seedDC, nodeDC, version string) string {
+func testAccCheckKubermaticClusterOpenstackBasic(testName, username, password, tenant, nodeDC, version string) string {
 	config := `
-	provider "kubermatic" {}
-
 	resource "kubermatic_project" "acctest_project" {
 		name = "%s"
 	}
 
 	resource "kubermatic_cluster" "acctest_cluster" {
 		name = "%s"
-		dc = "%s"
+		dc_name = "%s"
 		project_id = kubermatic_project.acctest_project.id
 
 		spec {
 			version = "%s"
 			cloud {
-				dc = "%s"
 				openstack {
 					tenant = "%s"
 					username = "%s"
@@ -262,13 +273,11 @@ func testAccCheckKubermaticClusterOpenstackBasic(testName, username, password, t
 		}
 	}`
 
-	return fmt.Sprintf(config, testName, testName, seedDC, version, nodeDC, tenant, username, password)
+	return fmt.Sprintf(config, testName, testName, nodeDC, version, tenant, username, password)
 }
 
-func testAccCheckKubermaticClusterOpenstackBasic2(testName, username, password, tenant, seedDC, nodeDC string) string {
+func testAccCheckKubermaticClusterOpenstackBasic2(testName, username, password, tenant, nodeDC string) string {
 	config := `
-	provider "kubermatic" {}
-
 	resource "kubermatic_project" "acctest_project" {
 		name = "%s"
 		labels = {
@@ -278,7 +287,7 @@ func testAccCheckKubermaticClusterOpenstackBasic2(testName, username, password, 
 
 	resource "kubermatic_cluster" "acctest_cluster" {
 		name = "%s"
-		dc = "%s"
+		dc_name = "%s"
 		project_id = kubermatic_project.acctest_project.id
 
 		type = "kubernetes" # should not introduce any change hence type should be computed to this value anyway
@@ -289,9 +298,8 @@ func testAccCheckKubermaticClusterOpenstackBasic2(testName, username, password, 
 		}
 
 		spec {
-			version = "1.17.4"
+			version = "1.17.6"
 			cloud {
-				dc = "%s"
 				openstack {
 					tenant = "%s"
 					username = "%s"
@@ -304,7 +312,7 @@ func testAccCheckKubermaticClusterOpenstackBasic2(testName, username, password, 
 			audit_logging = true
 		}
 	}`
-	return fmt.Sprintf(config, testName, testName, seedDC, nodeDC, tenant, username, password)
+	return fmt.Sprintf(config, testName, testName, nodeDC, tenant, username, password)
 }
 
 func testAccCheckKubermaticClusterOpenstackAttributes(cluster *models.Cluster, name, username, password, tenant, nodeDC string, labels map[string]string, auditLogging bool) resource.TestCheckFunc {
@@ -327,7 +335,7 @@ func testAccCheckKubermaticClusterOpenstackAttributes(cluster *models.Cluster, n
 
 		if v, ok := cluster.Spec.Version.(string); !ok || v == "" {
 			return fmt.Errorf("cluster version is empty")
-		} else if v != "1.17.4" {
+		} else if v != "1.17.6" {
 			return fmt.Errorf("want .Spec.Version=1.7.4, got %s", v)
 		}
 
@@ -365,65 +373,55 @@ func TestAccKubermaticCluster_SSHKeys(t *testing.T) {
 	username := os.Getenv(testEnvOpenstackUsername)
 	password := os.Getenv(testEnvOpenstackPassword)
 	tenant := os.Getenv(testEnvOpenstackTenant)
-	seedDC := os.Getenv(testEnvOpenstackSeedDC)
 	nodeDC := os.Getenv(testEnvOpenstackNodeDC)
 
-	configClusterWithKey := testAccCheckKubermaticClusterOpenstackBasicWithSSHKey(testName, username, password, tenant, seedDC, nodeDC)
-	configClusterNoKey := testAccCheckKubermaticClusterOpenstackBasic(testName, username, password, tenant, seedDC, nodeDC, testClusterVersion17)
+	configClusterWithKey1 := testAccCheckKubermaticClusterOpenstackBasicWithSSHKey1(testName, username, password, tenant, nodeDC)
+	configClusterWithKey2 := testAccCheckKubermaticClusterOpenstackBasicWithSSHKey2(testName, username, password, tenant, nodeDC)
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheckForOpenstack(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckKubermaticClusterDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: configClusterNoKey,
+				Config: configClusterWithKey1,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					testAccCheckKubermaticClusterExists(seedDC, &cluster),
-					resource.TestCheckResourceAttr("kubermatic_cluster.acctest_cluster", "sshkeys.#", "0"),
-				),
-			},
-			{
-				Config: configClusterWithKey,
-				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttrPtr("kubermatic_cluster.acctest_cluster", "id", &cluster.ID),
-					testAccCheckKubermaticClusterExists(seedDC, &cluster),
-					testAccCheckKubermaticSSHKeyExists("kubermatic_sshkey.acctest_sshkey", "kubermatic_project.acctest_project", &sshkey),
+					testAccCheckKubermaticClusterExists(&cluster),
+					testAccCheckKubermaticSSHKeyExists("kubermatic_sshkey.acctest_sshkey1", "kubermatic_project.acctest_project", &sshkey),
 					resource.TestCheckResourceAttr("kubermatic_cluster.acctest_cluster", "sshkeys.#", "1"),
-					testAccCheckKubermaticClusterHasSSHKey(seedDC, &cluster.ID, &sshkey.ID),
+					testAccCheckKubermaticClusterHasSSHKey(&cluster.ID, &sshkey.ID),
 				),
 			},
 			{
-				Config: configClusterNoKey,
+				Config: configClusterWithKey2,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					testAccCheckKubermaticSSHKeyDestroy,
-					resource.TestCheckResourceAttr("kubermatic_cluster.acctest_cluster", "sshkeys.#", "0"),
+					testAccCheckKubermaticClusterExists(&cluster),
+					testAccCheckKubermaticSSHKeyExists("kubermatic_sshkey.acctest_sshkey2", "kubermatic_project.acctest_project", &sshkey),
+					resource.TestCheckResourceAttr("kubermatic_cluster.acctest_cluster", "sshkeys.#", "1"),
+					testAccCheckKubermaticClusterHasSSHKey(&cluster.ID, &sshkey.ID),
 				),
 			},
 		},
 	})
 }
 
-func testAccCheckKubermaticClusterOpenstackBasicWithSSHKey(testName, username, password, tenant, seedDC, nodeDC string) string {
+func testAccCheckKubermaticClusterOpenstackBasicWithSSHKey1(testName, username, password, tenant, nodeDC string) string {
 	config := `
-	provider "kubermatic" {}
-
 	resource "kubermatic_project" "acctest_project" {
 		name = "%s"
 	}
 
 	resource "kubermatic_cluster" "acctest_cluster" {
 		name = "%s"
-		dc = "%s"
+		dc_name = "%s"
 		project_id = kubermatic_project.acctest_project.id
 
 		sshkeys = [
-			kubermatic_sshkey.acctest_sshkey.id
+			kubermatic_sshkey.acctest_sshkey1.id
 		]
 
 		spec {
-			version = "1.17.4"
+			version = "1.17.6"
 			cloud {
-				dc = "%s"
 				openstack {
 					tenant = "%s"
 					username = "%s"
@@ -434,12 +432,190 @@ func testAccCheckKubermaticClusterOpenstackBasicWithSSHKey(testName, username, p
 		}
 	}
 
-	resource "kubermatic_sshkey" "acctest_sshkey" {
+	resource "kubermatic_sshkey" "acctest_sshkey1" {
 		project_id = kubermatic_project.acctest_project.id
-		name = "acctest-sshkey"
+		name = "acctest-sshkey-1"
 		public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCut5oRyqeqYci3E9m6Z6mtxfqkiyb+xNFJM6+/sllhnMDX0vzrNj8PuIFfGkgtowKY//QWLgoB+RpvXqcD4bb4zPkLdXdJPtUf1eAoMh/qgyThUjBs3n7BXvXMDg1Wdj0gq/sTnPLvXsfrSVPjiZvWN4h0JdID2NLnwYuKIiltIn+IbUa6OnyFfOEpqb5XJ7H7LK1mUKTlQ/9CFROxSQf3YQrR9UdtASIeyIZL53WgYgU31Yqy7MQaY1y0fGmHsFwpCK6qFZj1DNruKl/IR1lLx/Bg3z9sDcoBnHKnzSzVels9EVlDOG6bW738ho269QAIrWQYBtznsvWKu5xZPuuj user@machine"
 	}`
-	return fmt.Sprintf(config, testName, testName, seedDC, nodeDC, tenant, username, password)
+	return fmt.Sprintf(config, testName, testName, nodeDC, tenant, username, password)
+}
+
+func testAccCheckKubermaticClusterOpenstackBasicWithSSHKey2(testName, username, password, tenant, nodeDC string) string {
+	config := `
+	resource "kubermatic_project" "acctest_project" {
+		name = "%s"
+	}
+
+	resource "kubermatic_cluster" "acctest_cluster" {
+		name = "%s"
+		dc_name = "%s"
+		project_id = kubermatic_project.acctest_project.id
+
+		sshkeys = [
+			kubermatic_sshkey.acctest_sshkey2.id
+		]
+
+		spec {
+			version = "1.17.6"
+			cloud {
+				openstack {
+					tenant = "%s"
+					username = "%s"
+					password = "%s"
+					floating_ip_pool = "ext-net"
+				}
+			}
+		}
+	}
+
+	resource "kubermatic_sshkey" "acctest_sshkey2" {
+		project_id = kubermatic_project.acctest_project.id
+		name = "acctest-sshkey-2"
+		public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCut5oRyqeqYci3E9m6Z6mtxfqkiyb+xNFJM6+/sllhnMDX0vzrNj8PuIFfGkgtowKY//QWLgoB+RpvXqcD4bb4zPkLdXdJPtUf1eAoMh/qgyThUjBs3n7BXvXMDg1Wdj0gq/sTnPLvXsfrSVPjiZvWN4h0JdID2NLnwYuKIiltIn+IbUa6OnyFfOEpqb5XJ7H7LK1mUKTlQ/9CFROxSQf3YQrR9UdtASIeyIZL53WgYgU31Yqy7MQaY1y0fGmHsFwpCK6qFZj1DNruKl/IR1lLx/Bg3z9sDcoBnHKnzSzVels9EVlDOG6bW738ho269QAIrWQYBtznsvWKu5xZPuuj user@machine"
+	}`
+	return fmt.Sprintf(config, testName, testName, nodeDC, tenant, username, password)
+}
+
+func testAccCheckKubermaticClusterHasSSHKey(cluster, sshkey *string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources["kubermatic_cluster.acctest_cluster"]
+		if !ok {
+			return fmt.Errorf("Not found: %s", "kubermatic_project.acctest_project")
+		}
+
+		projectID, seedDC, _, err := kubermaticClusterParseID(rs.Primary.ID)
+		if err != nil {
+			return err
+		}
+		k := testAccProvider.Meta().(*kubermaticProviderMeta)
+		p := project.NewListSSHKeysAssignedToClusterParams()
+		p.SetProjectID(projectID)
+		p.SetDC(seedDC)
+		p.SetClusterID(*cluster)
+		ret, err := k.client.Project.ListSSHKeysAssignedToCluster(p, k.auth)
+		if err != nil {
+			return fmt.Errorf("ListSSHKeysAssignedToCluster %v", err)
+		}
+
+		var ids []string
+		for _, v := range ret.Payload {
+			ids = append(ids, v.ID)
+		}
+
+		var sshkeys []string
+		if *sshkey != "" {
+			sshkeys = []string{*sshkey}
+		}
+		if diff := cmp.Diff(sshkeys, ids); diff != "" {
+			return fmt.Errorf("wrong sshkeys: %s, %s", *sshkey, diff)
+		}
+
+		return nil
+	}
+}
+
+func TestAccKubermaticCluster_Azure_Basic(t *testing.T) {
+	var cluster models.Cluster
+	testName := randomTestName()
+
+	clientID := os.Getenv(testEnvAzureClientID)
+	clientSecret := os.Getenv(testEnvAzureClientSecret)
+	tenantID := os.Getenv(testEnvAzureTenantID)
+	subsID := os.Getenv(testEnvAzureSubscriptionID)
+	nodeDC := os.Getenv(testEnvAzureNodeDC)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheckForAzure(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckKubermaticClusterDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCheckKubermaticClusterAzureBasic(testName, clientID, clientSecret, tenantID, subsID, nodeDC),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccCheckKubermaticClusterExists(&cluster),
+					resource.TestCheckResourceAttr("kubermatic_cluster.acctest_cluster", "spec.0.cloud.0.azure.0.client_id", clientID),
+					resource.TestCheckResourceAttr("kubermatic_cluster.acctest_cluster", "spec.0.cloud.0.azure.0.client_secret", clientSecret),
+					resource.TestCheckResourceAttr("kubermatic_cluster.acctest_cluster", "spec.0.cloud.0.azure.0.tenant_id", tenantID),
+					resource.TestCheckResourceAttr("kubermatic_cluster.acctest_cluster", "spec.0.cloud.0.azure.0.subscription_id", subsID),
+				),
+			},
+		},
+	})
+}
+
+func testAccCheckKubermaticClusterAzureBasic(n, clientID, clientSecret, tenantID, subscID, nodeDC string) string {
+	return fmt.Sprintf(`
+	resource "kubermatic_project" "acctest_project" {
+		name = "%s"
+	}
+
+	resource "kubermatic_cluster" "acctest_cluster" {
+		name = "%s"
+		dc_name = "%s"
+		project_id = kubermatic_project.acctest_project.id
+
+		spec {
+			version = "1.17.6"
+			cloud {
+				azure {
+					client_id = "%s"
+					client_secret = "%s"
+					tenant_id = "%s"
+					subscription_id = "%s"
+				}
+			}
+		}
+	}`, n, n, nodeDC, clientID, clientSecret, tenantID, subscID)
+}
+
+func TestAccKubermaticCluster_AWS_Basic(t *testing.T) {
+	var cluster models.Cluster
+	testName := randomTestName()
+
+	awsAccessKeyID := os.Getenv(testEnvAWSAccessKeyID)
+	awsSecretAccessKey := os.Getenv(testAWSSecretAccessKey)
+	vpcID := os.Getenv(testEnvAWSVPCID)
+	nodeDC := os.Getenv(testEnvAWSNodeDC)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheckForAWS(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckKubermaticClusterDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCheckKubermaticClusterAWSBasic(testName, awsAccessKeyID, awsSecretAccessKey, vpcID, nodeDC),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccCheckKubermaticClusterExists(&cluster),
+					resource.TestCheckResourceAttr("kubermatic_cluster.acctest_cluster", "spec.0.cloud.0.aws.0.vpc_id", vpcID),
+					resource.TestCheckResourceAttrPtr("kubermatic_cluster.acctest_cluster", "spec.0.cloud.0.aws.0.vpc_id", &cluster.Spec.Cloud.Aws.VPCID),
+				),
+			},
+		},
+	})
+}
+
+func testAccCheckKubermaticClusterAWSBasic(n, keyID, keySecret, vpcID, nodeDC string) string {
+	return fmt.Sprintf(`
+	resource "kubermatic_project" "acctest_project" {
+		name = "%s"
+	}
+
+	resource "kubermatic_cluster" "acctest_cluster" {
+		name = "%s"
+		dc_name = "%s"
+		project_id = kubermatic_project.acctest_project.id
+
+		spec {
+			version = "1.17.6"
+			cloud {
+				aws {
+					access_key_id = "%s"
+					secret_access_key = "%s"
+					vpc_id = "%s"
+				}
+			}
+		}
+	}`, n, n, nodeDC, keyID, keySecret, vpcID)
 }
 
 func testAccCheckKubermaticClusterDestroy(s *terraform.State) error {
@@ -452,9 +628,13 @@ func testAccCheckKubermaticClusterDestroy(s *terraform.State) error {
 
 		// Try to find the cluster
 		p := project.NewGetClusterParams()
-		p.SetClusterID(rs.Primary.ID)
-		p.SetDC(rs.Primary.Attributes["dc"])
-		p.SetProjectID(rs.Primary.Attributes["project_id"])
+		projectID, seedDC, clusterID, err := kubermaticClusterParseID(rs.Primary.ID)
+		if err != nil {
+			return err
+		}
+		p.SetProjectID(projectID)
+		p.SetDC(seedDC)
+		p.SetClusterID(clusterID)
 		r, err := k.client.Project.GetCluster(p, k.auth)
 		if err == nil && r.Payload != nil {
 			return fmt.Errorf("Cluster still exists")
@@ -464,79 +644,35 @@ func testAccCheckKubermaticClusterDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckKubermaticClusterExists(seedDC string, cluster *models.Cluster) resource.TestCheckFunc {
+func testAccCheckKubermaticClusterExists(cluster *models.Cluster) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		var projectID, clusterID string
-
-		rs, ok := s.RootModule().Resources["kubermatic_project.acctest_project"]
-		if !ok {
-			return fmt.Errorf("Not found: %s", "kubermatic_project.acctest_project")
-		}
-		if rs.Primary.ID == "" {
-			return fmt.Errorf("No Record ID is set")
-		}
-		projectID = rs.Primary.ID
-
-		rs, ok = s.RootModule().Resources["kubermatic_cluster.acctest_cluster"]
+		rs, ok := s.RootModule().Resources["kubermatic_cluster.acctest_cluster"]
 		if !ok {
 			return fmt.Errorf("Not found: %s", "kubermatic_cluster.acctest_cluster")
 		}
 		if rs.Primary.ID == "" {
 			return fmt.Errorf("No Record ID is set")
 		}
-		clusterID = rs.Primary.ID
+
+		projectID, seedDC, clusterID, err := kubermaticClusterParseID(rs.Primary.ID)
+		if err != nil {
+			return err
+		}
 
 		k := testAccProvider.Meta().(*kubermaticProviderMeta)
 		p := project.NewGetClusterParams()
 		p.SetProjectID(projectID)
-		p.SetClusterID(clusterID)
 		p.SetDC(seedDC)
+		p.SetClusterID(clusterID)
 		ret, err := k.client.Project.GetCluster(p, k.auth)
 		if err != nil {
-			return fmt.Errorf("GetCluster %w", err)
+			return fmt.Errorf("GetCluster %v", err)
 		}
 		if ret.Payload == nil {
 			return fmt.Errorf("Record not found")
 		}
 
 		*cluster = *ret.Payload
-
-		return nil
-	}
-}
-
-func testAccCheckKubermaticClusterHasSSHKey(dc string, cluster, sshkey *string) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		var projectID string
-
-		rs, ok := s.RootModule().Resources["kubermatic_project.acctest_project"]
-		if !ok {
-			return fmt.Errorf("Not found: %s", "kubermatic_project.acctest_project")
-		}
-		if rs.Primary.ID == "" {
-			return fmt.Errorf("No Record ID is set")
-		}
-		projectID = rs.Primary.ID
-
-		k := testAccProvider.Meta().(*kubermaticProviderMeta)
-		p := project.NewListSSHKeysAssignedToClusterParams()
-		p.SetProjectID(projectID)
-		p.SetDC(dc)
-		p.SetClusterID(*cluster)
-		ret, err := k.client.Project.ListSSHKeysAssignedToCluster(p, k.auth)
-		if err != nil {
-			return fmt.Errorf("ListSSHKeysAssignedToCluster %w", err)
-		}
-
-		var ids []string
-		for _, v := range ret.Payload {
-			ids = append(ids, v.ID)
-		}
-
-		sshkeys := []string{*sshkey}
-		if diff := cmp.Diff(sshkeys, ids); diff != "" {
-			return fmt.Errorf("wrong sshkeys: %s, %s", *sshkey, diff)
-		}
 
 		return nil
 	}

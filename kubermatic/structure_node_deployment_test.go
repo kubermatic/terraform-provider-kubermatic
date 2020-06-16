@@ -37,7 +37,7 @@ func TestFlattenNodeDeploymentSpec(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		output := flattenNodeDeploymentSpec(tc.Input)
+		output := flattenNodeDeploymentSpec(nil, tc.Input)
 		if diff := cmp.Diff(tc.ExpectedOutput, output); diff != "" {
 			t.Fatalf("Unexpected output from expander: mismatch (-want +got):\n%s", diff)
 		}
@@ -132,7 +132,7 @@ func TestFlattenNodeSpec(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		output := flattenNodeSpec(tc.Input)
+		output := flattenNodeSpec(nil, tc.Input)
 		if diff := cmp.Diff(tc.ExpectedOutput, output); diff != "" {
 			t.Fatalf("Unexpected output from expander: mismatch (-want +got):\n%s", diff)
 		}
@@ -261,6 +261,55 @@ func TestFlattenAWSNodeSpec(t *testing.T) {
 
 	for _, tc := range cases {
 		output := flattenAWSNodeSpec(tc.Input)
+		if diff := cmp.Diff(tc.ExpectedOutput, output); diff != "" {
+			t.Fatalf("Unexpected output from expander: mismatch (-want +got):\n%s", diff)
+		}
+	}
+}
+
+func TestFlattenOpenstackNodeSpec(t *testing.T) {
+	cases := []struct {
+		Input          *models.OpenstackNodeSpec
+		ExpectedOutput []interface{}
+	}{
+		{
+			&models.OpenstackNodeSpec{
+				Flavor:        strToPtr("big"),
+				Image:         strToPtr("Ubuntu"),
+				UseFloatingIP: true,
+				Tags: map[string]string{
+					"foo": "bar",
+				},
+				RootDiskSizeGB: int64(999),
+			},
+			[]interface{}{
+				map[string]interface{}{
+					"flavor":          "big",
+					"image":           "Ubuntu",
+					"use_floating_ip": true,
+					"tags": map[string]string{
+						"foo": "bar",
+					},
+					"disk_size": int64(999),
+				},
+			},
+		},
+		{
+			&models.OpenstackNodeSpec{},
+			[]interface{}{
+				map[string]interface{}{
+					"use_floating_ip": false,
+				},
+			},
+		},
+		{
+			nil,
+			[]interface{}{},
+		},
+	}
+
+	for _, tc := range cases {
+		output := flattenOpenstackNodeSpec(tc.Input)
 		if diff := cmp.Diff(tc.ExpectedOutput, output); diff != "" {
 			t.Fatalf("Unexpected output from expander: mismatch (-want +got):\n%s", diff)
 		}
@@ -523,6 +572,106 @@ func TestExpandAWSNodeSpec(t *testing.T) {
 
 	for _, tc := range cases {
 		output := expandAWSNodeSpec(tc.Input)
+		if diff := cmp.Diff(tc.ExpectedOutput, output); diff != "" {
+			t.Fatalf("Unexpected output from expander: mismatch (-want +got):\n%s", diff)
+		}
+	}
+}
+
+func TestExpandOpenstackNodeSpec(t *testing.T) {
+	cases := []struct {
+		Input          []interface{}
+		ExpectedOutput *models.OpenstackNodeSpec
+	}{
+		{
+			[]interface{}{
+				map[string]interface{}{
+					"flavor":          "tiny",
+					"image":           "Ubuntu",
+					"use_floating_ip": true,
+					"tags": map[string]interface{}{
+						"foo": "bar",
+					},
+					"disk_size": 999,
+				},
+			},
+			&models.OpenstackNodeSpec{
+				Flavor:        strToPtr("tiny"),
+				Image:         strToPtr("Ubuntu"),
+				UseFloatingIP: true,
+				Tags: map[string]string{
+					"foo": "bar",
+				},
+				RootDiskSizeGB: int64(999),
+			},
+		},
+		{
+
+			[]interface{}{
+				map[string]interface{}{},
+			},
+			&models.OpenstackNodeSpec{},
+		},
+		{
+			[]interface{}{},
+			nil,
+		},
+	}
+
+	for _, tc := range cases {
+		output := expandOpenstackNodeSpec(tc.Input)
+		if diff := cmp.Diff(tc.ExpectedOutput, output); diff != "" {
+			t.Fatalf("Unexpected output from expander: mismatch (-want +got):\n%s", diff)
+		}
+	}
+}
+
+func TestExpandAzureNodeSpec(t *testing.T) {
+	cases := []struct {
+		Input          []interface{}
+		ExpectedOutput *models.AzureNodeSpec
+	}{
+		{
+			[]interface{}{
+				map[string]interface{}{
+					"image_id":         "ImageID",
+					"size":             "Size",
+					"assign_public_ip": false,
+					"disk_size_gb":     1,
+					"os_disk_size_gb":  2,
+					"tags": map[string]interface{}{
+						"tag-k": "tag-v",
+					},
+					"zones": []interface{}{"Zone-x"},
+				},
+			},
+			&models.AzureNodeSpec{
+				ImageID:        "ImageID",
+				Size:           strToPtr("Size"),
+				AssignPublicIP: false,
+				DataDiskSize:   1,
+				OSDiskSize:     2,
+				Tags: map[string]string{
+					"tag-k": "tag-v",
+				},
+				Zones: []string{"Zone-x"},
+			},
+		},
+		{
+
+			[]interface{}{
+				map[string]interface{}{},
+			},
+			&models.AzureNodeSpec{},
+		},
+		{
+			[]interface{}{},
+			nil,
+		},
+	}
+
+	for _, tc := range cases {
+		output := expandAzureNodeSpec(tc.Input)
 		if diff := cmp.Diff(tc.ExpectedOutput, output); diff != "" {
 			t.Fatalf("Unexpected output from expander: mismatch (-want +got):\n%s", diff)
 		}

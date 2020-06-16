@@ -79,10 +79,12 @@ func Provider() terraform.ResourceProvider {
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
-			"kubermatic_project":         resourceProject(),
-			"kubermatic_cluster":         resourceCluster(),
-			"kubermatic_node_deployment": resourceNodeDeployment(),
-			"kubermatic_sshkey":          resourceSSHKey(),
+			"kubermatic_project":               resourceProject(),
+			"kubermatic_cluster":               resourceCluster(),
+			"kubermatic_node_deployment":       resourceNodeDeployment(),
+			"kubermatic_sshkey":                resourceSSHKey(),
+			"kubermatic_service_account":       resourceServiceAccount(),
+			"kubermatic_service_account_token": resourceServiceAccountToken(),
 		},
 	}
 

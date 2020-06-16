@@ -25,11 +25,11 @@ func TestFlattenClusterSpec(t *testing.T) {
 			},
 			[]interface{}{
 				map[string]interface{}{
-					"version":       "1.15.6",
-					"audit_logging": false,
+					"version":             "1.15.6",
+					"audit_logging":       false,
+					"pod_security_policy": false,
 					"cloud": []interface{}{
 						map[string]interface{}{
-							"dc":           "eu-west-1",
 							"bringyourown": []interface{}{map[string]interface{}{}},
 						},
 					},
@@ -39,7 +39,10 @@ func TestFlattenClusterSpec(t *testing.T) {
 		{
 			&models.ClusterSpec{},
 			[]interface{}{
-				map[string]interface{}{"audit_logging": false},
+				map[string]interface{}{
+					"audit_logging":       false,
+					"pod_security_policy": false,
+				},
 			},
 		},
 		{
@@ -63,12 +66,10 @@ func TestFlattenClusterCloudSpec(t *testing.T) {
 	}{
 		{
 			&models.CloudSpec{
-				DatacenterName: "eu-west-1",
-				Aws:            &models.AWSCloudSpec{},
+				Aws: &models.AWSCloudSpec{},
 			},
 			[]interface{}{
 				map[string]interface{}{
-					"dc": "eu-west-1",
 					"aws": []interface{}{
 						map[string]interface{}{},
 					},
@@ -77,12 +78,10 @@ func TestFlattenClusterCloudSpec(t *testing.T) {
 		},
 		{
 			&models.CloudSpec{
-				DatacenterName: "eu-west-1",
-				Bringyourown:   map[string]interface{}{},
+				Bringyourown: map[string]interface{}{},
 			},
 			[]interface{}{
 				map[string]interface{}{
-					"dc": "eu-west-1",
 					"bringyourown": []interface{}{
 						map[string]interface{}{},
 					},
@@ -159,7 +158,7 @@ func TestFlattenAWSCloudSpec(t *testing.T) {
 func TestFlattenOpenstackCloudSpec(t *testing.T) {
 	cases := []struct {
 		Input          *models.OpenstackCloudSpec
-		PreserveValues clusterPreserveValues
+		PreserveValues clusterOpenstackPreservedValues
 		ExpectedOutput []interface{}
 	}{
 		{
@@ -174,7 +173,7 @@ func TestFlattenOpenstackCloudSpec(t *testing.T) {
 				TenantID:       "TenantID",
 				Username:       "",
 			},
-			clusterPreserveValues{
+			clusterOpenstackPreservedValues{
 				openstackUsername: "Username",
 				openstackPassword: "Password",
 				openstackTenant:   "Tenant",
@@ -190,20 +189,71 @@ func TestFlattenOpenstackCloudSpec(t *testing.T) {
 		},
 		{
 			&models.OpenstackCloudSpec{},
-			clusterPreserveValues{},
+			clusterOpenstackPreservedValues{},
 			[]interface{}{
 				map[string]interface{}{},
 			},
 		},
 		{
 			nil,
-			clusterPreserveValues{},
+			clusterOpenstackPreservedValues{},
 			[]interface{}{},
 		},
 	}
 
 	for _, tc := range cases {
-		output := flattenOpenstackSpec(tc.PreserveValues, tc.Input)
+		output := flattenOpenstackSpec(&tc.PreserveValues, tc.Input)
+		if diff := cmp.Diff(tc.ExpectedOutput, output); diff != "" {
+			t.Fatalf("Unexpected output from expander: mismatch (-want +got):\n%s", diff)
+		}
+	}
+}
+
+func TestFlattenAzureCloudSpec(t *testing.T) {
+	cases := []struct {
+		Input          *models.AzureCloudSpec
+		ExpectedOutput []interface{}
+	}{
+		{
+			&models.AzureCloudSpec{
+				ClientID:       "ClientID",
+				ClientSecret:   "ClientSecret",
+				SubscriptionID: "SubscriptionID",
+				TenantID:       "TenantID",
+				ResourceGroup:  "ResourceGroup",
+				RouteTableName: "RouteTableName",
+				SecurityGroup:  "SecurityGroup",
+				SubnetName:     "SubnetName",
+				VNetName:       "VNetName",
+			},
+			[]interface{}{
+				map[string]interface{}{
+					"client_id":       "ClientID",
+					"client_secret":   "ClientSecret",
+					"tenant_id":       "TenantID",
+					"subscription_id": "SubscriptionID",
+					"resource_group":  "ResourceGroup",
+					"route_table":     "RouteTableName",
+					"security_group":  "SecurityGroup",
+					"subnet":          "SubnetName",
+					"vnet":            "VNetName",
+				},
+			},
+		},
+		{
+			&models.AzureCloudSpec{},
+			[]interface{}{
+				map[string]interface{}{},
+			},
+		},
+		{
+			nil,
+			[]interface{}{},
+		},
+	}
+
+	for _, tc := range cases {
+		output := flattenAzureSpec(tc.Input)
 		if diff := cmp.Diff(tc.ExpectedOutput, output); diff != "" {
 			t.Fatalf("Unexpected output from expander: mismatch (-want +got):\n%s", diff)
 		}
@@ -259,16 +309,17 @@ func TestExpandClusterSpec(t *testing.T) {
 	cases := []struct {
 		Input          []interface{}
 		ExpectedOutput *models.ClusterSpec
+		DCName         string
 	}{
 		{
 			[]interface{}{
 				map[string]interface{}{
-					"version":          "1.15.6",
-					"machine_networks": []interface{}{},
-					"audit_logging":    false,
+					"version":             "1.15.6",
+					"machine_networks":    []interface{}{},
+					"audit_logging":       false,
+					"pod_security_policy": true,
 					"cloud": []interface{}{
 						map[string]interface{}{
-							"dc": "eu-west-1",
 							"bringyourown": []interface{}{
 								map[string]interface{}{},
 							},
@@ -277,29 +328,33 @@ func TestExpandClusterSpec(t *testing.T) {
 				},
 			},
 			&models.ClusterSpec{
-				Version:         "1.15.6",
-				MachineNetworks: nil,
-				AuditLogging:    &models.AuditLoggingSettings{},
+				Version:                             "1.15.6",
+				MachineNetworks:                     nil,
+				AuditLogging:                        &models.AuditLoggingSettings{},
+				UsePodSecurityPolicyAdmissionPlugin: true,
 				Cloud: &models.CloudSpec{
 					DatacenterName: "eu-west-1",
 					Bringyourown:   map[string]interface{}{},
 				},
 			},
+			"eu-west-1",
 		},
 		{
 			[]interface{}{
 				map[string]interface{}{},
 			},
 			&models.ClusterSpec{},
+			"",
 		},
 		{
 			[]interface{}{},
 			nil,
+			"",
 		},
 	}
 
 	for _, tc := range cases {
-		output := expandClusterSpec(tc.Input)
+		output := expandClusterSpec(tc.Input, tc.DCName)
 		if diff := cmp.Diff(tc.ExpectedOutput, output); diff != "" {
 			t.Fatalf("Unexpected output from expander: mismatch (-want +got):\n%s", diff)
 		}
@@ -310,11 +365,11 @@ func TestExpandClusterCloudSpec(t *testing.T) {
 	cases := []struct {
 		Input          []interface{}
 		ExpectedOutput *models.CloudSpec
+		DCName         string
 	}{
 		{
 			[]interface{}{
 				map[string]interface{}{
-					"dc": "eu-west-1",
 					"bringyourown": []interface{}{
 						map[string]interface{}{},
 					},
@@ -324,11 +379,11 @@ func TestExpandClusterCloudSpec(t *testing.T) {
 				DatacenterName: "eu-west-1",
 				Bringyourown:   map[string]interface{}{},
 			},
+			"eu-west-1",
 		},
 		{
 			[]interface{}{
 				map[string]interface{}{
-					"dc": "eu-west-1",
 					"aws": []interface{}{
 						map[string]interface{}{},
 					},
@@ -338,21 +393,26 @@ func TestExpandClusterCloudSpec(t *testing.T) {
 				DatacenterName: "eu-west-1",
 				Aws:            &models.AWSCloudSpec{},
 			},
+			"eu-west-1",
 		},
 		{
 			[]interface{}{
 				map[string]interface{}{},
 			},
-			&models.CloudSpec{},
+			&models.CloudSpec{
+				DatacenterName: "eu-west-1",
+			},
+			"eu-west-1",
 		},
 		{
 			[]interface{}{},
 			nil,
+			"eu-west-1",
 		},
 	}
 
 	for _, tc := range cases {
-		output := expandClusterCloudSpec(tc.Input)
+		output := expandClusterCloudSpec(tc.Input, tc.DCName)
 		if diff := cmp.Diff(tc.ExpectedOutput, output); diff != "" {
 			t.Fatalf("Unexpected output from expander: mismatch (-want +got):\n%s", diff)
 		}
@@ -431,7 +491,7 @@ func TestExpandAWSCloudSpec(t *testing.T) {
 	}
 }
 
-func TestExpandOpenstackCloudSpec(t *testing.T) {
+func TestExpandAzureCloudSpec(t *testing.T) {
 	cases := []struct {
 		Input          []interface{}
 		ExpectedOutput *models.OpenstackCloudSpec
@@ -469,6 +529,58 @@ func TestExpandOpenstackCloudSpec(t *testing.T) {
 
 	for _, tc := range cases {
 		output := expandOpenstackCloudSpec(tc.Input)
+		if diff := cmp.Diff(tc.ExpectedOutput, output); diff != "" {
+			t.Fatalf("Unexpected output from expander: mismatch (-want +got):\n%s", diff)
+		}
+	}
+}
+
+func TestExpandOpenstackCloudSpec(t *testing.T) {
+	cases := []struct {
+		Input          []interface{}
+		ExpectedOutput *models.AzureCloudSpec
+	}{
+		{
+
+			[]interface{}{
+				map[string]interface{}{
+					"client_id":       "ClientID",
+					"client_secret":   "ClientSecret",
+					"tenant_id":       "TenantID",
+					"subscription_id": "SubscriptionID",
+					"resource_group":  "ResourceGroup",
+					"route_table":     "RouteTableName",
+					"security_group":  "SecurityGroup",
+					"subnet":          "SubnetName",
+					"vnet":            "VNetName",
+				},
+			},
+			&models.AzureCloudSpec{
+				ClientID:       "ClientID",
+				ClientSecret:   "ClientSecret",
+				SubscriptionID: "SubscriptionID",
+				TenantID:       "TenantID",
+				ResourceGroup:  "ResourceGroup",
+				RouteTableName: "RouteTableName",
+				SecurityGroup:  "SecurityGroup",
+				SubnetName:     "SubnetName",
+				VNetName:       "VNetName",
+			},
+		},
+		{
+			[]interface{}{
+				map[string]interface{}{},
+			},
+			&models.AzureCloudSpec{},
+		},
+		{
+			[]interface{}{},
+			nil,
+		},
+	}
+
+	for _, tc := range cases {
+		output := expandAzureCloudSpec(tc.Input)
 		if diff := cmp.Diff(tc.ExpectedOutput, output); diff != "" {
 			t.Fatalf("Unexpected output from expander: mismatch (-want +got):\n%s", diff)
 		}
