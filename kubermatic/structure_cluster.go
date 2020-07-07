@@ -76,7 +76,7 @@ func flattenClusterCloudSpec(values clusterPreserveValues, in *models.CloudSpec)
 	}
 
 	if in.Aws != nil {
-		att["aws"] = flattenAWSCloudSpec(in.Aws)
+		att["aws"] = flattenAWSCloudSpec(values.aws)
 	}
 
 	if in.Openstack != nil {

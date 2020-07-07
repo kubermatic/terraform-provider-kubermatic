@@ -11,9 +11,6 @@ import (
 	"github.com/kubermatic/go-kubermatic/models"
 )
 
-const testKubeletVersion16 = "1.16.10"
-const testKubeletVersion17 = "1.17.6"
-
 func TestAccKubermaticNodeDeployment_Openstack_Basic(t *testing.T) {
 	var ndepl models.NodeDeployment
 	testName := randomTestName()
@@ -25,6 +22,8 @@ func TestAccKubermaticNodeDeployment_Openstack_Basic(t *testing.T) {
 	image := os.Getenv(testEnvOpenstackImage)
 	image2 := os.Getenv(testEnvOpenstackImage2)
 	flavor := os.Getenv(testEnvOpenstackFlavor)
+	k8sVersion17 := os.Getenv(testEnvK8sVersion17)
+	kubeletVersion16 := os.Getenv(testEnvK8sVersion16)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheckForOpenstack(t) },
@@ -32,21 +31,21 @@ func TestAccKubermaticNodeDeployment_Openstack_Basic(t *testing.T) {
 		CheckDestroy: testAccCheckKubermaticNodeDeploymentDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCheckKubermaticNodeDeploymentBasic(testName, nodeDC, username, password, tenant, testClusterVersion17, testKubeletVersion16, image, flavor),
+				Config: testAccCheckKubermaticNodeDeploymentBasic(testName, nodeDC, username, password, tenant, k8sVersion17, kubeletVersion16, image, flavor),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccCheckKubermaticNodeDeploymentExists("kubermatic_node_deployment.acctest_nd", &ndepl),
-					testAccCheckKubermaticNodeDeploymentFields(&ndepl, flavor, image, testKubeletVersion16, 1, 0, false, false),
+					testAccCheckKubermaticNodeDeploymentFields(&ndepl, flavor, image, kubeletVersion16, 1, 0, false),
 					resource.TestCheckResourceAttr("kubermatic_node_deployment.acctest_nd", "name", testName),
 					resource.TestCheckResourceAttrPtr("kubermatic_node_deployment.acctest_nd", "name", &ndepl.Name),
 					resource.TestCheckResourceAttr("kubermatic_node_deployment.acctest_nd", "spec.0.replicas", "1"),
 					resource.TestCheckResourceAttr("kubermatic_node_deployment.acctest_nd", "spec.0.template.0.cloud.0.openstack.0.flavor", flavor),
 					resource.TestCheckResourceAttr("kubermatic_node_deployment.acctest_nd", "spec.0.template.0.cloud.0.openstack.0.image", image),
 					resource.TestCheckResourceAttr("kubermatic_node_deployment.acctest_nd", "spec.0.template.0.operating_system.0.ubuntu.#", "1"),
-					resource.TestCheckResourceAttr("kubermatic_node_deployment.acctest_nd", "spec.0.template.0.versions.0.kubelet", testKubeletVersion16),
+					resource.TestCheckResourceAttr("kubermatic_node_deployment.acctest_nd", "spec.0.template.0.versions.0.kubelet", kubeletVersion16),
 				),
 			},
 			{
-				Config: testAccCheckKubermaticNodeDeploymentBasic2(testName, nodeDC, username, password, tenant, testClusterVersion17, testKubeletVersion17, image2, flavor),
+				Config: testAccCheckKubermaticNodeDeploymentBasic2(testName, nodeDC, username, password, tenant, k8sVersion17, kubeletVersion16, image2, flavor),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testResourceInstanceState("kubermatic_node_deployment.acctest_nd", func(is *terraform.InstanceState) error {
 						_, _, _, id, err := kubermaticNodeDeploymentParseID(is.ID)
@@ -59,15 +58,15 @@ func TestAccKubermaticNodeDeployment_Openstack_Basic(t *testing.T) {
 						return nil
 					}),
 					testAccCheckKubermaticNodeDeploymentExists("kubermatic_node_deployment.acctest_nd", &ndepl),
-					testAccCheckKubermaticNodeDeploymentFields(&ndepl, flavor, image2, testKubeletVersion17, 2, 123, true, true),
+					testAccCheckKubermaticNodeDeploymentFields(&ndepl, flavor, image2, kubeletVersion16, 1, 123, true),
 					resource.TestCheckResourceAttr("kubermatic_node_deployment.acctest_nd", "name", testName),
-					resource.TestCheckResourceAttr("kubermatic_node_deployment.acctest_nd", "spec.0.replicas", "2"),
+					resource.TestCheckResourceAttr("kubermatic_node_deployment.acctest_nd", "spec.0.replicas", "1"),
 					resource.TestCheckResourceAttr("kubermatic_node_deployment.acctest_nd", "spec.0.template.0.cloud.0.openstack.0.flavor", flavor),
 					resource.TestCheckResourceAttr("kubermatic_node_deployment.acctest_nd", "spec.0.template.0.cloud.0.openstack.0.image", image2),
 					resource.TestCheckResourceAttr("kubermatic_node_deployment.acctest_nd", "spec.0.template.0.cloud.0.openstack.0.use_floating_ip", "true"),
 					resource.TestCheckResourceAttr("kubermatic_node_deployment.acctest_nd", "spec.0.template.0.cloud.0.openstack.0.disk_size", "123"),
 					resource.TestCheckResourceAttr("kubermatic_node_deployment.acctest_nd", "spec.0.template.0.operating_system.0.ubuntu.0.dist_upgrade_on_boot", "true"),
-					resource.TestCheckResourceAttr("kubermatic_node_deployment.acctest_nd", "spec.0.template.0.versions.0.kubelet", testKubeletVersion17),
+					resource.TestCheckResourceAttr("kubermatic_node_deployment.acctest_nd", "spec.0.template.0.versions.0.kubelet", kubeletVersion16),
 				),
 			},
 		},
@@ -153,7 +152,7 @@ func testAccCheckKubermaticNodeDeploymentBasic2(testName, nodeDC, username, pass
 		cluster_id = kubermatic_cluster.acctest_cluster.id
 		name = "%s"
 		spec {
-			replicas = 2
+			replicas = 1
 			template {
 				labels = {
 					"foo" = "bar"
@@ -162,7 +161,6 @@ func testAccCheckKubermaticNodeDeploymentBasic2(testName, nodeDC, username, pass
 					openstack {
 						flavor = "%s"
 						image = "%s"
-						use_floating_ip = true
 						disk_size = 123
 					}
 				}
@@ -183,7 +181,7 @@ func testAccCheckKubermaticNodeDeploymentDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckKubermaticNodeDeploymentFields(rec *models.NodeDeployment, flavor, image, kubeletVersion string, replicas, diskSize int, floatingIP, distUpgrade bool) resource.TestCheckFunc {
+func testAccCheckKubermaticNodeDeploymentFields(rec *models.NodeDeployment, flavor, image, kubeletVersion string, replicas, diskSize int, distUpgrade bool) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		if rec == nil {
 			return fmt.Errorf("No Record")
@@ -211,11 +209,7 @@ func testAccCheckKubermaticNodeDeploymentFields(rec *models.NodeDeployment, flav
 		}
 
 		if openstack.RootDiskSizeGB != int64(diskSize) {
-			return fmt.Errorf("want RootDiskSizeGB=%d, got %d", openstack.RootDiskSizeGB, diskSize)
-		}
-
-		if openstack.UseFloatingIP != floatingIP {
-			return fmt.Errorf("want UseFloatingIP=%v, got %v", openstack.UseFloatingIP, floatingIP)
+			return fmt.Errorf("RootDiskSizeGB=%d, want %d", openstack.RootDiskSizeGB, diskSize)
 		}
 
 		opSys := rec.Spec.Template.OperatingSystem
@@ -259,6 +253,7 @@ func TestAccKubermaticNodeDeployment_Azure_Basic(t *testing.T) {
 	subsID := os.Getenv(testEnvAzureSubscriptionID)
 	nodeDC := os.Getenv(testEnvAzureNodeDC)
 	nodeSize := os.Getenv(testEnvAzureNodeSize)
+	k8sVersion17 := os.Getenv(testEnvK8sVersion17)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheckForAzure(t) },
@@ -266,7 +261,7 @@ func TestAccKubermaticNodeDeployment_Azure_Basic(t *testing.T) {
 		CheckDestroy: testAccCheckKubermaticNodeDeploymentDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCheckKubermaticNodeDeploymentAzureBasic(testName, clientID, clientSecret, tenantID, subsID, nodeDC, nodeSize),
+				Config: testAccCheckKubermaticNodeDeploymentAzureBasic(testName, clientID, clientSecret, tenantID, subsID, nodeDC, nodeSize, k8sVersion17, k8sVersion17),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccCheckKubermaticNodeDeploymentExists("kubermatic_node_deployment.acctest_nd", &nodedepl),
 					resource.TestCheckResourceAttr("kubermatic_node_deployment.acctest_nd", "spec.0.template.0.cloud.0.azure.0.size", nodeSize),
@@ -276,7 +271,7 @@ func TestAccKubermaticNodeDeployment_Azure_Basic(t *testing.T) {
 	})
 }
 
-func testAccCheckKubermaticNodeDeploymentAzureBasic(n, clientID, clientSecret, tenantID, subscID, nodeDC, nodeSize string) string {
+func testAccCheckKubermaticNodeDeploymentAzureBasic(n, clientID, clientSecret, tenantID, subscID, nodeDC, nodeSize, k8sVersion, kubeletVersion string) string {
 	return fmt.Sprintf(`
 	resource "kubermatic_project" "acctest_project" {
 		name = "%s"
@@ -288,7 +283,7 @@ func testAccCheckKubermaticNodeDeploymentAzureBasic(n, clientID, clientSecret, t
 		project_id = kubermatic_project.acctest_project.id
 
 		spec {
-			version = "1.17.6"
+			version = "%s"
 			cloud {
 				azure {
 					client_id = "%s"
@@ -317,11 +312,11 @@ func testAccCheckKubermaticNodeDeploymentAzureBasic(n, clientID, clientSecret, t
 					}
 				}
 				versions {
-					kubelet = "1.17.6"
+					kubelet = "%s"
 				}
 			}
 		}
-	}`, n, n, nodeDC, clientID, clientSecret, tenantID, subscID, n, nodeSize)
+	}`, n, n, nodeDC, k8sVersion, clientID, clientSecret, tenantID, subscID, n, nodeSize, kubeletVersion)
 }
 
 func TestAccKubermaticNodeDeployment_AWS_Basic(t *testing.T) {
@@ -336,6 +331,7 @@ func TestAccKubermaticNodeDeployment_AWS_Basic(t *testing.T) {
 	subnetID := os.Getenv(testEnvAWSSubnetID)
 	availabilityZone := os.Getenv(testEnvAWSAvailabilityZone)
 	diskSize := os.Getenv(testEnvAWSDiskSize)
+	k8sVersion17 := os.Getenv(testEnvK8sVersion17)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheckForAWS(t) },
@@ -343,18 +339,14 @@ func TestAccKubermaticNodeDeployment_AWS_Basic(t *testing.T) {
 		CheckDestroy: testAccCheckKubermaticNodeDeploymentDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCheckKubermaticNodeDeploymentAWSBasic(testName, accessKeyID, accessKeySecret, vpcID, nodeDC, instanceType, subnetID, availabilityZone, diskSize),
+				Config: testAccCheckKubermaticNodeDeploymentAWSBasic(testName, accessKeyID, accessKeySecret, vpcID, nodeDC, instanceType, subnetID, availabilityZone, diskSize, k8sVersion17, k8sVersion17),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccCheckKubermaticNodeDeploymentExists("kubermatic_node_deployment.acctest_nd", &nodedepl),
 					resource.TestCheckResourceAttr("kubermatic_node_deployment.acctest_nd", "spec.0.template.0.cloud.0.aws.0.instance_type", instanceType),
-					resource.TestCheckResourceAttrPtr("kubermatic_node_deployment.acctest_nd", "spec.0.template.0.cloud.0.aws.0.instance_type", nodedepl.Spec.Template.Cloud.Aws.InstanceType),
 					resource.TestCheckResourceAttr("kubermatic_node_deployment.acctest_nd", "spec.0.template.0.cloud.0.aws.0.disk_size", diskSize),
 					resource.TestCheckResourceAttr("kubermatic_node_deployment.acctest_nd", "spec.0.template.0.cloud.0.aws.0.volume_type", "standart"),
-					resource.TestCheckResourceAttrPtr("kubermatic_node_deployment.acctest_nd", "spec.0.template.0.cloud.0.aws.0.volume_type", nodedepl.Spec.Template.Cloud.Aws.VolumeType),
 					resource.TestCheckResourceAttr("kubermatic_node_deployment.acctest_nd", "spec.0.template.0.cloud.0.aws.0.subnet_id", subnetID),
-					resource.TestCheckResourceAttrPtr("kubermatic_node_deployment.acctest_nd", "spec.0.template.0.cloud.0.aws.0.subnet_id", &nodedepl.Spec.Template.Cloud.Aws.SubnetID),
 					resource.TestCheckResourceAttr("kubermatic_node_deployment.acctest_nd", "spec.0.template.0.cloud.0.aws.0.availability_zone", availabilityZone),
-					resource.TestCheckResourceAttrPtr("kubermatic_node_deployment.acctest_nd", "spec.0.template.0.cloud.0.aws.0.availability_zone", &nodedepl.Spec.Template.Cloud.Aws.AvailabilityZone),
 					resource.TestCheckResourceAttr("kubermatic_node_deployment.acctest_nd", "spec.0.template.0.cloud.0.aws.0.assign_public_ip", "true"),
 				),
 			},
@@ -362,7 +354,7 @@ func TestAccKubermaticNodeDeployment_AWS_Basic(t *testing.T) {
 	})
 }
 
-func testAccCheckKubermaticNodeDeploymentAWSBasic(n, keyID, keySecret, vpcID, nodeDC, instanceType, subnetID, availabilityZone, diskSize string) string {
+func testAccCheckKubermaticNodeDeploymentAWSBasic(n, keyID, keySecret, vpcID, nodeDC, instanceType, subnetID, availabilityZone, diskSize, k8sVersion, kubeletVersion string) string {
 	return fmt.Sprintf(`
 	resource "kubermatic_project" "acctest_project" {
 		name = "%s"
@@ -374,12 +366,12 @@ func testAccCheckKubermaticNodeDeploymentAWSBasic(n, keyID, keySecret, vpcID, no
 		project_id = kubermatic_project.acctest_project.id
 
 		spec {
-			version = "1.17.6"
+			version = "%s"
 			cloud {
 				aws {
 					access_key_id = "%s"
-					access_key_secret = "%s"
-					vpc_id = "%s'
+					secret_access_key = "%s"
+					vpc_id = "%s"
 				}
 			}
 		}
@@ -389,13 +381,13 @@ func testAccCheckKubermaticNodeDeploymentAWSBasic(n, keyID, keySecret, vpcID, no
 		cluster_id = kubermatic_cluster.acctest_cluster.id
 		name = "%s"
 		spec {
-			replicas = 2
+			replicas = 1
 			template {
 				cloud {
 					aws {
 						instance_type = "%s"
 						disk_size = "%s"
-						volume_type = "standart"
+						volume_type = "standard"
 						subnet_id = "%s"
 						availability_zone = "%s"
 						assign_public_ip = true
@@ -407,11 +399,11 @@ func testAccCheckKubermaticNodeDeploymentAWSBasic(n, keyID, keySecret, vpcID, no
 					}
 				}
 				versions {
-					kubelet = "1.17.6"
+					kubelet = "%s"
 				}
 			}
 		}
-	}`, n, n, nodeDC, keyID, keySecret, vpcID, n, instanceType, diskSize, subnetID, availabilityZone)
+	}`, n, n, nodeDC, k8sVersion, keyID, keySecret, vpcID, n, instanceType, diskSize, subnetID, availabilityZone, kubeletVersion)
 }
 
 func testAccCheckKubermaticNodeDeploymentExists(n string, rec *models.NodeDeployment) resource.TestCheckFunc {

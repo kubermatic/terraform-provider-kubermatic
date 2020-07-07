@@ -16,6 +16,9 @@ const (
 
 	testEnvOtherUserEmail = "KUBERMATIC_ANOTHER_USER_EMAIL"
 
+	testEnvK8sVersion17 = "KUBERMATIC_K8S_VERSION_17"
+	testEnvK8sVersion16 = "KUBERMATIC_K8S_VERSION_16"
+
 	testEnvOpenstackNodeDC   = "KUBERMATIC_OPENSTACK_NODE_DC"
 	testEnvOpenstackUsername = "KUBERMATIC_OPENSTACK_USERNAME"
 	testEnvOpenstackPassword = "KUBERMATIC_OPENSTACK_PASSWORD"
@@ -46,11 +49,12 @@ var (
 	testAccProvider  *schema.Provider
 )
 
-func init() {
+func TestMain(m *testing.M) {
 	testAccProvider = Provider().(*schema.Provider)
 	testAccProviders = map[string]terraform.ResourceProvider{
 		"kubermatic": testAccProvider,
 	}
+	resource.TestMain(m)
 }
 
 func testAccPreCheckForOpenstack(t *testing.T) {
@@ -89,6 +93,8 @@ func testAccPreCheck(t *testing.T) {
 	t.Helper()
 	checkEnv(t, "KUBERMATIC_HOST")
 	checkEnv(t, "KUBERMATIC_TOKEN")
+	checkEnv(t, testEnvK8sVersion17)
+	checkEnv(t, testEnvK8sVersion16)
 }
 
 func checkEnv(t *testing.T, n string) {

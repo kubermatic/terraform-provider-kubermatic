@@ -70,9 +70,7 @@ func TestFlattenClusterCloudSpec(t *testing.T) {
 			},
 			[]interface{}{
 				map[string]interface{}{
-					"aws": []interface{}{
-						map[string]interface{}{},
-					},
+					"aws": []interface{}{},
 				},
 			},
 		},
