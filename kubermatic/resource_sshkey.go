@@ -93,5 +93,8 @@ func resourceSSHKeyDelete(d *schema.ResourceData, m interface{}) error {
 	p.SetProjectID(d.Get("project_id").(string))
 	p.SetSSHKeyID(d.Id())
 	_, err := k.client.Project.DeleteSSHKey(p, k.auth)
-	return fmt.Errorf("unable to delete SSH key: %s", getErrorResponse(err))
+	if err != nil {
+		return fmt.Errorf("unable to delete SSH key: %s", getErrorResponse(err))
+	}
+	return nil
 }

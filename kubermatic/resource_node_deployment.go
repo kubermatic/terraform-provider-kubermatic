@@ -93,7 +93,7 @@ func resourceNodeDeploymentCreate(d *schema.ResourceData, m interface{}) error {
 	r, err := k.client.Project.CreateNodeDeployment(p, k.auth)
 	if err != nil {
 		if e, ok := err.(*project.CreateNodeDeploymentDefault); ok && errorMessage(e.Payload) != "" {
-			return fmt.Errorf("%s: %v", errorMessage(e.Payload), err)
+			return fmt.Errorf("create node deployment: %s", errorMessage(e.Payload))
 		}
 
 		return fmt.Errorf("unable to create a node deployment: %v", getErrorResponse(err))
@@ -182,7 +182,7 @@ func resourceNodeDeploymentUpdate(d *schema.ResourceData, m interface{}) error {
 		if e, ok := err.(*project.PatchNodeDeploymentDefault); ok && errorMessage(e.Payload) != "" {
 			return fmt.Errorf(errorMessage(e.Payload))
 		}
-		return fmt.Errorf("unable to update a node deployment: %v", err)
+		return fmt.Errorf("unable to update a node deployment: %v", getErrorResponse(err))
 	}
 
 	if err := waitForNodeDeploymentRead(k, d.Timeout(schema.TimeoutCreate), projectID, seedDC, clusterID, r.Payload.ID); err != nil {

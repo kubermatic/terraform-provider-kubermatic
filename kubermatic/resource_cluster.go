@@ -382,8 +382,9 @@ func kubermaticClusterGetAssignedSSHKeys(d *schema.ResourceData, k *kubermaticPr
 // values in flattened object before comitting it to state.
 type clusterPreserveValues struct {
 	openstack *clusterOpenstackPreservedValues
-	// API returns empty spec for Azure clusters, so we just preserve values used for creation
+	// API returns empty spec for Azure and AWS clusters, so we just preserve values used for creation
 	azure *models.AzureCloudSpec
+	aws   *models.AWSCloudSpec
 }
 
 type clusterOpenstackPreservedValues struct {
@@ -421,9 +422,23 @@ func readClusterPreserveValues(d *schema.ResourceData) clusterPreserveValues {
 		}
 	}
 
+	var aws *models.AWSCloudSpec
+	if _, ok := d.GetOkExists(key("aws.0")); ok {
+		aws = &models.AWSCloudSpec{
+			AccessKeyID:         d.Get(key("aws.0.access_key_id")).(string),
+			SecretAccessKey:     d.Get(key("aws.0.secret_access_key")).(string),
+			VPCID:               d.Get(key("aws.0.vpc_id")).(string),
+			SecurityGroupID:     d.Get(key("aws.0.security_group_id")).(string),
+			RouteTableID:        d.Get(key("aws.0.route_table_id")).(string),
+			InstanceProfileName: d.Get(key("aws.0.instance_profile_name")).(string),
+			ControlPlaneRoleARN: d.Get(key("aws.0.role_arn")).(string),
+		}
+	}
+
 	return clusterPreserveValues{
 		openstack,
 		azure,
+		aws,
 	}
 }
 
@@ -561,7 +576,7 @@ func waitClusterReady(k *kubermaticProviderMeta, d *schema.ResourceData) error {
 
 		r, err := k.client.Project.GetClusterHealth(p, k.auth)
 		if err != nil {
-			return resource.NonRetryableError(fmt.Errorf("unable to get cluster '%s' health: %s", d.Id(), getErrorResponse(err)))
+			return resource.RetryableError(fmt.Errorf("unable to get cluster '%s' health: %s", d.Id(), getErrorResponse(err)))
 		}
 
 		if r.Payload.Apiserver == healthStatusUp &&

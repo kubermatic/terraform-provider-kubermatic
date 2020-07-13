@@ -2,6 +2,7 @@ package kubermatic
 
 import (
 	"fmt"
+	"net/http"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
@@ -47,6 +48,9 @@ func TestAccKubermaticToken_Basic(t *testing.T) {
 func testAccCheckKubermaticServiceAccountTokenDestroy(s *terraform.State) error {
 	token, err := testAccKubermaticServiceAccountFetchToken(s)
 	if err != nil {
+		if e, ok := err.(*tokens.ListServiceAccountTokensDefault); ok && e.Code() == http.StatusNotFound {
+			return nil
+		}
 		return err
 	}
 	if token != nil {
