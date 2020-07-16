@@ -14,20 +14,22 @@ func TestFlattenNodeDeploymentSpec(t *testing.T) {
 	}{
 		{
 			&models.NodeDeploymentSpec{
-				Replicas: int32ToPtr(1),
-				Template: &models.NodeSpec{},
+				Replicas:      int32ToPtr(1),
+				Template:      &models.NodeSpec{},
+				DynamicConfig: true,
 			},
 			[]interface{}{
 				map[string]interface{}{
-					"replicas": int32(1),
-					"template": []interface{}{map[string]interface{}{}},
+					"replicas":       int32(1),
+					"template":       []interface{}{map[string]interface{}{}},
+					"dynamic_config": true,
 				},
 			},
 		},
 		{
 			&models.NodeDeploymentSpec{},
 			[]interface{}{
-				map[string]interface{}{},
+				map[string]interface{}{"dynamic_config": false},
 			},
 		},
 		{
@@ -324,13 +326,15 @@ func TestExpandNodeDeploymentSpec(t *testing.T) {
 		{
 			[]interface{}{
 				map[string]interface{}{
-					"replicas": 1,
-					"template": []interface{}{map[string]interface{}{}},
+					"replicas":       1,
+					"template":       []interface{}{map[string]interface{}{}},
+					"dynamic_config": true,
 				},
 			},
 			&models.NodeDeploymentSpec{
-				Replicas: int32ToPtr(1),
-				Template: &models.NodeSpec{},
+				Replicas:      int32ToPtr(1),
+				Template:      &models.NodeSpec{},
+				DynamicConfig: true,
 			},
 		},
 		{

@@ -23,6 +23,12 @@ func validateLabelOrTag(key string) error {
 
 func nodeDeploymentSpecFields() map[string]*schema.Schema {
 	return map[string]*schema.Schema{
+		"dynamic_config": {
+			Type:        schema.TypeBool,
+			Optional:    true,
+			Default:     false,
+			Description: "Use kubermatic dynamic config",
+		},
 		"replicas": {
 			Type:        schema.TypeInt,
 			Optional:    true,
