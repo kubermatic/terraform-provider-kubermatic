@@ -13,7 +13,11 @@ import (
 func validateNodeSpecMatchesCluster() schema.CustomizeDiffFunc {
 	return func(d *schema.ResourceDiff, meta interface{}) error {
 		k := meta.(*kubermaticProviderMeta)
-		cluster, err := getClusterForNodeDeployment(d.Get("cluster_id").(string), k)
+		clusterID := d.Get("cluster_id").(string)
+		if clusterID == "" {
+			return nil
+		}
+		cluster, err := getClusterForNodeDeployment(clusterID, k)
 		if err != nil {
 			return err
 		}

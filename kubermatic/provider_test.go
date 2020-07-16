@@ -14,7 +14,8 @@ import (
 const (
 	testNamePrefix = "tf-acc-test-"
 
-	testEnvOtherUserEmail = "KUBERMATIC_ANOTHER_USER_EMAIL"
+	testEnvOtherUserEmail    = "KUBERMATIC_ANOTHER_USER_EMAIL"
+	testEnvExistingClusterID = "KUBERMATIC_EXISTING_CLUSTER_ID"
 
 	testEnvK8sVersion17 = "KUBERMATIC_K8S_VERSION_17"
 	testEnvK8sVersion16 = "KUBERMATIC_K8S_VERSION_16"
@@ -67,6 +68,12 @@ func testAccPreCheckForOpenstack(t *testing.T) {
 	checkEnv(t, testEnvOpenstackImage)
 	checkEnv(t, testEnvOpenstackImage2)
 	checkEnv(t, testEnvOpenstackFlavor)
+}
+
+func testAccPreCheckExistingCluster(t *testing.T) {
+	t.Helper()
+	testAccPreCheck(t)
+	checkEnv(t, testEnvExistingClusterID)
 }
 
 func testAccPreCheckForAzure(t *testing.T) {
