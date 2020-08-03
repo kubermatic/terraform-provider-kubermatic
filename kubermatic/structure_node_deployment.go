@@ -20,6 +20,8 @@ func flattenNodeDeploymentSpec(values *nodeSpecPreservedValues, in *models.NodeD
 		att["template"] = flattenNodeSpec(values, in.Template)
 	}
 
+	att["dynamic_config"] = in.DynamicConfig
+
 	return []interface{}{att}
 }
 
@@ -303,6 +305,10 @@ func expandNodeDeploymentSpec(p []interface{}) *models.NodeDeploymentSpec {
 
 	if v, ok := in["template"]; ok {
 		obj.Template = expandNodeSpec(v.([]interface{}))
+	}
+
+	if v, ok := in["dynamic_config"]; ok {
+		obj.DynamicConfig = v.(bool)
 	}
 
 	return obj

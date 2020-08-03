@@ -42,6 +42,7 @@ func TestAccKubermaticNodeDeployment_Openstack_Basic(t *testing.T) {
 					resource.TestCheckResourceAttr("kubermatic_node_deployment.acctest_nd", "spec.0.template.0.cloud.0.openstack.0.image", image),
 					resource.TestCheckResourceAttr("kubermatic_node_deployment.acctest_nd", "spec.0.template.0.operating_system.0.ubuntu.#", "1"),
 					resource.TestCheckResourceAttr("kubermatic_node_deployment.acctest_nd", "spec.0.template.0.versions.0.kubelet", kubeletVersion16),
+					resource.TestCheckResourceAttr("kubermatic_node_deployment.acctest_nd", "spec.0.dynamic_config", "false"),
 				),
 			},
 			{
@@ -67,6 +68,7 @@ func TestAccKubermaticNodeDeployment_Openstack_Basic(t *testing.T) {
 					resource.TestCheckResourceAttr("kubermatic_node_deployment.acctest_nd", "spec.0.template.0.cloud.0.openstack.0.disk_size", "123"),
 					resource.TestCheckResourceAttr("kubermatic_node_deployment.acctest_nd", "spec.0.template.0.operating_system.0.ubuntu.0.dist_upgrade_on_boot", "true"),
 					resource.TestCheckResourceAttr("kubermatic_node_deployment.acctest_nd", "spec.0.template.0.versions.0.kubelet", kubeletVersion16),
+					resource.TestCheckResourceAttr("kubermatic_node_deployment.acctest_nd", "spec.0.dynamic_config", "true"),
 				),
 			},
 		},
@@ -152,6 +154,7 @@ func testAccCheckKubermaticNodeDeploymentBasic2(testName, nodeDC, username, pass
 		cluster_id = kubermatic_cluster.acctest_cluster.id
 		name = "%s"
 		spec {
+			dynamic_config = true
 			replicas = 1
 			template {
 				labels = {
@@ -301,6 +304,7 @@ func testAccCheckKubermaticNodeDeploymentAzureBasic(n, clientID, clientSecret, t
 		spec {
 			replicas = 2
 			template {
+				dynamic_config = false
 				cloud {
 					azure {
 						size = "%s"
