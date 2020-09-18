@@ -51,10 +51,12 @@ func resourceCluster() *schema.Resource {
 			"labels": {
 				Type:     schema.TypeMap,
 				Optional: true,
+				Description: "Labels added to cluster",
 			},
 			"sshkeys": {
 				Type:     schema.TypeSet,
 				Optional: true,
+				Description: "SSH keys attached to nodes",
 				Elem: &schema.Schema{
 					Type:         schema.TypeString,
 					ValidateFunc: validation.NoZeroValues,
@@ -79,7 +81,7 @@ func resourceCluster() *schema.Resource {
 				Optional:    true,
 				ForceNew:    true,
 				Default:     "kubernetes",
-				Description: "Cluster type Kubernetes or OpenShift",
+				Description: "Cloud orchestrator, either Kubernetes or OpenShift",
 			},
 			"creation_timestamp": {
 				Type:        schema.TypeString,

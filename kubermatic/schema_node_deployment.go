@@ -150,18 +150,18 @@ func nodeDeploymentSpecFields() map[string]*schema.Schema {
 							Schema: map[string]*schema.Schema{
 								"effect": {
 									Type:         schema.TypeString,
-									Optional:     true,
+									Required:     true,
 									Description:  "Taint effect",
 									ValidateFunc: validation.StringInSlice([]string{"NoSchedule", "PreferNoSchedule", "NoExecute"}, false),
 								},
 								"key": {
 									Type:        schema.TypeString,
-									Optional:    true,
+									Required:    true,
 									Description: "Taint key",
 								},
 								"value": {
 									Type:        schema.TypeString,
-									Optional:    true,
+									Required:    true,
 									Description: "Taint value",
 								},
 							},

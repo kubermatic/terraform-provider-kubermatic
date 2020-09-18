@@ -10,7 +10,8 @@ func clusterSpecFields() map[string]*schema.Schema {
 		"version": {
 			Type:        schema.TypeString,
 			Required:    true,
-			Description: "Cluster version",
+			ForceNew:    true,
+			Description: "Cloud orchestrator version, either Kubernetes or OpenShift",
 		},
 		"cloud": {
 			Type:        schema.TypeList,
@@ -18,7 +19,7 @@ func clusterSpecFields() map[string]*schema.Schema {
 			ForceNew:    true,
 			MinItems:    1,
 			MaxItems:    1,
-			Description: "Cloud specification",
+			Description: "Cloud provider specification",
 			Elem: &schema.Resource{
 				Schema: map[string]*schema.Schema{
 					"bringyourown": {
