@@ -1,0 +1,35 @@
+<% wrap_layout :inner do %>
+  <% content_for :sidebar do %>
+    <div class="docs-sidebar hidden-print affix-top" role="complementary">
+      <ul class="nav docs-sidenav">
+        <li<%= sidebar_current("docs-home") %>>
+        <a href="/docs/providers/index.html">All Providers</a>
+        </li>
+
+        <li<%= sidebar_current("docs-kubermatic-index") %>>
+        <a href="/docs/providers/kubermatic/index.html">Scaffolding Provider</a>
+        </li>
+
+        <li<%= sidebar_current("docs-kubermatic-datasource") %>>
+          <a href="#">Data Sources</a>
+          <ul class="nav nav-visible">
+            <li<%= sidebar_current("docs-kubermatic-datasource") %>>
+              <a href="/docs/providers/kubermatic/d/kubermatic_data_source.html">kubermatic_data_source</a>
+            </li>
+          </ul>
+        </li>
+
+        <li<%= sidebar_current("docs-kubermatic-resource") %>>
+        <a href="#">Resources</a>
+        <ul class="nav nav-visible">
+          <li<%= sidebar_current("docs-kubermatic-resource") %>>
+            <a href="/docs/providers/kubermatic/r/kubermatic_resource.html">kubermatic_resource</a>
+          </li>
+        </ul>
+        </li>
+      </ul>
+    </div>
+  <% end %>
+
+  <%= yield %>
+<% end %>

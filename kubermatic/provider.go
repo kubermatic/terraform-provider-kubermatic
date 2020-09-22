@@ -40,13 +40,13 @@ func Provider() terraform.ResourceProvider {
 				Type:        schema.TypeString,
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("KUBERMATIC_HOST", "https://localhost"),
-				Description: "The Kubermatic hostname",
+				Description: "The hostname of Kubermatic API (in form of URI)",
 			},
 			"token": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("KUBERMATIC_TOKEN", ""),
-				Description: "Authorization token",
+				Description: "Authentication token",
 			},
 			"token_path": {
 				Type:     schema.TypeString,
@@ -56,7 +56,7 @@ func Provider() terraform.ResourceProvider {
 						"KUBERMATIC_TOKEN_PATH",
 					},
 					"~/.kubermatic/auth"),
-				Description: "Path to the Kubermatic authorization token, defaults to ~/.kubermatic/auth",
+				Description: "Path to the Kubermatic authentication token, defaults to ~/.kubermatic/auth",
 			},
 			"development": {
 				Type:        schema.TypeBool,
