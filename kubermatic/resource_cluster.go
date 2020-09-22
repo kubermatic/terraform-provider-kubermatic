@@ -49,13 +49,13 @@ func resourceCluster() *schema.Resource {
 				Description: "Cluster name",
 			},
 			"labels": {
-				Type:     schema.TypeMap,
-				Optional: true,
+				Type:        schema.TypeMap,
+				Optional:    true,
 				Description: "Labels added to cluster",
 			},
 			"sshkeys": {
-				Type:     schema.TypeSet,
-				Optional: true,
+				Type:        schema.TypeSet,
+				Optional:    true,
 				Description: "SSH keys attached to nodes",
 				Elem: &schema.Schema{
 					Type:         schema.TypeString,
