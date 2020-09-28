@@ -20,6 +20,8 @@ const (
 	healthStatusUp models.HealthStatus = 1
 )
 
+var supportedProviders = []string{"aws", "openstack", "azure"}
+
 func resourceCluster() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceClusterCreate,
@@ -147,11 +149,16 @@ func validateVersionExists() schema.CustomizeDiffFunc {
 
 func validateOnlyOneCloudProviderSpecified() schema.CustomizeDiffFunc {
 	return func(d *schema.ResourceDiff, meta interface{}) error {
-		_, bringYourOwn := d.GetOkExists("spec.0.cloud.0.bringyourown.0")
-		_, aws := d.GetOkExists("spec.0.cloud.0.aws.0")
-		_, openstack := d.GetOkExists("spec.0.cloud.0.openstack.0")
-		if (bringYourOwn && aws) || (bringYourOwn && openstack) || (aws && openstack) {
-			return fmt.Errorf("only one cloud provider must be specified")
+		var existingProviders []string
+		counter := 0
+		for _, provider := range supportedProviders {
+			if _, ok := d.GetOk(fmt.Sprintf("spec.0.cloud.0.%s.0", provider)); ok {
+				existingProviders = append(existingProviders, provider)
+				counter++
+			}
+		}
+		if counter > 1 {
+			return fmt.Errorf("only one cloud provider must be specified: %v", existingProviders)
 		}
 		return nil
 	}
@@ -400,7 +407,7 @@ func readClusterPreserveValues(d *schema.ResourceData) clusterPreserveValues {
 		return fmt.Sprint("spec.0.cloud.0.", s)
 	}
 	var openstack *clusterOpenstackPreservedValues
-	if _, ok := d.GetOkExists(key("openstack.0")); ok {
+	if _, ok := d.GetOk(key("openstack.0")); ok {
 		openstack = &clusterOpenstackPreservedValues{
 			openstackUsername: d.Get(key("openstack.0.username")),
 			openstackPassword: d.Get(key("openstack.0.password")),
@@ -409,7 +416,7 @@ func readClusterPreserveValues(d *schema.ResourceData) clusterPreserveValues {
 	}
 
 	var azure *models.AzureCloudSpec
-	if _, ok := d.GetOkExists(key("azure.0")); ok {
+	if _, ok := d.GetOk(key("azure.0")); ok {
 		azure = &models.AzureCloudSpec{
 			AvailabilitySet: d.Get(key("azure.0.availability_set")).(string),
 			ClientID:        d.Get(key("azure.0.client_id")).(string),
@@ -425,7 +432,7 @@ func readClusterPreserveValues(d *schema.ResourceData) clusterPreserveValues {
 	}
 
 	var aws *models.AWSCloudSpec
-	if _, ok := d.GetOkExists(key("aws.0")); ok {
+	if _, ok := d.GetOk(key("aws.0")); ok {
 		aws = &models.AWSCloudSpec{
 			AccessKeyID:         d.Get(key("aws.0.access_key_id")).(string),
 			SecretAccessKey:     d.Get(key("aws.0.secret_access_key")).(string),
