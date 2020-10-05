@@ -202,7 +202,11 @@ func resourceClusterCreate(d *schema.ResourceData, m interface{}) error {
 		return err
 	}
 
-	if err := waitClusterReady(k, d); err != nil {
+	projectID, seedDC, clusterID, err := kubermaticClusterParseID(d.Id())
+	if err != nil {
+		return err
+	}
+	if err := waitClusterReady(k, d, projectID, seedDC, clusterID); err != nil {
 		return fmt.Errorf("cluster '%s' is not ready: %v", r.Payload.ID, err)
 	}
 
@@ -472,7 +476,11 @@ func resourceClusterUpdate(d *schema.ResourceData, m interface{}) error {
 		d.SetPartial("sshkeys")
 	}
 
-	if err := waitClusterReady(k, d); err != nil {
+	projectID, seedDC, clusterID, err := kubermaticClusterParseID(d.Id())
+	if err != nil {
+		return err
+	}
+	if err := waitClusterReady(k, d, projectID, seedDC, clusterID); err != nil {
 		return fmt.Errorf("cluster '%s' is not ready: %v", d.Id(), err)
 	}
 
@@ -572,12 +580,9 @@ func assignSSHKeysToCluster(projectID, seedDC, clusterID string, sshkeyIDs []str
 	return nil
 }
 
-func waitClusterReady(k *kubermaticProviderMeta, d *schema.ResourceData) error {
+func waitClusterReady(k *kubermaticProviderMeta, d *schema.ResourceData, projectID, seedDC, clusterID string) error {
 	return resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
-		projectID, seedDC, clusterID, err := kubermaticClusterParseID(d.Id())
-		if err != nil {
-			return resource.NonRetryableError(err)
-		}
+
 		p := project.NewGetClusterHealthParams()
 		p.SetProjectID(projectID)
 		p.SetDC(seedDC)

@@ -3,6 +3,7 @@ package kubermatic
 import (
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
@@ -13,8 +14,10 @@ import (
 )
 
 const (
-	projectActive   = "Active"
-	projectInactive = "Inactive"
+	projectActive    = "Active"
+	projectInactive  = "Inactive"
+	usersReady       = "Ready"
+	usersUnavailable = "Unavailable"
 )
 
 func resourceProject() *schema.Resource {
@@ -115,16 +118,16 @@ func resourceProjectCreate(d *schema.ResourceData, m interface{}) error {
 			r, err := k.client.Project.GetProject(p.WithProjectID(id), k.auth)
 			if err != nil {
 				if e, ok := err.(*project.GetProjectDefault); ok && (e.Code() == http.StatusForbidden || e.Code() == http.StatusNotFound) {
-					return r, projectInactive, nil
+					return r, projectInactive, fmt.Errorf("project not ready: %v", err)
 				}
 				return nil, "", err
 			}
 			k.log.Debugf("creating project '%s', currently in '%s' state", id, r.Payload.Status)
-			return r, r.Payload.Status, nil
+			return r, projectActive, nil
 		},
 		Timeout:    d.Timeout(schema.TimeoutCreate),
-		MinTimeout: retryTimeout,
-		Delay:      requestDelay,
+		MinTimeout: 5 * retryTimeout,
+		Delay:      5 * requestDelay,
 	}
 
 	if _, err := createStateConf.WaitForState(); err != nil {
@@ -321,17 +324,43 @@ func kubermaticProjectCurrentUser(k *kubermaticProviderMeta) (*models.User, erro
 }
 
 func kubermaticProjectPersistedUsers(k *kubermaticProviderMeta, id string) (map[string]models.User, error) {
-	p := users.NewGetUsersForProjectParams()
-	p.SetProjectID(id)
-	r, err := k.client.Users.GetUsersForProject(p, k.auth)
+	listStateConf := &resource.StateChangeConf{
+		Pending: []string{
+			usersUnavailable,
+		},
+		Target: []string{
+			usersReady,
+		},
+		Refresh: func() (interface{}, string, error) {
+			p := users.NewGetUsersForProjectParams()
+			p.SetProjectID(id)
+
+			r, err := k.client.Users.GetUsersForProject(p, k.auth)
+			if err != nil {
+				// wait for the RBACs
+				if _, ok := err.(*users.GetUsersForProjectForbidden); ok {
+					return r, usersUnavailable, nil
+				}
+				return nil, usersUnavailable, fmt.Errorf("get users for project error: %v", err)
+			}
+			ret := make(map[string]models.User)
+			for _, p := range r.Payload {
+				ret[p.Email] = *p
+			}
+			return ret, usersReady, nil
+		},
+		Timeout: 10 * time.Second,
+		Delay:   5 * requestDelay,
+	}
+
+	rawUsers, err := listStateConf.WaitForState()
 	if err != nil {
-		return nil, fmt.Errorf("get users for project errored: %v", err)
+		k.log.Debugf("error while waiting for the users %v", err)
+		return nil, fmt.Errorf("error while waiting for the users %v", err)
 	}
-	ret := make(map[string]models.User)
-	for _, p := range r.Payload {
-		ret[p.Email] = *p
-	}
-	return ret, nil
+	users := rawUsers.(map[string]models.User)
+
+	return users, nil
 }
 
 func kubermaticProjectConfiguredUsers(d *schema.ResourceData) map[string]models.User {

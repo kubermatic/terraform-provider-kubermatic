@@ -3,10 +3,17 @@ package kubermatic
 import (
 	"fmt"
 	"strings"
+	"time"
 
+	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/kubermatic/go-kubermatic/client/tokens"
 	"github.com/kubermatic/go-kubermatic/models"
+)
+
+const (
+	serviceAccountTokenReady       = "Ready"
+	serviceAccountTokenUnavailable = "Unavailable"
 )
 
 func resourceServiceAccountToken() *schema.Resource {
@@ -91,25 +98,43 @@ func resourceServiceAccountTokenCreate(d *schema.ResourceData, m interface{}) er
 
 func resourceServiceAccountTokenRead(d *schema.ResourceData, m interface{}) error {
 	k := m.(*kubermaticProviderMeta)
-
 	projectID, serviceAccountID, tokenID, err := kubermaticServiceAccountTokenParseID(d.Id())
 	if err != nil {
 		return err
 	}
-
-	p := tokens.NewListServiceAccountTokensParams()
-	p.SetProjectID(projectID)
-	p.SetServiceAccountID(serviceAccountID)
-	r, err := k.client.Tokens.ListServiceAccountTokens(p, k.auth)
-	if err != nil {
-		if e, ok := err.(*tokens.ListServiceAccountTokensDefault); ok && errorMessage(e.Payload) != "" {
-			return fmt.Errorf("unable to get token: %s", errorMessage(e.Payload))
-		}
-		return fmt.Errorf("unable to get token: %v", err)
+	listStateConf := &resource.StateChangeConf{
+		Pending: []string{
+			serviceAccountTokenUnavailable,
+		},
+		Target: []string{
+			serviceAccountTokenReady,
+		},
+		Refresh: func() (interface{}, string, error) {
+			p := tokens.NewListServiceAccountTokensParams()
+			p.SetProjectID(projectID)
+			p.SetServiceAccountID(serviceAccountID)
+			t, err := k.client.Tokens.ListServiceAccountTokens(p, k.auth)
+			if err != nil {
+				// wait for the RBACs
+				if _, ok := err.(*tokens.ListServiceAccountTokensForbidden); ok {
+					return t, serviceAccountTokenUnavailable, nil
+				}
+				return nil, serviceAccountTokenUnavailable, err
+			}
+			return t, serviceAccountTokenReady, nil
+		},
+		Timeout: 30 * time.Second,
+		Delay:   requestDelay,
 	}
 
+	s, err := listStateConf.WaitForState()
+	if err != nil {
+		k.log.Debugf("error while waiting for the tokens: %v", err)
+		return fmt.Errorf("error while waiting for the tokens: %v", err)
+	}
+	saTokens := s.(*tokens.ListServiceAccountTokensOK)
 	var token *models.PublicServiceAccountToken
-	for _, v := range r.Payload {
+	for _, v := range saTokens.Payload {
 		if v.ID == tokenID {
 			token = v
 			break

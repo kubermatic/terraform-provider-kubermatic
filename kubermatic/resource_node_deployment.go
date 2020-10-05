@@ -75,11 +75,11 @@ func readNodeDeploymentPreservedValues(d *schema.ResourceData) *nodeSpecPreserve
 }
 
 func resourceNodeDeploymentCreate(d *schema.ResourceData, m interface{}) error {
+
 	projectID, seedDC, clusterID, err := kubermaticClusterParseID(d.Get("cluster_id").(string))
 	if err != nil {
 		return err
 	}
-
 	k := m.(*kubermaticProviderMeta)
 
 	p := project.NewCreateNodeDeploymentParams()
@@ -91,10 +91,14 @@ func resourceNodeDeploymentCreate(d *schema.ResourceData, m interface{}) error {
 		Spec: expandNodeDeploymentSpec(d.Get("spec").([]interface{})),
 	})
 
+	if err := waitClusterReady(k, d, projectID, seedDC, clusterID); err != nil {
+		return fmt.Errorf("cluster is not ready: %v", err)
+	}
+
 	r, err := k.client.Project.CreateNodeDeployment(p, k.auth)
 	if err != nil {
 		if e, ok := err.(*project.CreateNodeDeploymentDefault); ok && errorMessage(e.Payload) != "" {
-			return fmt.Errorf("create node deployment: %s", errorMessage(e.Payload))
+			return fmt.Errorf("unable to create node deployment: %s", errorMessage(e.Payload))
 		}
 
 		return fmt.Errorf("unable to create a node deployment: %v", getErrorResponse(err))
@@ -106,6 +110,7 @@ func resourceNodeDeploymentCreate(d *schema.ResourceData, m interface{}) error {
 	}
 
 	return resourceNodeDeploymentRead(d, m)
+
 }
 
 func kubermaticNodeDeploymentMakeID(projectID, seedDC, clusterID, id string) string {
@@ -181,7 +186,7 @@ func resourceNodeDeploymentUpdate(d *schema.ResourceData, m interface{}) error {
 	r, err := k.client.Project.PatchNodeDeployment(p, k.auth)
 	if err != nil {
 		if e, ok := err.(*project.PatchNodeDeploymentDefault); ok && errorMessage(e.Payload) != "" {
-			return fmt.Errorf(errorMessage(e.Payload))
+			return fmt.Errorf("unable to update a node deployment: %v", errorMessage(e.Payload))
 		}
 		return fmt.Errorf("unable to update a node deployment: %v", getErrorResponse(err))
 	}
@@ -194,7 +199,7 @@ func resourceNodeDeploymentUpdate(d *schema.ResourceData, m interface{}) error {
 }
 
 func waitForNodeDeploymentRead(k *kubermaticProviderMeta, timeout time.Duration, projectID, seedDC, clusterID, id string) error {
-	err := resource.Retry(timeout, func() *resource.RetryError {
+	return resource.Retry(timeout, func() *resource.RetryError {
 		p := project.NewGetNodeDeploymentParams()
 		p.SetProjectID(projectID)
 		p.SetClusterID(clusterID)
@@ -203,11 +208,7 @@ func waitForNodeDeploymentRead(k *kubermaticProviderMeta, timeout time.Duration,
 
 		r, err := k.client.Project.GetNodeDeployment(p, k.auth)
 		if err != nil {
-			if e, ok := err.(*project.GetNodeDeploymentDefault); ok && errorMessage(e.Payload) != "" {
-				// Sometimes api returns 500 which often means try later
-				return resource.RetryableError(fmt.Errorf("unable to get node deployment '%s' status: %s: %v", id, errorMessage(e.Payload), err))
-			}
-			return resource.NonRetryableError(fmt.Errorf("unable to get node deployment '%s' status: %v", id, getErrorResponse(err)))
+			return resource.RetryableError(fmt.Errorf("unable to get node deployment %v", err))
 		}
 
 		if r.Payload.Status.ReadyReplicas < *r.Payload.Spec.Replicas {
@@ -216,10 +217,6 @@ func waitForNodeDeploymentRead(k *kubermaticProviderMeta, timeout time.Duration,
 		}
 		return nil
 	})
-	if err != nil {
-		return fmt.Errorf("node deployment '%s' is not ready: %v", id, err)
-	}
-	return nil
 }
 
 func resourceNodeDeploymentDelete(d *schema.ResourceData, m interface{}) error {

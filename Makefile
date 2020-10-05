@@ -22,10 +22,10 @@ test: fmtcheck
 testacc:
 # Require following environment variables to be set:
 # KUBERMATIC_TOKEN - access token
-# KUBERMATIC_HOST - example https://dev.kubermatic.io
+# KUBERMATIC_HOST - example https://kubermatic.io
 # KUBERMATIC_ANOTHER_USER_EMAIL - email of an existing user to test cluster access sharing
-# KUBERMATIC_K8S_VERSION_17 - exact k8s version with prefix `1.17.` that is supported
-# KUBERMATIC_K8S_VERSION_16 - exact k8s version with prefix `1.16.` that is supported
+# KUBERMATIC_K8S_VERSION - the kubernetes version
+# KUBERMATIC_K8S_OLDER_VERSION - lower kubernetes version then KUBERMATIC_K8S_VERSION
 # KUBERMATIC_OPENSTACK_IMAGE - an image available for openstack clusters
 # KUBERMATIC_OPENSTACK_IMAGE2 - another image available for openstack clusters
 # KUBERMATIC_OPENSTACK_FLAVOR - openstack flavor to use
