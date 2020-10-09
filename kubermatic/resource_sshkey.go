@@ -3,11 +3,18 @@ package kubermatic
 import (
 	"fmt"
 	"strings"
+	"time"
 
+	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 	"github.com/kubermatic/go-kubermatic/client/project"
 	"github.com/kubermatic/go-kubermatic/models"
+)
+
+const (
+	sshReady       = "Ready"
+	sshUnavailable = "Unavailable"
 )
 
 func resourceSSHKey() *schema.Resource {
@@ -65,14 +72,40 @@ func resourceSSHKeyCreate(d *schema.ResourceData, m interface{}) error {
 
 func resourceSSHKeyRead(d *schema.ResourceData, m interface{}) error {
 	k := m.(*kubermaticProviderMeta)
-	p := project.NewListSSHKeysParams()
-	p.SetProjectID(d.Get("project_id").(string))
-	ret, err := k.client.Project.ListSSHKeys(p, k.auth)
-	if err != nil {
-		return fmt.Errorf("unable to list SSH keys: %s", getErrorResponse(err))
+
+	listStateConf := &resource.StateChangeConf{
+		Pending: []string{
+			sshUnavailable,
+		},
+		Target: []string{
+			sshReady,
+		},
+		Refresh: func() (interface{}, string, error) {
+			p := project.NewListSSHKeysParams()
+			p.SetProjectID(d.Get("project_id").(string))
+			k, err := k.client.Project.ListSSHKeys(p, k.auth)
+			if err != nil {
+				// wait for the RBACs
+				if _, ok := err.(*project.ListSSHKeysForbidden); ok {
+					return k, sshUnavailable, nil
+				}
+				return nil, sshUnavailable, fmt.Errorf("can not get ssh keys: %v", err)
+			}
+			return k, sshReady, nil
+		},
+		Timeout: 20 * time.Second,
+		Delay:   requestDelay,
 	}
+
+	s, err := listStateConf.WaitForState()
+	if err != nil {
+		k.log.Debugf("error while waiting for the SSH keys: %v", err)
+		return fmt.Errorf("error while waiting for the SSH keys: %v", err)
+	}
+	keys := s.(*project.ListSSHKeysOK)
+
 	var sshkey *models.SSHKey
-	for _, r := range ret.Payload {
+	for _, r := range keys.Payload {
 		if r.ID == d.Id() {
 			sshkey = r
 			break

@@ -21,7 +21,7 @@ func TestAccKubermaticCluster_Openstack_Basic(t *testing.T) {
 	password := os.Getenv(testEnvOpenstackPassword)
 	tenant := os.Getenv(testEnvOpenstackTenant)
 	nodeDC := os.Getenv(testEnvOpenstackNodeDC)
-	versionK8s17 := os.Getenv(testEnvK8sVersion17)
+	versionK8s17 := os.Getenv(testEnvK8sVersion)
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheckForOpenstack(t) },
 		Providers:    testAccProviders,
@@ -214,8 +214,8 @@ func TestAccKubermaticCluster_Openstack_UpgradeVersion(t *testing.T) {
 	versionedConfig := func(version string) string {
 		return testAccCheckKubermaticClusterOpenstackBasic(testName, username, password, tenant, nodeDC, version)
 	}
-	versionK8s16 := os.Getenv(testEnvK8sVersion16)
-	versionK8s17 := os.Getenv(testEnvK8sVersion17)
+	versionK8s16 := os.Getenv(testEnvK8sOlderVersion)
+	versionK8s17 := os.Getenv(testEnvK8sVersion)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheckForOpenstack(t) },
@@ -374,7 +374,7 @@ func TestAccKubermaticCluster_SSHKeys(t *testing.T) {
 	password := os.Getenv(testEnvOpenstackPassword)
 	tenant := os.Getenv(testEnvOpenstackTenant)
 	nodeDC := os.Getenv(testEnvOpenstackNodeDC)
-	k8sVersion17 := os.Getenv(testEnvK8sVersion17)
+	k8sVersion17 := os.Getenv(testEnvK8sVersion)
 
 	configClusterWithKey1 := testAccCheckKubermaticClusterOpenstackBasicWithSSHKey1(testName, username, password, tenant, nodeDC, k8sVersion17)
 	configClusterWithKey2 := testAccCheckKubermaticClusterOpenstackBasicWithSSHKey2(testName, username, password, tenant, nodeDC, k8sVersion17)
@@ -524,7 +524,7 @@ func TestAccKubermaticCluster_Azure_Basic(t *testing.T) {
 	tenantID := os.Getenv(testEnvAzureTenantID)
 	subsID := os.Getenv(testEnvAzureSubscriptionID)
 	nodeDC := os.Getenv(testEnvAzureNodeDC)
-	k8sVersion := os.Getenv(testEnvK8sVersion17)
+	k8sVersion := os.Getenv(testEnvK8sVersion)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheckForAzure(t) },
@@ -578,7 +578,7 @@ func TestAccKubermaticCluster_AWS_Basic(t *testing.T) {
 	awsSecretAccessKey := os.Getenv(testAWSSecretAccessKey)
 	vpcID := os.Getenv(testEnvAWSVPCID)
 	nodeDC := os.Getenv(testEnvAWSNodeDC)
-	k8sVersion17 := os.Getenv(testEnvK8sVersion17)
+	k8sVersion17 := os.Getenv(testEnvK8sVersion)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheckForAWS(t) },

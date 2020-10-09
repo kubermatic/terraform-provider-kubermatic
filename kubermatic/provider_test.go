@@ -14,11 +14,10 @@ import (
 const (
 	testNamePrefix = "tf-acc-test-"
 
-	testEnvOtherUserEmail    = "KUBERMATIC_ANOTHER_USER_EMAIL"
-	testEnvExistingClusterID = "KUBERMATIC_EXISTING_CLUSTER_ID"
+	testEnvOtherUserEmail = "KUBERMATIC_ANOTHER_USER_EMAIL"
 
-	testEnvK8sVersion17 = "KUBERMATIC_K8S_VERSION_17"
-	testEnvK8sVersion16 = "KUBERMATIC_K8S_VERSION_16"
+	testEnvK8sVersion      = "KUBERMATIC_K8S_VERSION"
+	testEnvK8sOlderVersion = "KUBERMATIC_K8S_OLDER_VERSION"
 
 	testEnvOpenstackNodeDC   = "KUBERMATIC_OPENSTACK_NODE_DC"
 	testEnvOpenstackUsername = "KUBERMATIC_OPENSTACK_USERNAME"
@@ -70,12 +69,6 @@ func testAccPreCheckForOpenstack(t *testing.T) {
 	checkEnv(t, testEnvOpenstackFlavor)
 }
 
-func testAccPreCheckExistingCluster(t *testing.T) {
-	t.Helper()
-	testAccPreCheck(t)
-	checkEnv(t, testEnvExistingClusterID)
-}
-
 func testAccPreCheckForAzure(t *testing.T) {
 	t.Helper()
 	testAccPreCheck(t)
@@ -100,8 +93,8 @@ func testAccPreCheck(t *testing.T) {
 	t.Helper()
 	checkEnv(t, "KUBERMATIC_HOST")
 	checkEnv(t, "KUBERMATIC_TOKEN")
-	checkEnv(t, testEnvK8sVersion17)
-	checkEnv(t, testEnvK8sVersion16)
+	checkEnv(t, testEnvK8sVersion)
+	checkEnv(t, testEnvK8sOlderVersion)
 }
 
 func checkEnv(t *testing.T, n string) {

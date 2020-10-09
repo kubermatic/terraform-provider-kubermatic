@@ -3,11 +3,18 @@ package kubermatic
 import (
 	"fmt"
 	"strings"
+	"time"
 
+	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 	"github.com/kubermatic/go-kubermatic/client/serviceaccounts"
 	"github.com/kubermatic/go-kubermatic/models"
+)
+
+const (
+	serviceAccountReady       = "Ready"
+	serviceAccountUnavailable = "Unavailable"
 )
 
 func resourceServiceAccount() *schema.Resource {
@@ -118,16 +125,38 @@ func resourceServiceAccountRead(d *schema.ResourceData, m interface{}) error {
 }
 
 func kubermaticServiceAccountList(k *kubermaticProviderMeta, projectID string) ([]*models.ServiceAccount, error) {
-	p := serviceaccounts.NewListServiceAccountsParams()
-	p.SetProjectID(projectID)
-	r, err := k.client.Serviceaccounts.ListServiceAccounts(p, k.auth)
-	if err != nil {
-		if e, ok := err.(*serviceaccounts.ListServiceAccountsDefault); ok && errorMessage(e.Payload) != "" {
-			return nil, fmt.Errorf("unable to get service account: %s", errorMessage(e.Payload))
-		}
-		return nil, fmt.Errorf("unable to get service account: %v", err)
+	listStateConf := &resource.StateChangeConf{
+		Pending: []string{
+			serviceAccountUnavailable,
+		},
+		Target: []string{
+			serviceAccountReady,
+		},
+		Refresh: func() (interface{}, string, error) {
+			p := serviceaccounts.NewListServiceAccountsParams()
+			p.SetProjectID(projectID)
+			s, err := k.client.Serviceaccounts.ListServiceAccounts(p, k.auth)
+			if err != nil {
+				// wait for the RBACs
+				if _, ok := err.(*serviceaccounts.ListServiceAccountsForbidden); ok {
+					return s, usersUnavailable, nil
+				}
+				return nil, serviceAccountUnavailable, fmt.Errorf("can not get service accounts: %v", err)
+			}
+			return s, serviceAccountReady, nil
+		},
+		Timeout: 20 * time.Second,
+		Delay:   requestDelay,
 	}
-	return r.Payload, nil
+
+	s, err := listStateConf.WaitForState()
+	if err != nil {
+		k.log.Debugf("error while waiting for the service account %v", err)
+		return nil, fmt.Errorf("error while waiting for the service account %v", err)
+	}
+	sa := s.(*serviceaccounts.ListServiceAccountsOK)
+
+	return sa.Payload, nil
 }
 
 func resourceServiceAccountUpdate(d *schema.ResourceData, m interface{}) error {

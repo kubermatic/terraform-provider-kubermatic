@@ -12,80 +12,140 @@ import (
 func TestAccKubermaticNodeDeployment_ValidationAgainstCluster(t *testing.T) {
 	testName := randomTestName()
 
-	username := os.Getenv(testEnvOpenstackUsername)
-	password := os.Getenv(testEnvOpenstackPassword)
-	tenant := os.Getenv(testEnvOpenstackTenant)
-	nodeDC := os.Getenv(testEnvOpenstackNodeDC)
-	image := os.Getenv(testEnvOpenstackImage)
-	flavor := os.Getenv(testEnvOpenstackFlavor)
+	accessKeyID := os.Getenv(testEnvAWSAccessKeyID)
+	accessKeySecret := os.Getenv(testAWSSecretAccessKey)
+	vpcID := os.Getenv(testEnvAWSVPCID)
+	nodeDC := os.Getenv(testEnvAWSNodeDC)
+	k8sVersion17 := os.Getenv(testEnvK8sVersion)
+	instanceType := os.Getenv(testEnvAWSInstanceType)
+	subnetID := os.Getenv(testEnvAWSSubnetID)
+	availabilityZone := os.Getenv(testEnvAWSAvailabilityZone)
+	diskSize := os.Getenv(testEnvAWSDiskSize)
 
-	k8sVersion17 := os.Getenv(testEnvK8sVersion17)
-	kubeletVersion16 := os.Getenv(testEnvK8sVersion16)
 	unavailableVersion := "1.12.1"
 	bigVersion := "3.0.0"
 
-	existingClusterID := os.Getenv(testEnvExistingClusterID)
-
-	azure := `
-		azure {
-		size = "2"
-	}`
-	openstack := fmt.Sprintf(`
-		openstack {
-	  		flavor = "%s"
-	  		image = "%s"
-		  }`, flavor, image)
-
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
-			testAccPreCheckForOpenstack(t)
-			testAccPreCheckExistingCluster(t)
+			testAccPreCheckForAWS(t)
 		},
 		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckKubermaticNodeDeploymentDestroy,
+		CheckDestroy: testAccCheckKubermaticClusterDestroy,
 		Steps: []resource.TestStep{
 			{
-				PlanOnly:           true,
-				Config:             testAccCheckKubermaticNodeDeploymentBasic(testName, nodeDC, username, password, tenant, k8sVersion17, kubeletVersion16, image, flavor),
-				ExpectNonEmptyPlan: true,
+				Config: testAccCheckKubermaticNodeDeploymentBasicValidation(testName, accessKeyID, accessKeySecret, vpcID, nodeDC, instanceType, subnetID, availabilityZone, diskSize, k8sVersion17, k8sVersion17),
 			},
 			{
-				PlanOnly:    true,
-				Config:      testAccCheckKubermaticNodeDeploymentBasicValidation(existingClusterID, testName, kubeletVersion16, azure),
+				Config:      testAccCheckKubermaticNodeDeploymentBasicValidation(testName, accessKeyID, accessKeySecret, vpcID, nodeDC, instanceType, subnetID, availabilityZone, diskSize, k8sVersion17, unavailableVersion),
+				ExpectError: regexp.MustCompile(fmt.Sprintf(`unknown version for node deployment %s, available versions`, unavailableVersion)),
+			},
+			{
+				Config:      testAccCheckKubermaticNodeDeploymentTypeValidation(testName, accessKeyID, accessKeySecret, vpcID, nodeDC, k8sVersion17, k8sVersion17),
 				ExpectError: regexp.MustCompile(`provider for node deployment must \(.*\) match cluster provider \(.*\)`),
 			},
 			{
-				PlanOnly:    true,
-				Config:      testAccCheckKubermaticNodeDeploymentBasicValidation(existingClusterID, testName, bigVersion, azure),
+				Config:      testAccCheckKubermaticNodeDeploymentBasicValidation(testName, accessKeyID, accessKeySecret, vpcID, nodeDC, instanceType, subnetID, availabilityZone, diskSize, k8sVersion17, bigVersion),
 				ExpectError: regexp.MustCompile(`cannot be greater than cluster version`),
-			},
-			{
-				PlanOnly:    true,
-				Config:      testAccCheckKubermaticNodeDeploymentBasicValidation(existingClusterID, testName, unavailableVersion, openstack),
-				ExpectError: regexp.MustCompile(fmt.Sprintf(`unknown version for node deployment %s, available versions`, unavailableVersion)),
 			},
 		},
 	})
 }
 
-func testAccCheckKubermaticNodeDeploymentBasicValidation(clusterID, testName, kubeletVersion, provider string) string {
+func testAccCheckKubermaticNodeDeploymentBasicValidation(n, keyID, keySecret, vpcID, nodeDC, instanceType, subnetID, availabilityZone, diskSize, k8sVersion, kubeletVersion string) string {
 	return fmt.Sprintf(`
+	resource "kubermatic_project" "acctest_project" {
+		name = "%s"
+	}
+
+	resource "kubermatic_cluster" "acctest_cluster" {
+		name = "%s"
+		dc_name = "%s"
+		project_id = kubermatic_project.acctest_project.id
+
+		spec {
+			version = "%s"
+			cloud {
+				aws {
+					access_key_id = "%s"
+					secret_access_key = "%s"
+					vpc_id = "%s"
+				}
+			}
+		}
+	}
+
 	resource "kubermatic_node_deployment" "acctest_nd" {
-		cluster_id = "%s"
+		cluster_id = kubermatic_cluster.acctest_cluster.id
 		name = "%s"
 		spec {
 			replicas = 1
 			template {
 				cloud {
-					%s
+					aws {
+						instance_type = "%s"
+						disk_size = "%s"
+						volume_type = "standard"
+						subnet_id = "%s"
+						availability_zone = "%s"
+						assign_public_ip = true
+					}
 				}
 				operating_system {
-					ubuntu {}
+					ubuntu {
+						dist_upgrade_on_boot = false
+					}
 				}
 				versions {
 					kubelet = "%s"
 				}
 			}
 		}
-	}`, clusterID, testName, provider, kubeletVersion)
+	}`, n, n, nodeDC, k8sVersion, keyID, keySecret, vpcID, n, instanceType, diskSize, subnetID, availabilityZone, kubeletVersion)
+}
+
+func testAccCheckKubermaticNodeDeploymentTypeValidation(n, keyID, keySecret, vpcID, nodeDC, k8sVersion, kubeletVersion string) string {
+	return fmt.Sprintf(`
+	resource "kubermatic_project" "acctest_project" {
+		name = "%s"
+	}
+
+	resource "kubermatic_cluster" "acctest_cluster" {
+		name = "%s"
+		dc_name = "%s"
+		project_id = kubermatic_project.acctest_project.id
+
+		spec {
+			version = "%s"
+			cloud {
+				aws {
+					access_key_id = "%s"
+					secret_access_key = "%s"
+					vpc_id = "%s"
+				}
+			}
+		}
+	}
+
+	resource "kubermatic_node_deployment" "acctest_nd" {
+		cluster_id = kubermatic_cluster.acctest_cluster.id
+		name = "%s"
+		spec {
+			replicas = 1
+			template {
+				cloud {
+					azure {
+						size = 2
+					}
+				}
+				operating_system {
+					ubuntu {
+						dist_upgrade_on_boot = false
+					}
+				}
+				versions {
+					kubelet = "%s"
+				}
+			}
+		}
+	}`, n, n, nodeDC, k8sVersion, keyID, keySecret, vpcID, n, kubeletVersion)
 }

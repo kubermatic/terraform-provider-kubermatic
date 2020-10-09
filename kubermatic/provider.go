@@ -23,7 +23,7 @@ const (
 	// wait this time before starting resource checks
 	requestDelay = time.Second
 	// smallest time to wait before refreshes
-	retryTimeout = 2 * time.Second
+	retryTimeout = time.Second
 )
 
 type kubermaticProviderMeta struct {
