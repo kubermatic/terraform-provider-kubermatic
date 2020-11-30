@@ -1,10 +1,10 @@
 variable "project_name" {
-  description = "Name of the Kubermatic project"
+  description = "Name of the MetaKube project"
   default     = "exampleProject"
 }
 
 variable "cluster_name" {
-  description = "Name of the Kubermatic cluster"
+  description = "Name of the MetaKube cluster"
   default     = "exampleCluster"
 }
 

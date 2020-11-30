@@ -1,20 +1,20 @@
 ---
-layout: "kubermatic"
-page_title: "Kubermatic: kubermatic_cluster"
-sidebar_current: "docs-kubermatic-cluster"
+layout: "metakube"
+page_title: "MetaKube: metakube_cluster"
+sidebar_current: "docs-metakube-cluster"
 description: |-
-  Cluster resource in the Terraform provider kubermatic.
+  Cluster resource in the Terraform provider metakube.
 ---
 
-# kubermatic_resource
+# metakube_resource
 
-Cluster resource in the provider defines the corresponding cluster in Kubermatic.
+Cluster resource in the provider defines the corresponding cluster in MetaKube.
 
 ## Example Usage
 
 ```hcl
-resource "kubermatic_cluster" "example" {
-  project_id = kubermatic_project.example.id
+resource "metakube_cluster" "example" {
+  project_id = metakube_project.example.id
   name = "example"
   dc_name = "europe-west3-c"
   credential = "loodse"
@@ -42,7 +42,7 @@ The following arguments are supported:
 * `name` - (Required) Cluster name.
 * `spec` - (Required) Cluster specification.
 * `labels` - (Optional) Labels added to cluster.
-* `sshkeys` - (Optional) SSH keys attached to nodes. 
+* `sshkeys` - (Optional) SSH keys attached to nodes.
 * `credential` - (Optional) Cluster access credentials.
 * `type` - (Optional) Cloud orchestrator, either Kubernetes or OpenShift.
 

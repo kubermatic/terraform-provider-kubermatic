@@ -1,20 +1,20 @@
 ---
-layout: "kubermatic"
-page_title: "Kubermatic: kubermatic_node_deployment"
-sidebar_current: "docs-kubermatic-node-deployment"
+layout: "metakube"
+page_title: "MetaKube: metakube_node_deployment"
+sidebar_current: "docs-metakube-node-deployment"
 description: |-
-  Node deployment resource in the Terraform provider kubermatic.
+  Node deployment resource in the Terraform provider metakube.
 ---
 
-# kubermatic_resource
+# metakube_resource
 
 Node deployment resource in the provider defines the corresponding deployment of nodes.
 
 ## Example usage
 
 ```hcl
-resource "kubermatic_node_deployment" "example_node" {
-  cluster_id = kubermatic_project.example_project.id + ":europe-west3-c:" + kubermatic_cluster.example_cluster.id 
+resource "metakube_node_deployment" "example_node" {
+  cluster_id = metakube_project.example_project.id + ":europe-west3-c:" + metakube_cluster.example_cluster.id
   spec {
     replicas = 1
     template {
@@ -59,7 +59,7 @@ The following arguments are supported:
 
 * `replicas` - (Optional) Number of replicas, default = 1.
 * `template` - (Required) Template specification.
-* `dynamic_config` - (Optional) Kubermatic dynamic config.
+* `dynamic_config` - (Optional) MetaKube dynamic config.
 
 ### `template`
 

@@ -1,4 +1,4 @@
-# Terraform Provider forKubermatic
+# Terraform Provider for MetaKube
 
 - Website: https://www.terraform.io
 - Mailing list: [Google Groups](https://groups.google.com/forum/#!forum/loodse-dev)
@@ -13,7 +13,7 @@
 
 ## Troubleshooting
 
-If you encounter issues [file an issue][1] or talk to us on the [#kubermatic channel][12] on the [Kubermatic Slack][15].
+If you encounter issues [file an issue][1]
 
 ## Contributing
 
@@ -25,7 +25,6 @@ Feedback and discussion are available on [the mailing list][11].
 
 * Please familiarize yourself with the [Code of Conduct][4] before contributing.
 * See [CONTRIBUTING.md][2] for instructions on the developer certificate of origin that we require.
-* Read how [we're using ZenHub][13] for project and roadmap planning
 
 ### Pull requests
 
@@ -35,14 +34,7 @@ Feedback and discussion are available on [the mailing list][11].
 
 See [the list of releases][3] to find out about feature changes.
 
-[1]: https://github.com/kubermatic/terraform-provider-kubermatic/issues
-[2]: https://github.com/kubermatic/terraform-provider-kubermatic/blob/master/CONTRIBUTING.md
-[3]: https://github.com/kubermatic/terraform-provider-kubermatic/releases
-[4]: https://github.com/kubermatic/terraform-provider-kubermatic/blob/master/CODE_OF_CONDUCT.md
-
-[11]: https://groups.google.com/forum/#!forum/loodse-dev
-[12]: https://kubermatic.slack.com/messages/terraform-provider-kubermatic
-[13]: https://github.com/kubermatic/terraform-provider-kubermatic/blob/master/docs/zenhub.md
-[15]: http://slack.kubermatic.io/
-
-[21]: https://kubermatic.github.io/terraform-provider-kubermatic/
+[1]: https://github.com/syseleven/terraform-provider-metakube/issues
+[2]: https://github.com/syseleven/terraform-provider-metakube/blob/syseleven/master/CONTRIBUTING.md
+[3]: https://github.com/syseleven/terraform-provider-metakube/releases
+[4]: https://github.com/syseleven/terraform-provider-metakube/blob/syseleven/master/code-of-conduct.md

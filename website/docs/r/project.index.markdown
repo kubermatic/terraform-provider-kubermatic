@@ -1,19 +1,19 @@
 ---
-layout: "kubermatic"
-page_title: "Kubermatic: kubermatic_project"
-sidebar_current: "docs-kubermatic-project"
+layout: "metakube"
+page_title: "MetaKube: metakube_project"
+sidebar_current: "docs-metakube-project"
 description: |-
-  Project resource in the Terraform provider kubermatic.
+  Project resource in the Terraform provider metakube.
 ---
 
-# kubermatic_resource
+# metakube_resource
 
-Project resource in the provider defines the corresponding project in Kubermatic.
+Project resource in the provider defines the corresponding project in MetaKube.
 
 ## Example Usage
 
 ```hcl
-resource "kubermatic_project" "example" {
+resource "metakube_project" "example" {
   name = "example"
   labels = {
     "foo": "bar"

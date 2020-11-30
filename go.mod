@@ -1,4 +1,4 @@
-module github.com/kubermatic/terraform-provider-kubermatic
+module github.com/syseleven/terraform-provider-metakube
 
 go 1.12
 
@@ -9,16 +9,14 @@ replace (
 )
 
 require (
-	github.com/go-openapi/runtime v0.19.11
-	github.com/go-openapi/validate v0.19.5 // indirect
-	github.com/google/go-cmp v0.3.1
-	github.com/hashicorp/go-version v1.2.0
-	github.com/hashicorp/hcl v1.0.0 // indirect
-	github.com/hashicorp/terraform-plugin-sdk v1.6.0
-	github.com/kubermatic/go-kubermatic v0.0.0-20200525122204-c7830498e48a
+	github.com/go-openapi/errors v0.19.6
+	github.com/go-openapi/runtime v0.19.24
+	github.com/go-openapi/strfmt v0.19.5
+	github.com/go-openapi/swag v0.19.9
+	github.com/go-openapi/validate v0.19.10
+	github.com/google/go-cmp v0.5.4
+	github.com/hashicorp/go-version v1.2.1
+	github.com/hashicorp/terraform-plugin-sdk v1.16.0
 	github.com/mitchellh/go-homedir v1.1.0
-	go.uber.org/atomic v1.6.0 // indirect
-	go.uber.org/multierr v1.1.0 // indirect
-	go.uber.org/zap v1.9.1
-	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15 // indirect
+	go.uber.org/zap v1.16.0
 )

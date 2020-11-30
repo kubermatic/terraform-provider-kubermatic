@@ -24,14 +24,6 @@ This can easily be done with the `--signoff` option to `git commit`.
 
 By doing this you state that you can certify the following (from https://developercertificate.org/):
 
-## Email and Chat
-
-The terraform-provider-kubermatic project currently uses the general Loodse email list and Slack channel:
-- Email: [loodse-dev](https://groups.google.com/forum/#!forum/loodse-dev)
-- Slack: #[Slack](http://slack.kubermatic.io/) on Slack
-
-Please avoid emailing maintainers found in the MAINTAINERS file directly. They
-are very busy and read the mailing lists.
 
 ##  Reporting a security vulnerability
 

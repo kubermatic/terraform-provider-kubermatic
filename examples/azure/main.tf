@@ -1,13 +1,13 @@
-provider kubermatic {
+provider metakube {
   host = "set_it_up"
 }
-resource "kubermatic_project" "example_project" {
+resource "metakube_project" "example_project" {
   name = var.project_name
 }
-resource "kubermatic_cluster" "example_cluster" {
+resource "metakube_cluster" "example_cluster" {
   name       = var.cluster_name
   dc_name    = "azure-westeurope"
-  project_id = kubermatic_project.example_project.id
+  project_id = metakube_project.example_project.id
   spec {
     version = var.k8s_version
     cloud {
@@ -20,9 +20,9 @@ resource "kubermatic_cluster" "example_cluster" {
     }
   }
 }
-resource "kubermatic_node_deployment" "example_node" {
+resource "metakube_node_deployment" "example_node" {
   name       = "examplenode"
-  cluster_id = kubermatic_cluster.example_cluster.id
+  cluster_id = metakube_cluster.example_cluster.id
   spec {
     replicas = 2
     template {
