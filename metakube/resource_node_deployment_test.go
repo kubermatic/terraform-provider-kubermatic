@@ -108,6 +108,7 @@ func testAccCheckMetaKubeNodeDeploymentBasic(testName, nodeDC, username, passwor
 					openstack {
 						flavor = "%s"
 						image = "%s"
+						use_floating_ip = false
 					}
 				}
 				operating_system {
@@ -165,6 +166,7 @@ func testAccCheckMetaKubeNodeDeploymentBasic2(testName, nodeDC, username, passwo
 						flavor = "%s"
 						image = "%s"
 						disk_size = 123
+						use_floating_ip = true
 					}
 				}
 				operating_system {

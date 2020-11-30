@@ -31,6 +31,7 @@ resource "metakube_node_deployment" "example_node" {
         openstack {
           flavor = "l1c.tiny"
           image  = "metakube-e2e-ubuntu"
+          use_floating_ip = false
         }
       }
       operating_system {

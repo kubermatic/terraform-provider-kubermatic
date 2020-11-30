@@ -273,7 +273,7 @@ func openstackNodeFields() map[string]*schema.Schema {
 		},
 		"use_floating_ip": {
 			Type:        schema.TypeBool,
-			Computed:    true,
+			Required:    true,
 			Description: "Indicate use of floating ip in case of floating_ip_pool presense",
 		},
 	}
