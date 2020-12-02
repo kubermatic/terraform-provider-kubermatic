@@ -38,7 +38,7 @@ resource "metakube_cluster" "example" {
 The following arguments are supported:
 
 * `project_id` - (Required) Reference project identifier.
-* `dc_name` - (Required) Data center name.
+* `dc_name` - (Required) Data center name. To list of available options you can run the following command: `curl -s -H "authorization: Bearer $METAKUBE_TOKEN" https://metakube.syseleven.de/api/v1/dc | jq -r '.[] | select(.seed!=true) | .metadata.name'`
 * `name` - (Required) Cluster name.
 * `spec` - (Required) Cluster specification.
 * `labels` - (Optional) Labels added to cluster.
