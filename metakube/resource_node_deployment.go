@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/terraform-plugin-sdk/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/syseleven/terraform-provider-metakube/go-metakube/client/project"
@@ -21,7 +22,10 @@ func resourceNodeDeployment() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
-		CustomizeDiff: validateNodeSpecMatchesCluster(),
+		CustomizeDiff: customdiff.All(
+			validateNodeSpecMatchesCluster(),
+			validateAutoscalerFields(),
+		),
 
 		Schema: map[string]*schema.Schema{
 			"cluster_id": {

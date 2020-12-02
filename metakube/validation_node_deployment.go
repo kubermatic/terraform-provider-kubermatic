@@ -148,3 +148,18 @@ func getClusterForNodeDeployment(id string, k *metakubeProviderMeta) (*models.Cl
 
 	return r.Payload, nil
 }
+
+func validateAutoscalerFields() schema.CustomizeDiffFunc {
+	return func(d *schema.ResourceDiff, _ interface{}) error {
+		if maxReplicas, ok := d.GetOk("max_replicas"); ok {
+			replicas := 1
+			if v, ok := d.GetOk("spec.0.replicas"); ok {
+				replicas = v.(int)
+			}
+			if replicas > maxReplicas.(int) {
+				return fmt.Errorf("max replicas can't be smaller than replicas")
+			}
+		}
+		return nil
+	}
+}

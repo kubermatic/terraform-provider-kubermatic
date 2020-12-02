@@ -11,9 +11,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 	"github.com/syseleven/terraform-provider-metakube/go-metakube/client/datacenter"
-	"github.com/syseleven/terraform-provider-metakube/go-metakube/client/openstack"
 	"github.com/syseleven/terraform-provider-metakube/go-metakube/client/project"
-	"github.com/syseleven/terraform-provider-metakube/go-metakube/client/versions"
 	"github.com/syseleven/terraform-provider-metakube/go-metakube/models"
 )
 
@@ -121,141 +119,11 @@ func resourceCluster() *schema.Resource {
 			}),
 			validateVersionExists(),
 			validateOnlyOneCloudProviderSpecified(),
-			validateOpenstackFields(),
+			validateOpenstackNetworkExistsIfSet("spec.0.cloud.0.openstack.0.floating_ip_pool", true),
+			validateOpenstackNetworkExistsIfSet("spec.0.cloud.0.openstack.0.network", false),
+			validateOpenstackSubnetWithIDExistsIfSet(),
 		),
 	}
-}
-
-func validateVersionExists() schema.CustomizeDiffFunc {
-	return func(d *schema.ResourceDiff, meta interface{}) error {
-		k := meta.(*metakubeProviderMeta)
-		version := d.Get("spec.0.version").(string)
-		p := versions.NewGetMasterVersionsParams()
-		r, err := k.client.Versions.GetMasterVersions(p, k.auth)
-		if err != nil {
-			if e, ok := err.(*versions.GetMasterVersionsDefault); ok && errorMessage(e.Payload) != "" {
-				return fmt.Errorf("get cluster upgrades: %s", errorMessage(e.Payload))
-			}
-			return err
-		}
-
-		for _, v := range r.Payload {
-			if s, ok := v.Version.(string); ok && s == version {
-				return nil
-			}
-		}
-
-		return fmt.Errorf("unknown version %s", version)
-	}
-}
-
-func validateOnlyOneCloudProviderSpecified() schema.CustomizeDiffFunc {
-	return func(d *schema.ResourceDiff, meta interface{}) error {
-		var existingProviders []string
-		counter := 0
-		for _, provider := range supportedProviders {
-			if _, ok := d.GetOk(fmt.Sprintf("spec.0.cloud.0.%s.0", provider)); ok {
-				existingProviders = append(existingProviders, provider)
-				counter++
-			}
-		}
-		if counter > 1 {
-			return fmt.Errorf("only one cloud provider must be specified: %v", existingProviders)
-		}
-		return nil
-	}
-}
-
-func validateOpenstackFields() schema.CustomizeDiffFunc {
-	return func(d *schema.ResourceDiff, meta interface{}) error {
-		k := meta.(*metakubeProviderMeta)
-		dcName := d.Get("dc_name").(string)
-		osFields := d.Get("spec.0.cloud.0.openstack.0").(map[string]interface{})
-		username := osFields["username"].(string)
-		password := osFields["password"].(string)
-		tenant := osFields["tenant"].(string)
-		// HACK(furkhat): API doesn't return domain for cluster. Use 'Default' all the time.
-		domain := "Default"
-		var credential string
-		if v, ok := osFields["credential"]; ok {
-			credential = v.(string)
-		}
-
-		floatingIPPool := osFields["floating_ip_pool"].(string)
-		if poolNetwork, err := getNetwork(k, dcName, credential, username, password, tenant, domain, floatingIPPool, true); err != nil {
-			return fmt.Errorf("validate floating_ip_pool error: %v", err)
-		} else if poolNetwork == nil {
-			return fmt.Errorf("floating_ip_pool `%s` not fount", floatingIPPool)
-		}
-
-		if networkName := osFields["network"].(string); networkName != "" {
-			if network, err := getNetwork(k, dcName, credential, username, password, tenant, domain, networkName, false); err != nil {
-				return fmt.Errorf("validate network error: %v", err)
-			} else if network == nil {
-				return fmt.Errorf("network `%s` not fount", networkName)
-			} else if subnetID := osFields["subnet_id"].(string); subnetID != "" {
-				if ok, err := subnetExists(k, dcName, credential, username, password, tenant, domain, network.ID, subnetID); err != nil {
-					return fmt.Errorf("validate subnet error: %v", err)
-				} else if !ok {
-					return fmt.Errorf("subnet with id `%s` not fount", subnetID)
-				}
-			}
-		}
-		return nil
-	}
-}
-
-func getNetwork(k *metakubeProviderMeta, dcName, credential, username, password, tenant, domain, name string, external bool) (*models.OpenstackNetwork, error) {
-	p := openstack.NewListOpenstackNetworksParams()
-	p.SetDatacenterName(&dcName)
-	if credential != "" {
-		p.SetCredential(&credential)
-	}
-	p.SetDomain(&domain)
-	p.SetUsername(&username)
-	p.SetPassword(&password)
-	p.SetTenant(&tenant)
-	res, err := k.client.Openstack.ListOpenstackNetworks(p, k.auth)
-	if err != nil {
-		return nil, fmt.Errorf("%v", getErrorResponse(err))
-	}
-	return findNetwork(res.Payload, name, external), nil
-}
-
-func findNetwork(list []*models.OpenstackNetwork, network string, external bool) *models.OpenstackNetwork {
-	for _, item := range list {
-		if item.Name == network && item.External == external {
-			return item
-		}
-	}
-	return nil
-}
-
-func subnetExists(k *metakubeProviderMeta, dcName, credential, username, password, tenant, domain, networkID, subnetID string) (bool, error) {
-	p := openstack.NewListOpenstackSubnetsParams()
-	p.SetDatacenterName(&dcName)
-	if credential != "" {
-		p.SetCredential(&credential)
-	}
-	p.SetUsername(&username)
-	p.SetPassword(&password)
-	p.SetTenant(&tenant)
-	p.SetDomain(&domain)
-	p.SetNetworkID(&networkID)
-	res, err := k.client.Openstack.ListOpenstackSubnets(p, k.auth)
-	if err != nil {
-		return false, fmt.Errorf("%v", getErrorResponse(err))
-	}
-	return findSubnet(res.Payload, subnetID) != nil, nil
-}
-
-func findSubnet(list []*models.OpenstackSubnet, id string) *models.OpenstackSubnet {
-	for _, item := range list {
-		if item.ID == id {
-			return item
-		}
-	}
-	return nil
 }
 
 func resourceClusterCreate(d *schema.ResourceData, m interface{}) error {

@@ -35,6 +35,19 @@ func nodeDeploymentSpecFields() map[string]*schema.Schema {
 			Default:     1,
 			Description: "Number of replicas",
 		},
+		// TODO(furkhat): downscaling is not yet implemented and is work in progress.
+		// "min_replicas": {
+		// 	Type:         schema.TypeInt,
+		// 	Optional:     true,
+		// 	ValidateFunc: validation.IntAtLeast(1),
+		// 	Description:  "Minimum number of replicas to downscale",
+		// },
+		"max_replicas": {
+			Type:         schema.TypeInt,
+			Optional:     true,
+			ValidateFunc: validation.IntAtLeast(1),
+			Description:  "Maximum number of replicas to scale up",
+		},
 		"template": {
 			Type:        schema.TypeList,
 			MaxItems:    1,
