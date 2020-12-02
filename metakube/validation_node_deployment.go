@@ -151,14 +151,28 @@ func getClusterForNodeDeployment(id string, k *metakubeProviderMeta) (*models.Cl
 
 func validateAutoscalerFields() schema.CustomizeDiffFunc {
 	return func(d *schema.ResourceDiff, _ interface{}) error {
-		if maxReplicas, ok := d.GetOk("max_replicas"); ok {
-			replicas := 1
-			if v, ok := d.GetOk("spec.0.replicas"); ok {
-				replicas = v.(int)
-			}
-			if replicas > maxReplicas.(int) {
-				return fmt.Errorf("max replicas can't be smaller than replicas")
-			}
+		minReplicas, ok1 := d.GetOk("spec.0.min_replicas")
+		maxReplicas, ok2 := d.GetOk("spec.0.max_replicas")
+		if ok1 && ok1 != ok2 {
+			return fmt.Errorf("to configure autoscaler both min_replicas and max_replicas must be set")
+		}
+		if ok1 == false {
+			return nil
+		}
+
+		if minReplicas.(int) > maxReplicas.(int) {
+			return fmt.Errorf("min_replicas must be smaller than max_replicas")
+		}
+
+		replicas := 1
+		if v, ok := d.GetOk("spec.0.replicas"); ok {
+			replicas = v.(int)
+		}
+		if replicas > maxReplicas.(int) {
+			return fmt.Errorf("max_replicas can't be smaller than replicas")
+		}
+		if replicas < minReplicas.(int) {
+			return fmt.Errorf("min_replicas can't be bigger than replicas")
 		}
 		return nil
 	}

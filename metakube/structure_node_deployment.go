@@ -16,6 +16,14 @@ func flattenNodeDeploymentSpec(values *nodeSpecPreservedValues, in *models.NodeD
 		att["replicas"] = *in.Replicas
 	}
 
+	if in.MinReplicas != 0 {
+		att["min_replicas"] = *&in.MinReplicas
+	}
+
+	if in.MaxReplicas != 0 {
+		att["max_replicas"] = *&in.MaxReplicas
+	}
+
 	if in.Template != nil {
 		att["template"] = flattenNodeSpec(values, in.Template)
 	}
@@ -301,6 +309,14 @@ func expandNodeDeploymentSpec(p []interface{}) *models.NodeDeploymentSpec {
 
 	if v, ok := in["replicas"]; ok {
 		obj.Replicas = int32ToPtr(int32(v.(int)))
+	}
+
+	if v, ok := in["min_replicas"]; ok {
+		obj.MinReplicas = int32(v.(int))
+	}
+
+	if v, ok := in["max_replicas"]; ok {
+		obj.MaxReplicas = int32(v.(int))
 	}
 
 	if v, ok := in["template"]; ok {

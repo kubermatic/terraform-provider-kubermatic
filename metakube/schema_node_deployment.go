@@ -42,6 +42,11 @@ func nodeDeploymentSpecFields() map[string]*schema.Schema {
 		// 	ValidateFunc: validation.IntAtLeast(1),
 		// 	Description:  "Minimum number of replicas to downscale",
 		// },
+		"min_replicas": {
+			Type:         schema.TypeInt,
+			Optional:     true,
+			ValidateFunc: validation.IntAtLeast(1),
+		},
 		"max_replicas": {
 			Type:         schema.TypeInt,
 			Optional:     true,
