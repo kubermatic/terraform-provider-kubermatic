@@ -39,7 +39,7 @@ func Provider() terraform.ResourceProvider {
 			"host": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("METAKUBE_HOST", "https://localhost"),
+				DefaultFunc: schema.EnvDefaultFunc("METAKUBE_HOST", "https://metakube.syseleven.de"),
 				Description: "The hostname of MetaKube API (in form of URI)",
 			},
 			"token": {
