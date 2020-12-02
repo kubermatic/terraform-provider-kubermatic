@@ -8,7 +8,7 @@ resource "metakube_cluster" "example_cluster" {
   name       = var.cluster_name
   dc_name    = "set_it_up"
   project_id = metakube_project.example_project.id
-  credential = "loodse"
+  credential = ""
   spec {
     version = "1.17.9"
     cloud {

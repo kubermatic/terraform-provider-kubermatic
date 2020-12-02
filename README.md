@@ -1,7 +1,9 @@
+This is fork of https://github.com/kubermatic/terraform-provider-kubermatic which was joined effort of Kubermatic and SysEleven. We will maintain the fork due to differences and changes we have in our envirenment.
+
 # Terraform Provider for MetaKube
 
 - Website: https://www.terraform.io
-- Mailing list: [Google Groups](https://groups.google.com/forum/#!forum/loodse-dev)
+<!-- TODO - Mailing list: [Google Groups](https://groups.google.com/forum/#!forum/syseleven-dev) -->
 
 <img src="https://cdn.rawgit.com/hashicorp/terraform-website/master/content/source/assets/images/logo-hashicorp.svg" width="600px">
 

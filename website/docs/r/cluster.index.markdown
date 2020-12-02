@@ -17,7 +17,7 @@ resource "metakube_cluster" "example" {
   project_id = metakube_project.example.id
   name = "example"
   dc_name = "europe-west3-c"
-  credential = "loodse"
+  credential = ""
 
   spec {
     version = "1.15.6"
@@ -69,7 +69,17 @@ One of the following must be selected.
 #### Arguments
 
 * `bringyourown` - (Optional) User defined infrastructure.
+* `openstack` - (Optional) Opestack infrastructure.
 * `aws` - (Optional) Amazon Web Services infrastructure.
+* `azure` - (Optional) Azure infrastructure.
+
+### `openstack`
+
+#### Arguments
+* `tenant` - (Required) The project to use for billing.
+* `username` - (Required) The account's username.
+* `password` - (Required) The account's password.
+* `floating_ip_pool` - (Required) The floating ip pool to use.
 
 ### `aws`
 
@@ -82,3 +92,17 @@ One of the following must be selected.
 * `route_table_id` - (Optional) Route table identifier.
 * `instance_profile_name` - (Optional) Instance profile name.
 * `role_arn` - (Optional) The IAM role that the control plane will use.
+
+### `azure`
+
+#### Arguments
+* `availability_set` - (Optional) Availability set name.
+* `client_id` - (Required) Client id.
+* `client_secret` - (Required) Client secret.
+* `subscription_id` - (Required) Subscription id.
+* `tenant_id` - (Required) Tenant id.
+* `resource_group` - (Optional) Resource group name.
+* `route_table` - (Optional) Route table name.
+* `security_group` - (Optional) Security group name.
+* `subnet` - (Optional) Subnet.
+* `vnet` - (Optional) Vnet.

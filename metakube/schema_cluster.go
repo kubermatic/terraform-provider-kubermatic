@@ -199,23 +199,27 @@ func openstackCloudSpecFields() map[string]*schema.Schema {
 			Required:     true,
 			ForceNew:     true,
 			ValidateFunc: validation.NoZeroValues,
+			Description:  "The opestack project to use for billing",
 		},
 		"username": {
 			Type:         schema.TypeString,
 			Required:     true,
 			Sensitive:    true,
 			ValidateFunc: validation.NoZeroValues,
+			Description:  "The openstack account's username",
 		},
 		"password": {
 			Type:         schema.TypeString,
 			Required:     true,
 			Sensitive:    true,
 			ValidateFunc: validation.NoZeroValues,
+			Description:  "The openstack account's password",
 		},
 		"floating_ip_pool": {
-			Type:     schema.TypeString,
-			Required: true,
-			ForceNew: true,
+			Type:        schema.TypeString,
+			Required:    true,
+			ForceNew:    true,
+			Description: "The floating ip pool to use",
 		},
 	}
 }
