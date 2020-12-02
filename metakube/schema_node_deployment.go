@@ -32,7 +32,7 @@ func nodeDeploymentSpecFields() map[string]*schema.Schema {
 		"replicas": {
 			Type:        schema.TypeInt,
 			Optional:    true,
-			Default:     1,
+			Default:     3,
 			Description: "Number of replicas",
 		},
 		"min_replicas": {
