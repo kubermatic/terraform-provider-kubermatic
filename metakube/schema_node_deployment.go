@@ -27,7 +27,7 @@ func nodeDeploymentSpecFields() map[string]*schema.Schema {
 			Type:        schema.TypeBool,
 			Optional:    true,
 			Default:     false,
-			Description: "Use metakube dynamic config",
+			Description: "Enable metakube kubelete dynamic config",
 		},
 		"replicas": {
 			Type:        schema.TypeInt,

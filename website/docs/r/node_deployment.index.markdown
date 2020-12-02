@@ -59,7 +59,7 @@ The following arguments are supported:
 
 * `replicas` - (Optional) Number of replicas, default = 1.
 * `template` - (Required) Template specification.
-* `dynamic_config` - (Optional) MetaKube dynamic config.
+* `dynamic_config` - (Optional) Enable metakube dynamic kubelet config.
 
 ### `template`
 

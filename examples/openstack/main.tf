@@ -2,7 +2,6 @@ terraform {
   required_providers {
     metakube = {
       source  = "syseleven/metakube"
-      version = "0.1.1"
     }
     openstack = {
       source = "terraform-provider-openstack/openstack"
