@@ -204,11 +204,13 @@ func openstackCloudSpecFields() map[string]*schema.Schema {
 			Type:         schema.TypeString,
 			Required:     true,
 			ForceNew:     true,
+			DefaultFunc:  schema.EnvDefaultFunc("OS_PROJECT_NAME", ""),
 			ValidateFunc: validation.NoZeroValues,
 			Description:  "The opestack project to use for billing",
 		},
 		"username": {
 			Type:         schema.TypeString,
+			DefaultFunc:  schema.EnvDefaultFunc("OS_USERNAME", ""),
 			Required:     true,
 			Sensitive:    true,
 			ValidateFunc: validation.NoZeroValues,
@@ -216,6 +218,7 @@ func openstackCloudSpecFields() map[string]*schema.Schema {
 		},
 		"password": {
 			Type:         schema.TypeString,
+			DefaultFunc:  schema.EnvDefaultFunc("OS_PASSWORD", ""),
 			Required:     true,
 			Sensitive:    true,
 			ValidateFunc: validation.NoZeroValues,

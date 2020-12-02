@@ -78,9 +78,9 @@ One of the following must be selected.
 ### `openstack`
 
 #### Arguments
-* `tenant` - (Required) The project to use for billing.
-* `username` - (Required) The account's username.
-* `password` - (Required) The account's password.
+* `tenant` - (Required) The project to use for billing. You can set it using environment variable `OS_PROJECT_NAME`.
+* `username` - (Required) The account's username. You can set it using environment variable `OS_USERNAME`.
+* `password` - (Required) The account's password. You can set it using environment variable `OS_PASSWORD`.
 * `floating_ip_pool` - (Required) The floating ip pool used by all worker nodes to receive a public ip.
 * `security_group` - (Optional) When specified, all worker nodes will be attached to this security group. If not specified, a security group will be created.
 * `network` - (Optional) When specified, all worker nodes will be attached to this network. If not specified, a network, subnet & router will be created.
