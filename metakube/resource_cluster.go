@@ -170,73 +170,88 @@ func validateOpenstackFields() schema.CustomizeDiffFunc {
 	return func(d *schema.ResourceDiff, meta interface{}) error {
 		k := meta.(*metakubeProviderMeta)
 		dcName := d.Get("dc_name").(string)
-		if osFields := d.Get("spec.0.cloud.0.openstack.0").(map[string]interface{}); osFields != nil {
-			return nil
-		} else if username := osFields["username"].(string); username == "" {
-			return nil
-		} else if password := osFields["password"].(string); password == "" {
-			return nil
-		} else if tenant := osFields["tenant"].(string); tenant == "" {
-			return nil
-		} else if credential := osFields["credential"].(string); credential == "" {
-			return nil
-		} else if floatingIPPool := osFields["floating_ip_pool"].(string); floatingIPPool != "" {
-			if ok, err := externalNetworkExists(k, dcName, credential, username, password, tenant, floatingIPPool); err != nil {
-				return fmt.Errorf("validate floating_ip_pool error: %v", err)
-			} else if !ok {
-				return fmt.Errorf("floating_ip_pool `%s` not fount", floatingIPPool)
-			}
-		} else if securityGroup := osFields["security_group"].(string); securityGroup != "" {
-			if ok, err := securityGroupExists(k, dcName, credential, username, password, tenant, securityGroup); err != nil {
-				return fmt.Errorf("validate security_group error: %v", err)
-			} else if !ok {
-				return fmt.Errorf("security_group `%s` not fount", floatingIPPool)
+		osFields := d.Get("spec.0.cloud.0.openstack.0").(map[string]interface{})
+		username := osFields["username"].(string)
+		password := osFields["password"].(string)
+		tenant := osFields["tenant"].(string)
+		// HACK(furkhat): API doesn't return domain for cluster. Use 'Default' all the time.
+		domain := "Default"
+		var credential string
+		if v, ok := osFields["credential"]; ok {
+			credential = v.(string)
+		}
+
+		floatingIPPool := osFields["floating_ip_pool"].(string)
+		if poolNetwork, err := getNetwork(k, dcName, credential, username, password, tenant, domain, floatingIPPool, true); err != nil {
+			return fmt.Errorf("validate floating_ip_pool error: %v", err)
+		} else if poolNetwork == nil {
+			return fmt.Errorf("floating_ip_pool `%s` not fount", floatingIPPool)
+		}
+
+		if networkName := osFields["network"].(string); networkName != "" {
+			if network, err := getNetwork(k, dcName, credential, username, password, tenant, domain, networkName, false); err != nil {
+				return fmt.Errorf("validate network error: %v", err)
+			} else if network == nil {
+				return fmt.Errorf("network `%s` not fount", networkName)
+			} else if subnetID := osFields["subnet_id"].(string); subnetID != "" {
+				if ok, err := subnetExists(k, dcName, credential, username, password, tenant, domain, network.ID, subnetID); err != nil {
+					return fmt.Errorf("validate subnet error: %v", err)
+				} else if !ok {
+					return fmt.Errorf("subnet with id `%s` not fount", subnetID)
+				}
 			}
 		}
 		return nil
 	}
 }
 
-func externalNetworkExists(k *metakubeProviderMeta, dcName, credential, username, password, tenant, network string) (bool, error) {
+func getNetwork(k *metakubeProviderMeta, dcName, credential, username, password, tenant, domain, name string, external bool) (*models.OpenstackNetwork, error) {
 	p := openstack.NewListOpenstackNetworksParams()
 	p.SetDatacenterName(&dcName)
-	p.SetCredential(&credential)
+	if credential != "" {
+		p.SetCredential(&credential)
+	}
+	p.SetDomain(&domain)
 	p.SetUsername(&username)
 	p.SetPassword(&password)
 	p.SetTenant(&tenant)
 	res, err := k.client.Openstack.ListOpenstackNetworks(p, k.auth)
 	if err != nil {
-		return false, err
+		return nil, fmt.Errorf("%v", getErrorResponse(err))
 	}
-	return findExtarnalNetwork(res.Payload, network) != nil, nil
+	return findNetwork(res.Payload, name, external), nil
 }
 
-func findExtarnalNetwork(list []*models.OpenstackNetwork, network string) *models.OpenstackNetwork {
+func findNetwork(list []*models.OpenstackNetwork, network string, external bool) *models.OpenstackNetwork {
 	for _, item := range list {
-		if item.Name == network && item.External {
+		if item.Name == network && item.External == external {
 			return item
 		}
 	}
 	return nil
 }
 
-func securityGroupExists(k *metakubeProviderMeta, credential, dcName, username, password, tenant, sg string) (bool, error) {
-	p := openstack.NewListOpenstackSecurityGroupsParams()
+func subnetExists(k *metakubeProviderMeta, dcName, credential, username, password, tenant, domain, networkID, subnetID string) (bool, error) {
+	p := openstack.NewListOpenstackSubnetsParams()
 	p.SetDatacenterName(&dcName)
-	p.SetCredential(&credential)
+	if credential != "" {
+		p.SetCredential(&credential)
+	}
 	p.SetUsername(&username)
 	p.SetPassword(&password)
 	p.SetTenant(&tenant)
-	res, err := k.client.Openstack.ListOpenstackSecurityGroups(p, k.auth)
+	p.SetDomain(&domain)
+	p.SetNetworkID(&networkID)
+	res, err := k.client.Openstack.ListOpenstackSubnets(p, k.auth)
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("%v", getErrorResponse(err))
 	}
-	return findSecurityGroup(res.Payload, sg) != nil, nil
+	return findSubnet(res.Payload, subnetID) != nil, nil
 }
 
-func findSecurityGroup(list []*models.OpenstackSecurityGroup, sg string) *models.OpenstackSecurityGroup {
+func findSubnet(list []*models.OpenstackSubnet, id string) *models.OpenstackSubnet {
 	for _, item := range list {
-		if item.Name == sg {
+		if item.ID == id {
 			return item
 		}
 	}

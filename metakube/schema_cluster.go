@@ -219,13 +219,31 @@ func openstackCloudSpecFields() map[string]*schema.Schema {
 			Type:        schema.TypeString,
 			Required:    true,
 			ForceNew:    true,
-			Description: "The floating ip pool to use",
+			Description: "The floating ip pool used by all worker nodes to receive a public ip",
 		},
-		"security_groups": {
+		"security_group": {
 			Type:        schema.TypeString,
-			Optional:    true,
+			Computed:    true,
 			ForceNew:    true,
-			Description: "The name of security group",
+			Description: "When specified, all worker nodes will be attached to this security group. If not specified, a security group will be created",
+		},
+		"network": {
+			Type:        schema.TypeString,
+			Computed:    true,
+			ForceNew:    true,
+			Description: "When specified, all worker nodes will be attached to this network. If not specified, a network, subnet & router will be created.",
+		},
+		"subnet_id": {
+			Type:        schema.TypeString,
+			Computed:    true,
+			ForceNew:    true,
+			Description: "When specified, all worker nodes will be attached to this subnet of specified network. If not specified, a network, subnet & router will be created.",
+		},
+		"subnet_cidr": {
+			Type:        schema.TypeString,
+			Computed:    true,
+			ForceNew:    true,
+			Description: "Change this to configure a different internal IP range for Nodes. Default: 192.168.1.0/24",
 		},
 	}
 }

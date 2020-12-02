@@ -79,7 +79,9 @@ One of the following must be selected.
 * `tenant` - (Required) The project to use for billing.
 * `username` - (Required) The account's username.
 * `password` - (Required) The account's password.
-* `floating_ip_pool` - (Required) The floating ip pool to use.
+* `floating_ip_pool` - (Required) The floating ip pool used by all worker nodes to receive a public ip.
+* `security_group` - (Optional) When specified, all worker nodes will be attached to this security group. If not specified, a security group will be created.
+* `network` - (Optional) When specified, all worker nodes will be attached to this network. If not specified, a network, subnet & router will be created.
 
 ### `aws`
 

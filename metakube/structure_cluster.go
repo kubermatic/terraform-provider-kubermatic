@@ -140,7 +140,19 @@ func flattenOpenstackSpec(values *clusterOpenstackPreservedValues, in *models.Op
 	}
 
 	if in.SecurityGroups != "" {
-		att["security_groups"] = in.SecurityGroups
+		att["security_group"] = in.SecurityGroups
+	}
+
+	if in.Network != "" {
+		att["network"] = in.Network
+	}
+
+	if in.SubnetID != "" {
+		att["subnet_id"] = in.SubnetID
+	}
+
+	if in.SubnetCIDR != "" {
+		att["subnet_cidr"] = in.SubnetCIDR
 	}
 
 	if values.openstackTenant != nil {
@@ -377,8 +389,20 @@ func expandOpenstackCloudSpec(p []interface{}) *models.OpenstackCloudSpec {
 		obj.FloatingIPPool = v.(string)
 	}
 
-	if v, ok := in["security_groups"]; ok {
+	if v, ok := in["security_group"]; ok {
 		obj.SecurityGroups = v.(string)
+	}
+
+	if v, ok := in["network"]; ok {
+		obj.Network = v.(string)
+	}
+
+	if v, ok := in["subnet_id"]; ok {
+		obj.SubnetID = v.(string)
+	}
+
+	if v, ok := in["subnet_cidr"]; ok {
+		obj.SubnetCIDR = v.(string)
 	}
 
 	if v, ok := in["username"]; ok {
