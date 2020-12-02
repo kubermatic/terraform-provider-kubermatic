@@ -1,42 +1,61 @@
-provider metakube {
-  host = "set_it_up"
+terraform {
+  required_providers {
+    metakube = {
+      source  = "syseleven/metakube"
+      version = "0.1.1"
+    }
+    openstack = {
+      source = "terraform-provider-openstack/openstack"
+    }
+  }
 }
-resource "metakube_project" "example_project" {
+
+data openstack_images_image_v2 "image" {
+  most_recent = true
+
+  visibility = "public"
+  properties = {
+    os_distro  = "ubuntu"
+    os_version = "18.04"
+  }
+}
+
+provider metakube {}
+resource metakube_project "project" {
   name = var.project_name
 }
-resource "metakube_cluster" "example_cluster" {
+
+resource metakube_cluster "cluster" {
   name       = var.cluster_name
-  dc_name    = "set_it_up"
-  project_id = metakube_project.example_project.id
-  credential = ""
+  dc_name    = var.dc_name
+  project_id = metakube_project.project.id
   spec {
-    version = "1.17.9"
+    version = var.k8s_version
     cloud {
       openstack {
-        floating_ip_pool = ""
-        password         = "set_it_up"
-        tenant           = "set_it_up"
-        username         = "set_it_up"
+        floating_ip_pool = var.floating_ip_pool
+        password         = var.password
+        tenant           = var.tenant
+        username         = var.username
       }
     }
   }
 }
-resource "metakube_node_deployment" "example_node" {
-  name       = "examplenode"
-  cluster_id = metakube_cluster.example_cluster.id
+resource metakube_node_deployment "node_deployment" {
+  name       = var.node_deployment_name
+  cluster_id = metakube_cluster.cluster.id
   spec {
-    replicas = 2
+    replicas = var.node_replicas
     template {
       cloud {
         openstack {
-          flavor = "l1c.tiny"
-          image  = "metakube-e2e-ubuntu"
-          use_floating_ip = false
+          flavor          = var.node_flavor
+          image           = var.node_image != null ? var.node_image : data.openstack_images_image_v2.image.name
+          use_floating_ip = var.use_floating_ip
         }
       }
       operating_system {
         ubuntu {
-          dist_upgrade_on_boot = false
         }
       }
       versions {
