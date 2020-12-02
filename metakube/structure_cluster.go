@@ -139,6 +139,10 @@ func flattenOpenstackSpec(values *clusterOpenstackPreservedValues, in *models.Op
 		att["floating_ip_pool"] = in.FloatingIPPool
 	}
 
+	if in.SecurityGroups != "" {
+		att["security_groups"] = in.SecurityGroups
+	}
+
 	if values.openstackTenant != nil {
 		att["tenant"] = values.openstackTenant
 	}
@@ -371,6 +375,10 @@ func expandOpenstackCloudSpec(p []interface{}) *models.OpenstackCloudSpec {
 
 	if v, ok := in["floating_ip_pool"]; ok {
 		obj.FloatingIPPool = v.(string)
+	}
+
+	if v, ok := in["security_groups"]; ok {
+		obj.SecurityGroups = v.(string)
 	}
 
 	if v, ok := in["username"]; ok {

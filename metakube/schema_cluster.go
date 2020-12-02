@@ -221,6 +221,12 @@ func openstackCloudSpecFields() map[string]*schema.Schema {
 			ForceNew:    true,
 			Description: "The floating ip pool to use",
 		},
+		"security_groups": {
+			Type:        schema.TypeString,
+			Optional:    true,
+			ForceNew:    true,
+			Description: "The name of security group",
+		},
 	}
 }
 

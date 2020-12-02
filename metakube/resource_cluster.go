@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 	"github.com/syseleven/terraform-provider-metakube/go-metakube/client/datacenter"
+	"github.com/syseleven/terraform-provider-metakube/go-metakube/client/openstack"
 	"github.com/syseleven/terraform-provider-metakube/go-metakube/client/project"
 	"github.com/syseleven/terraform-provider-metakube/go-metakube/client/versions"
 	"github.com/syseleven/terraform-provider-metakube/go-metakube/models"
@@ -120,6 +121,7 @@ func resourceCluster() *schema.Resource {
 			}),
 			validateVersionExists(),
 			validateOnlyOneCloudProviderSpecified(),
+			validateOpenstackFields(),
 		),
 	}
 }
@@ -162,6 +164,83 @@ func validateOnlyOneCloudProviderSpecified() schema.CustomizeDiffFunc {
 		}
 		return nil
 	}
+}
+
+func validateOpenstackFields() schema.CustomizeDiffFunc {
+	return func(d *schema.ResourceDiff, meta interface{}) error {
+		k := meta.(*metakubeProviderMeta)
+		dcName := d.Get("dc_name").(string)
+		if osFields := d.Get("spec.0.cloud.0.openstack.0").(map[string]interface{}); osFields != nil {
+			return nil
+		} else if username := osFields["username"].(string); username == "" {
+			return nil
+		} else if password := osFields["password"].(string); password == "" {
+			return nil
+		} else if tenant := osFields["tenant"].(string); tenant == "" {
+			return nil
+		} else if credential := osFields["credential"].(string); credential == "" {
+			return nil
+		} else if floatingIPPool := osFields["floating_ip_pool"].(string); floatingIPPool != "" {
+			if ok, err := externalNetworkExists(k, dcName, credential, username, password, tenant, floatingIPPool); err != nil {
+				return fmt.Errorf("validate floating_ip_pool error: %v", err)
+			} else if !ok {
+				return fmt.Errorf("floating_ip_pool `%s` not fount", floatingIPPool)
+			}
+		} else if securityGroup := osFields["security_group"].(string); securityGroup != "" {
+			if ok, err := securityGroupExists(k, dcName, credential, username, password, tenant, securityGroup); err != nil {
+				return fmt.Errorf("validate security_group error: %v", err)
+			} else if !ok {
+				return fmt.Errorf("security_group `%s` not fount", floatingIPPool)
+			}
+		}
+		return nil
+	}
+}
+
+func externalNetworkExists(k *metakubeProviderMeta, dcName, credential, username, password, tenant, network string) (bool, error) {
+	p := openstack.NewListOpenstackNetworksParams()
+	p.SetDatacenterName(&dcName)
+	p.SetCredential(&credential)
+	p.SetUsername(&username)
+	p.SetPassword(&password)
+	p.SetTenant(&tenant)
+	res, err := k.client.Openstack.ListOpenstackNetworks(p, k.auth)
+	if err != nil {
+		return false, err
+	}
+	return findExtarnalNetwork(res.Payload, network) != nil, nil
+}
+
+func findExtarnalNetwork(list []*models.OpenstackNetwork, network string) *models.OpenstackNetwork {
+	for _, item := range list {
+		if item.Name == network && item.External {
+			return item
+		}
+	}
+	return nil
+}
+
+func securityGroupExists(k *metakubeProviderMeta, credential, dcName, username, password, tenant, sg string) (bool, error) {
+	p := openstack.NewListOpenstackSecurityGroupsParams()
+	p.SetDatacenterName(&dcName)
+	p.SetCredential(&credential)
+	p.SetUsername(&username)
+	p.SetPassword(&password)
+	p.SetTenant(&tenant)
+	res, err := k.client.Openstack.ListOpenstackSecurityGroups(p, k.auth)
+	if err != nil {
+		return false, err
+	}
+	return findSecurityGroup(res.Payload, sg) != nil, nil
+}
+
+func findSecurityGroup(list []*models.OpenstackSecurityGroup, sg string) *models.OpenstackSecurityGroup {
+	for _, item := range list {
+		if item.Name == sg {
+			return item
+		}
+	}
+	return nil
 }
 
 func resourceClusterCreate(d *schema.ResourceData, m interface{}) error {
