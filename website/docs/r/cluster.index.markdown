@@ -61,6 +61,8 @@ The following arguments are supported:
 * `cloud` - (Required) Cloud provider specification.
 * `machine_networks` - (Optional) Machine networks, optionally specifies the parameters for IPAM.
 * `audit_logging` - (Optional) Audit logging settings.
+* `pod_security_policy` - (Optional) Pod security policies allow detailed authorization of pod creation and updates.
+* `pod_node_selector` - (Optional) Configure PodNodeSelector admission plugin at the apiserver
 
 ### `cloud`
 
@@ -82,6 +84,8 @@ One of the following must be selected.
 * `floating_ip_pool` - (Required) The floating ip pool used by all worker nodes to receive a public ip.
 * `security_group` - (Optional) When specified, all worker nodes will be attached to this security group. If not specified, a security group will be created.
 * `network` - (Optional) When specified, all worker nodes will be attached to this network. If not specified, a network, subnet & router will be created.
+* `subnet_id` - (Optional) When specified, all worker nodes will be attached to this subnet of specified network. If not specified, a network, subnet & router will be created.
+* `subnet_cidr` - Change this to configure a different internal IP range for Nodes. Default: `192.168.1.0/24`.
 
 ### `aws`
 

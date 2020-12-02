@@ -28,6 +28,8 @@ func flattenClusterSpec(values clusterPreserveValues, in *models.ClusterSpec) []
 
 	att["pod_security_policy"] = in.UsePodSecurityPolicyAdmissionPlugin
 
+	att["pod_node_selector"] = in.UsePodNodeSelectorAdmissionPlugin
+
 	if in.Cloud != nil {
 		att["cloud"] = flattenClusterCloudSpec(values, in.Cloud)
 	}
@@ -246,6 +248,10 @@ func expandClusterSpec(p []interface{}, dcName string) *models.ClusterSpec {
 
 	if v, ok := in["pod_security_policy"]; ok {
 		obj.UsePodSecurityPolicyAdmissionPlugin = v.(bool)
+	}
+
+	if v, ok := in["pod_node_selector"]; ok {
+		obj.UsePodNodeSelectorAdmissionPlugin = v.(bool)
 	}
 
 	if v, ok := in["cloud"]; ok {

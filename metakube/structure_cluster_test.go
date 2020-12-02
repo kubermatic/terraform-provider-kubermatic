@@ -28,6 +28,7 @@ func TestFlattenClusterSpec(t *testing.T) {
 					"version":             "1.15.6",
 					"audit_logging":       false,
 					"pod_security_policy": false,
+					"pod_node_selector":   false,
 					"cloud": []interface{}{
 						map[string]interface{}{
 							"bringyourown": []interface{}{map[string]interface{}{}},
@@ -42,6 +43,7 @@ func TestFlattenClusterSpec(t *testing.T) {
 				map[string]interface{}{
 					"audit_logging":       false,
 					"pod_security_policy": false,
+					"pod_node_selector":   false,
 				},
 			},
 		},
@@ -182,6 +184,9 @@ func TestFlattenOpenstackCloudSpec(t *testing.T) {
 					"password":         "Password",
 					"tenant":           "Tenant",
 					"floating_ip_pool": "FloatingIPPool",
+					"network":          "Network",
+					"security_group":   "SecurityGroups",
+					"subnet_id":        "SubnetID",
 				},
 			},
 		},

@@ -60,6 +60,8 @@ The following arguments are supported:
 * `replicas` - (Optional) Number of replicas, default = 1.
 * `template` - (Required) Template specification.
 * `dynamic_config` - (Optional) Enable metakube dynamic kubelet config.
+* `min_replicas` - (Optional) Minimum number of replicas to downscale.
+* `max_replicas` - (Optional) Maximum number of replicas to scale up.
 
 ### `template`
 
