@@ -1,12 +1,4 @@
----
-layout: "metakube"
-page_title: "MetaKube: metakube_sshkey"
-sidebar_current: "docs-metakube-sshkey"
-description: |-
-  SSH Key resource in the Terraform provider metakube.
----
-
-# metakube_resource
+# sshkey Resource
 
 SSH Key resource in the provider defines the corresponding sshkey with public key in MetaKube.
 

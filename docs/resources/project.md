@@ -1,12 +1,4 @@
----
-layout: "metakube"
-page_title: "MetaKube: metakube_project"
-sidebar_current: "docs-metakube-project"
-description: |-
-  Project resource in the Terraform provider metakube.
----
-
-# metakube_resource
+# project Resource
 
 Project resource in the provider defines the corresponding project in MetaKube.
 

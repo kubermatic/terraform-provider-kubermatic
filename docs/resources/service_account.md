@@ -1,12 +1,4 @@
----
-layout: "metakube"
-page_title: "MetaKube: metakube_service_account"
-sidebar_current: "docs-metakube-service-account"
-description: |-
-  Service account resource in the Terraform provider metakube.
----
-
-# metakube_resource
+# service_account Resource
 
 Service account resource in the provider defines the corresponding service account in MetaKube.
 

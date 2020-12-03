@@ -15,7 +15,7 @@ func TestFlattenClusterSpec(t *testing.T) {
 	}{
 		{
 			&models.ClusterSpec{
-				Version:         "1.15.6",
+				Version:         "1.18.8",
 				MachineNetworks: nil,
 				AuditLogging:    &models.AuditLoggingSettings{},
 				Cloud: &models.CloudSpec{
@@ -25,7 +25,7 @@ func TestFlattenClusterSpec(t *testing.T) {
 			},
 			[]interface{}{
 				map[string]interface{}{
-					"version":             "1.15.6",
+					"version":             "1.18.8",
 					"audit_logging":       false,
 					"pod_security_policy": false,
 					"pod_node_selector":   false,
@@ -317,7 +317,7 @@ func TestExpandClusterSpec(t *testing.T) {
 		{
 			[]interface{}{
 				map[string]interface{}{
-					"version":             "1.15.6",
+					"version":             "1.18.8",
 					"machine_networks":    []interface{}{},
 					"audit_logging":       false,
 					"pod_security_policy": true,
@@ -331,7 +331,7 @@ func TestExpandClusterSpec(t *testing.T) {
 				},
 			},
 			&models.ClusterSpec{
-				Version:                             "1.15.6",
+				Version:                             "1.18.8",
 				MachineNetworks:                     nil,
 				AuditLogging:                        &models.AuditLoggingSettings{},
 				UsePodSecurityPolicyAdmissionPlugin: true,

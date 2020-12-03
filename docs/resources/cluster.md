@@ -1,12 +1,4 @@
----
-layout: "metakube"
-page_title: "MetaKube: metakube_cluster"
-sidebar_current: "docs-metakube-cluster"
-description: |-
-  Cluster resource in the Terraform provider metakube.
----
-
-# metakube_resource
+# cluster Resource
 
 Cluster resource in the provider defines the corresponding cluster in MetaKube.
 
@@ -20,7 +12,7 @@ resource "metakube_cluster" "example" {
   credential = ""
 
   spec {
-    version = "1.15.6"
+    version = "1.18.8"
     cloud {
 
       aws {

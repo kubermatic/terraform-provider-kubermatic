@@ -75,7 +75,7 @@ func TestFlattenNodeSpec(t *testing.T) {
 					"foo": "bar",
 				},
 				Versions: &models.NodeVersionInfo{
-					Kubelet: "1.15.6",
+					Kubelet: "1.18.8",
 				},
 			},
 			[]interface{}{
@@ -115,7 +115,7 @@ func TestFlattenNodeSpec(t *testing.T) {
 					},
 					"versions": []interface{}{
 						map[string]interface{}{
-							"kubelet": "1.15.6",
+							"kubelet": "1.18.8",
 						},
 					},
 				},
@@ -401,7 +401,7 @@ func TestExpandNodeSpec(t *testing.T) {
 					},
 					"versions": []interface{}{
 						map[string]interface{}{
-							"kubelet": "1.15.6",
+							"kubelet": "1.18.8",
 						},
 					},
 				},
@@ -429,7 +429,7 @@ func TestExpandNodeSpec(t *testing.T) {
 					"foo": "bar",
 				},
 				Versions: &models.NodeVersionInfo{
-					Kubelet: "1.15.6",
+					Kubelet: "1.18.8",
 				},
 			},
 		},

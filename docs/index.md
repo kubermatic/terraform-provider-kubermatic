@@ -1,15 +1,7 @@
----
-layout: "metakube"
-page_title: "Provider: MetaKube"
-sidebar_current: "docs-metakube-index"
-description: |-
-  Terraform provider metakube.
----
-
-# MetaKube Provider
+# metaKube Provider
 
 The MetaKube provider is used to interact with the resources supported by MetaKube.
-The provider needs to be configured with the proper auth token (`~/.metakube/auth`) before it can be used.
+The provider needs to be configured with the proper auth token (`~/.metakube/auth` or `METAKUBE_TOKEN` env var) before it can be used.
 
 Use the navigation to the left to read about the available resources.
 

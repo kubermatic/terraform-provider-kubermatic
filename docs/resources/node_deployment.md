@@ -1,12 +1,4 @@
----
-layout: "metakube"
-page_title: "MetaKube: metakube_node_deployment"
-sidebar_current: "docs-metakube-node-deployment"
-description: |-
-  Node deployment resource in the Terraform provider metakube.
----
-
-# metakube_resource
+# node_deployment Resource
 
 Node deployment resource in the provider defines the corresponding deployment of nodes.
 
