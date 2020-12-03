@@ -111,7 +111,7 @@ One of the following must be selected.
 * `image` - (Required) Image to use.
 * `disk_size` - (Optional) Set disk size when network storage flavors is used.
 * `tags` - (Optional) Additional instance tags.
-* `use_floating_ip` - (Required) Indicate use of floating ip in case of floating_ip_pool presense.
+* `use_floating_ip` - (Optional) Indicate use of floating ip in case of floating_ip_pool presense. Defaults to true.
 
 ### `aws`
 

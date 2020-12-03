@@ -1,5 +1,6 @@
 *.dll
 *.terraform*
+dist
 *.exe
 .DS_Store
 example.tf
