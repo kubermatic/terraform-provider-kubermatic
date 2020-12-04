@@ -37,6 +37,9 @@ func TestAccMetaKubeCluster_Openstack_Basic(t *testing.T) {
 					resource.TestCheckResourceAttr("metakube_cluster.acctest_cluster", "labels.%", "0"),
 					resource.TestCheckResourceAttr("metakube_cluster.acctest_cluster", "spec.#", "1"),
 					resource.TestCheckResourceAttr("metakube_cluster.acctest_cluster", "spec.0.version", versionK8s17),
+					resource.TestCheckResourceAttr("metakube_cluster.acctest_cluster", "spec.0.domain_name", "foodomain.local"),
+					resource.TestCheckResourceAttr("metakube_cluster.acctest_cluster", "spec.0.services_cidr", "10.240.16.0/18"),
+					resource.TestCheckResourceAttr("metakube_cluster.acctest_cluster", "spec.0.pods_cidr", "172.25.0.0/18"),
 					resource.TestCheckResourceAttr("metakube_cluster.acctest_cluster", "spec.0.cloud.#", "1"),
 					resource.TestCheckResourceAttr("metakube_cluster.acctest_cluster", "spec.0.cloud.0.bringyourown.#", "0"),
 					resource.TestCheckResourceAttr("metakube_cluster.acctest_cluster", "spec.0.cloud.0.aws.#", "0"),
@@ -130,6 +133,11 @@ func TestAccMetaKubeCluster_Openstack_Basic(t *testing.T) {
 					resource.TestCheckResourceAttr("metakube_cluster.acctest_cluster", "labels.test-key", "test-value"),
 					resource.TestCheckResourceAttr("metakube_cluster.acctest_cluster", "spec.#", "1"),
 					resource.TestCheckResourceAttr("metakube_cluster.acctest_cluster", "spec.0.version", versionK8s17),
+					resource.TestCheckResourceAttr("metakube_cluster.acctest_cluster", "spec.0.domain_name", "foodomain.local"),
+					resource.TestCheckResourceAttr("metakube_cluster.acctest_cluster", "spec.0.services_cidr", "10.240.16.0/18"),
+					resource.TestCheckResourceAttr("metakube_cluster.acctest_cluster", "spec.0.pods_cidr", "172.25.0.0/18"),
+					resource.TestCheckResourceAttr("metakube_cluster.acctest_cluster", "spec.0.pod_node_selector", "true"),
+					resource.TestCheckResourceAttr("metakube_cluster.acctest_cluster", "spec.0.pod_security_policy", "true"),
 					resource.TestCheckResourceAttr("metakube_cluster.acctest_cluster", "spec.0.cloud.#", "1"),
 					resource.TestCheckResourceAttr("metakube_cluster.acctest_cluster", "spec.0.cloud.0.bringyourown.#", "0"),
 					resource.TestCheckResourceAttr("metakube_cluster.acctest_cluster", "spec.0.cloud.0.aws.#", "0"),
@@ -270,8 +278,12 @@ func testAccCheckMetaKubeClusterOpenstackBasic(testName, username, password, ten
 					floating_ip_pool = "ext-net"
 				}
 			}
+			domain_name = "foodomain.local"
+			services_cidr = "10.240.16.0/18"
+			pods_cidr = "172.25.0.0/18"
 		}
-	}`
+	}
+`
 
 	return fmt.Sprintf(config, testName, testName, nodeDC, version, tenant, username, password)
 }
@@ -310,6 +322,12 @@ func testAccCheckMetaKubeClusterOpenstackBasic2(testName, username, password, te
 
 			# enable audit logging
 			audit_logging = true
+
+			pod_node_selector = true
+			pod_security_policy = true
+			domain_name = "foodomain.local"
+			services_cidr = "10.240.16.0/18"
+			pods_cidr = "172.25.0.0/18"
 		}
 	}`
 	return fmt.Sprintf(config, testName, testName, nodeDC, k8sVersion, tenant, username, password)

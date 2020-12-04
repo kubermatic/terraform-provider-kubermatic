@@ -137,17 +137,31 @@ func resourceClusterCreate(d *schema.ResourceData, m interface{}) error {
 		return err
 	}
 
-	p.SetProjectID(pID)
-	p.SetDC(dc.Spec.Seed)
-	p.SetBody(&models.CreateClusterSpec{
+	clusterSpec := expandClusterSpec(d.Get("spec").([]interface{}), d.Get("dc_name").(string))
+	createClusterSpec := &models.CreateClusterSpec{
 		Cluster: &models.Cluster{
 			Name:       d.Get("name").(string),
-			Spec:       expandClusterSpec(d.Get("spec").([]interface{}), d.Get("dc_name").(string)),
+			Spec:       clusterSpec,
 			Type:       d.Get("type").(string),
 			Labels:     getLabels(d),
 			Credential: d.Get("credential").(string),
 		},
-	})
+	}
+	if n := clusterSpec.ClusterNetwork; n != nil {
+		if n.DNSDomain != "" {
+			createClusterSpec.DNSDomain = n.DNSDomain
+		}
+		if v := clusterSpec.ClusterNetwork.Pods; v != nil && len(v.CIDRBlocks) == 1 {
+			createClusterSpec.PodsCIDR = v.CIDRBlocks[0]
+		}
+		if v := clusterSpec.ClusterNetwork.Services; v != nil && len(v.CIDRBlocks) == 1 {
+			createClusterSpec.ServicesCIDR = v.CIDRBlocks[0]
+		}
+	}
+
+	p.SetProjectID(pID)
+	p.SetDC(dc.Spec.Seed)
+	p.SetBody(createClusterSpec)
 
 	r, err := k.client.Project.CreateCluster(p, k.auth)
 	if err != nil {
@@ -459,10 +473,14 @@ func patchClusterFields(d *schema.ResourceData, k *metakubeProviderMeta) error {
 	p.SetDC(seedDC)
 	p.SetClusterID(clusterID)
 	name := d.Get("name").(string)
-	version := d.Get("spec.0.version").(string)
-	auditLogging := d.Get("spec.0.audit_logging").(bool)
 	labels := d.Get("labels")
-	p.SetPatch(newClusterPatch(name, version, auditLogging, labels))
+	clusterSpec := expandClusterSpec(d.Get("spec").([]interface{}), d.Get("dc_name").(string))
+	// p.SetPatch(newClusterPatch(name, version, auditLogging, labels))
+	p.SetPatch(map[string]interface{}{
+		"name":   name,
+		"labels": labels,
+		"spec":   clusterSpec,
+	})
 
 	err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
 		_, err := k.client.Project.PatchCluster(p, k.auth)
@@ -568,20 +586,6 @@ func waitClusterReady(k *metakubeProviderMeta, d *schema.ResourceData, projectID
 		k.log.Debugf("waiting for cluster '%s' to be ready, %+v", d.Id(), r.Payload)
 		return resource.RetryableError(fmt.Errorf("waiting for cluster '%s' to be ready", d.Id()))
 	})
-}
-
-func newClusterPatch(name, version string, auditLogging bool, labels interface{}) interface{} {
-	// TODO(furkhat): change to dedicated struct when API has it.
-	return map[string]interface{}{
-		"name":   name,
-		"labels": labels,
-		"spec": map[string]interface{}{
-			"auditLogging": map[string]bool{
-				"enabled": auditLogging,
-			},
-			"version": version,
-		},
-	}
 }
 
 func resourceClusterDelete(d *schema.ResourceData, m interface{}) error {

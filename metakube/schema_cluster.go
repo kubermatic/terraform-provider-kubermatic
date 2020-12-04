@@ -94,6 +94,27 @@ func clusterSpecFields() map[string]*schema.Schema {
 			Default:     false,
 			Description: "Configure PodNodeSelector admission plugin at the apiserver",
 		},
+		"services_cidr": {
+			Type:        schema.TypeString,
+			Optional:    true,
+			ForceNew:    true,
+			Computed:    true,
+			Description: "Internal IP range for ClusterIP Services",
+		},
+		"pods_cidr": {
+			Type:        schema.TypeString,
+			Optional:    true,
+			ForceNew:    true,
+			Computed:    true,
+			Description: "Internal IP range for Pods",
+		},
+		"domain_name": {
+			Type:        schema.TypeString,
+			Optional:    true,
+			ForceNew:    true,
+			Computed:    true,
+			Description: "Internal IP range for ClusterIP Pods",
+		},
 	}
 }
 

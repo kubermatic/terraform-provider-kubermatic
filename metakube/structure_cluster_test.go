@@ -22,6 +22,15 @@ func TestFlattenClusterSpec(t *testing.T) {
 					DatacenterName: "eu-west-1",
 					Bringyourown:   map[string]interface{}{},
 				},
+				ClusterNetwork: &models.ClusterNetworkingConfig{
+					DNSDomain: "foocluster.local",
+					Services: &models.NetworkRanges{
+						CIDRBlocks: []string{"1.1.1.0/20"},
+					},
+					Pods: &models.NetworkRanges{
+						CIDRBlocks: []string{"2.2.0.0/16"},
+					},
+				},
 			},
 			[]interface{}{
 				map[string]interface{}{
@@ -29,6 +38,9 @@ func TestFlattenClusterSpec(t *testing.T) {
 					"audit_logging":       false,
 					"pod_security_policy": false,
 					"pod_node_selector":   false,
+					"services_cidr":       "1.1.1.0/20",
+					"pods_cidr":           "2.2.0.0/16",
+					"domain_name":         "foocluster.local",
 					"cloud": []interface{}{
 						map[string]interface{}{
 							"bringyourown": []interface{}{map[string]interface{}{}},
@@ -321,6 +333,10 @@ func TestExpandClusterSpec(t *testing.T) {
 					"machine_networks":    []interface{}{},
 					"audit_logging":       false,
 					"pod_security_policy": true,
+					"pod_node_selector":   true,
+					"services_cidr":       "1.1.1.0/20",
+					"pods_cidr":           "2.2.0.0/16",
+					"domain_name":         "foocluster.local",
 					"cloud": []interface{}{
 						map[string]interface{}{
 							"bringyourown": []interface{}{
@@ -335,6 +351,16 @@ func TestExpandClusterSpec(t *testing.T) {
 				MachineNetworks:                     nil,
 				AuditLogging:                        &models.AuditLoggingSettings{},
 				UsePodSecurityPolicyAdmissionPlugin: true,
+				UsePodNodeSelectorAdmissionPlugin:   true,
+				ClusterNetwork: &models.ClusterNetworkingConfig{
+					Services: &models.NetworkRanges{
+						CIDRBlocks: []string{"1.1.1.0/20"},
+					},
+					Pods: &models.NetworkRanges{
+						CIDRBlocks: []string{"2.2.0.0/16"},
+					},
+					DNSDomain: "foocluster.local",
+				},
 				Cloud: &models.CloudSpec{
 					DatacenterName: "eu-west-1",
 					Bringyourown:   map[string]interface{}{},
@@ -494,7 +520,7 @@ func TestExpandAWSCloudSpec(t *testing.T) {
 	}
 }
 
-func TestExpandAzureCloudSpec(t *testing.T) {
+func TestExpandOpenstackCloudSpec(t *testing.T) {
 	cases := []struct {
 		Input          []interface{}
 		ExpectedOutput *models.OpenstackCloudSpec
@@ -538,7 +564,7 @@ func TestExpandAzureCloudSpec(t *testing.T) {
 	}
 }
 
-func TestExpandOpenstackCloudSpec(t *testing.T) {
+func TestExpandAzureCloudSpec(t *testing.T) {
 	cases := []struct {
 		Input          []interface{}
 		ExpectedOutput *models.AzureCloudSpec

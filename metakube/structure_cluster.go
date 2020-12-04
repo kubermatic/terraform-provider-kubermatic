@@ -30,6 +30,18 @@ func flattenClusterSpec(values clusterPreserveValues, in *models.ClusterSpec) []
 
 	att["pod_node_selector"] = in.UsePodNodeSelectorAdmissionPlugin
 
+	if network := in.ClusterNetwork; network != nil {
+		if network.DNSDomain != "" {
+			att["domain_name"] = network.DNSDomain
+		}
+		if v := network.Pods; len(v.CIDRBlocks) > 0 && v.CIDRBlocks[0] != "" {
+			att["pods_cidr"] = v.CIDRBlocks[0]
+		}
+		if v := network.Services; len(v.CIDRBlocks) > 0 && v.CIDRBlocks[0] != "" {
+			att["services_cidr"] = v.CIDRBlocks[0]
+		}
+	}
+
 	if in.Cloud != nil {
 		att["cloud"] = flattenClusterCloudSpec(values, in.Cloud)
 	}
@@ -252,6 +264,31 @@ func expandClusterSpec(p []interface{}, dcName string) *models.ClusterSpec {
 
 	if v, ok := in["pod_node_selector"]; ok {
 		obj.UsePodNodeSelectorAdmissionPlugin = v.(bool)
+	}
+
+	if v, ok := in["services_cidr"]; ok {
+		if obj.ClusterNetwork == nil {
+			obj.ClusterNetwork = &models.ClusterNetworkingConfig{}
+		}
+		obj.ClusterNetwork.Services = &models.NetworkRanges{
+			CIDRBlocks: []string{v.(string)},
+		}
+	}
+
+	if v, ok := in["pods_cidr"]; ok {
+		if obj.ClusterNetwork == nil {
+			obj.ClusterNetwork = &models.ClusterNetworkingConfig{}
+		}
+		obj.ClusterNetwork.Pods = &models.NetworkRanges{
+			CIDRBlocks: []string{v.(string)},
+		}
+	}
+
+	if v, ok := in["domain_name"]; ok {
+		if obj.ClusterNetwork == nil {
+			obj.ClusterNetwork = &models.ClusterNetworkingConfig{}
+		}
+		obj.ClusterNetwork.DNSDomain = v.(string)
 	}
 
 	if v, ok := in["cloud"]; ok {

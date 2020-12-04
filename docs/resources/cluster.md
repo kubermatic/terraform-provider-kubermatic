@@ -55,6 +55,9 @@ The following arguments are supported:
 * `audit_logging` - (Optional) Audit logging settings.
 * `pod_security_policy` - (Optional) Pod security policies allow detailed authorization of pod creation and updates.
 * `pod_node_selector` - (Optional) Configure PodNodeSelector admission plugin at the apiserver
+* `services_cidr` - (Optional) Internal IP range for ClusterIP Services.
+* `pods_cidr` - (Optional) Internal IP range for Pods.
+* `domain_name` - (Optional) Cluster domain name.
 
 ### `cloud`
 
