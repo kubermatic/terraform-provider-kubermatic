@@ -31,16 +31,15 @@ func TestAccMetaKubeToken_Basic(t *testing.T) {
 					resource.TestCheckResourceAttrSet("metakube_service_account_token.acctest_sa_token", "expiry"),
 				),
 			},
-			// TODO(furkhat): Fix go-metakube client PatchServiceAccountTokenParams structure
-			// {
-			// 	Config: fmt.Sprintf(testAccMetaKubeServiceAccountTokenBasic, testName, testName, testName+"edit"),
-			// 	Check: resource.ComposeAggregateTestCheckFunc(
-			// 		testAccMetaKubeServiceAccountTokenExists(&token),
-			// 		resource.TestCheckResourceAttrSet("metakube_service_account_token.acctest_sa_token", "token"),
-			// 		resource.TestCheckResourceAttr("metakube_service_account_token.acctest_sa_token", "name", testName+"edit"),
-			// 		resource.TestCheckResourceAttrPtr("metakube_service_account_token.acctest_sa_token", "name", &token.Name),
-			// 	),
-			// },
+			{
+				Config: fmt.Sprintf(testAccMetaKubeServiceAccountTokenBasic, testName, testName, testName+"edit"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccMetaKubeServiceAccountTokenExists(&token),
+					resource.TestCheckResourceAttrSet("metakube_service_account_token.acctest_sa_token", "token"),
+					resource.TestCheckResourceAttr("metakube_service_account_token.acctest_sa_token", "name", testName+"edit"),
+					resource.TestCheckResourceAttrPtr("metakube_service_account_token.acctest_sa_token", "name", &token.Name),
+				),
+			},
 		},
 	})
 }
@@ -54,7 +53,7 @@ func testAccCheckMetaKubeServiceAccountTokenDestroy(s *terraform.State) error {
 		return err
 	}
 	if token != nil {
-		return fmt.Errorf("Record not deleted")
+		return fmt.Errorf("record not deleted")
 	}
 	return nil
 }
@@ -69,7 +68,7 @@ func testAccMetaKubeServiceAccountTokenExists(token *models.PublicServiceAccount
 			*token = *v
 			return nil
 		}
-		return fmt.Errorf("No Record created")
+		return fmt.Errorf("no record created")
 	}
 }
 
@@ -77,10 +76,10 @@ func testAccMetaKubeServiceAccountFetchToken(s *terraform.State) (*models.Public
 	n := "metakube_service_account_token.acctest_sa_token"
 	rs, ok := s.RootModule().Resources[n]
 	if !ok {
-		return nil, fmt.Errorf("Not found: %s", n)
+		return nil, fmt.Errorf("not found: %s", n)
 	}
 	if rs.Primary.ID == "" {
-		return nil, fmt.Errorf("No Record ID is set")
+		return nil, fmt.Errorf("record id is not set")
 	}
 
 	projectID, serviceAccountID, tokenID, err := metakubeServiceAccountTokenParseID(rs.Primary.ID)

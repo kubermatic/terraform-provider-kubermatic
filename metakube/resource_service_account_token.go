@@ -91,7 +91,7 @@ func resourceServiceAccountTokenCreate(d *schema.ResourceData, m interface{}) er
 		}
 		return fmt.Errorf("unable to create token: %v", err)
 	}
-	d.Set("token", r.Payload.Token)
+	_ = d.Set("token", r.Payload.Token)
 	d.SetId(metakubeServiceAccountTokenMakeID(projectID, serviceAccountID, r.Payload.ID))
 	return resourceServiceAccountTokenRead(d, m)
 }
@@ -145,33 +145,34 @@ func resourceServiceAccountTokenRead(d *schema.ResourceData, m interface{}) erro
 		return nil
 	}
 
-	d.Set("name", token.Name)
-	d.Set("creation_timestamp", token.CreationTimestamp.String())
-	d.Set("expiry", token.Expiry.String())
+	_ = d.Set("name", token.Name)
+	_ = d.Set("creation_timestamp", token.CreationTimestamp.String())
+	_ = d.Set("expiry", token.Expiry.String())
 	return nil
 }
 
 func resourceServiceAccountTokenUpdate(d *schema.ResourceData, m interface{}) error {
-	// TODO(furkhat): Fix go-metakube client PatchServiceAccountTokenParams structure
-	// k := m.(*metakubeProviderMeta)
+	k := m.(*metakubeProviderMeta)
 
-	// projectID, serviceAccountID, tokenID, err := metakubeServiceAccountTokenParseID(d.Id())
-	// if err != nil {
-	// 	return err
-	// }
-	// p := tokens.NewPatchServiceAccountTokenParams()
-	// p.SetProjectID(projectID)
-	// p.SetServiceAccountID(serviceAccountID)
-	// p.SetTokenID(tokenID)
-	// // Only name is editable
-	// p.SetBody([]uint8(fmt.Sprintf(`{name:"%s"}`, d.Get("name").(string))))
-	// _, err = k.client.Tokens.PatchServiceAccountToken(p, k.auth)
-	// if err != nil {
-	// 	if e, ok := err.(*tokens.PatchServiceAccountTokenDefault); ok && errorMessage(e.Payload) != "" {
-	// 		return fmt.Errorf("failed to update token: %s", errorMessage(e.Payload))
-	// 	}
-	// 	return fmt.Errorf("failed to update token: %v", err)
-	// }
+	projectID, serviceAccountID, tokenID, err := metakubeServiceAccountTokenParseID(d.Id())
+	if err != nil {
+		return err
+	}
+	p := tokens.NewPatchServiceAccountTokenParams()
+	p.SetProjectID(projectID)
+	p.SetServiceAccountID(serviceAccountID)
+	p.SetTokenID(tokenID)
+	// Only name is editable
+	p.SetBody(&models.PublicServiceAccountToken{
+		Name: d.Get("name").(string),
+	})
+	_, err = k.client.Tokens.PatchServiceAccountToken(p, k.auth)
+	if err != nil {
+		if e, ok := err.(*tokens.PatchServiceAccountTokenDefault); ok && errorMessage(e.Payload) != "" {
+			return fmt.Errorf("failed to update token: %s", errorMessage(e.Payload))
+		}
+		return fmt.Errorf("failed to update token: %v", err)
+	}
 	return resourceServiceAccountTokenRead(d, m)
 }
 

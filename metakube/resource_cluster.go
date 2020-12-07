@@ -231,7 +231,7 @@ func getDatacenterByName(k *metakubeProviderMeta, name string) (*models.Datacent
 		}
 	}
 
-	return nil, fmt.Errorf("Datacenter '%s' not found", name)
+	return nil, fmt.Errorf("datacenter '%s' not found", name)
 }
 
 func resourceClusterRead(d *schema.ResourceData, m interface{}) error {
@@ -266,8 +266,8 @@ func resourceClusterRead(d *schema.ResourceData, m interface{}) error {
 		return fmt.Errorf("unable to get cluster '%s': %s", d.Id(), getErrorResponse(err))
 	}
 
-	d.Set("project_id", projectID)
-	d.Set("dc_name", r.Payload.Spec.Cloud.DatacenterName)
+	_ = d.Set("project_id", projectID)
+	_ = d.Set("dc_name", r.Payload.Spec.Cloud.DatacenterName)
 
 	labels, err := excludeProjectLabels(k, projectID, r.Payload.Labels)
 	if err != nil {
@@ -277,7 +277,7 @@ func resourceClusterRead(d *schema.ResourceData, m interface{}) error {
 		return err
 	}
 
-	d.Set("name", r.Payload.Name)
+	_ = d.Set("name", r.Payload.Name)
 
 	// TODO: check why API returns an empty credential field even if it is set
 	//err = d.Set("credential", r.Payload.Credential)
@@ -285,7 +285,7 @@ func resourceClusterRead(d *schema.ResourceData, m interface{}) error {
 	//	return err
 	//}
 
-	d.Set("type", r.Payload.Type)
+	_ = d.Set("type", r.Payload.Type)
 
 	values := readClusterPreserveValues(d)
 	specFlattenned := flattenClusterSpec(values, r.Payload.Spec)
@@ -293,9 +293,9 @@ func resourceClusterRead(d *schema.ResourceData, m interface{}) error {
 		return err
 	}
 
-	d.Set("creation_timestamp", r.Payload.CreationTimestamp.String())
+	_ = d.Set("creation_timestamp", r.Payload.CreationTimestamp.String())
 
-	d.Set("deletion_timestamp", r.Payload.DeletionTimestamp.String())
+	_ = d.Set("deletion_timestamp", r.Payload.DeletionTimestamp.String())
 
 	keys, err := metakubeClusterGetAssignedSSHKeys(d, k)
 	if err != nil {
@@ -432,24 +432,17 @@ func readClusterPreserveValues(d *schema.ResourceData) clusterPreserveValues {
 }
 
 func resourceClusterUpdate(d *schema.ResourceData, m interface{}) error {
-	d.Partial(true)
-	defer d.Partial(false)
-
 	k := m.(*metakubeProviderMeta)
 
 	if d.HasChanges("name", "labels", "spec") {
 		if err := patchClusterFields(d, k); err != nil {
 			return err
 		}
-		d.SetPartial("name")
-		d.SetPartial("labels")
-		d.SetPartial("spec")
 	}
 	if d.HasChange("sshkeys") {
 		if err := updateClusterSSHKeys(d, k); err != nil {
 			return err
 		}
-		d.SetPartial("sshkeys")
 	}
 
 	projectID, seedDC, clusterID, err := metakubeClusterParseID(d.Id())
@@ -502,17 +495,17 @@ func patchClusterFields(d *schema.ResourceData, k *metakubeProviderMeta) error {
 }
 
 func updateClusterSSHKeys(d *schema.ResourceData, k *metakubeProviderMeta) error {
-	var unassign, assign []string
-	old, new := d.GetChange("sshkeys")
+	var unassigned, assign []string
+	prev, cur := d.GetChange("sshkeys")
 
-	for _, id := range old.(*schema.Set).List() {
-		if !new.(*schema.Set).Contains(id) {
-			unassign = append(unassign, id.(string))
+	for _, id := range prev.(*schema.Set).List() {
+		if !cur.(*schema.Set).Contains(id) {
+			unassigned = append(unassigned, id.(string))
 		}
 	}
 
-	for _, id := range new.(*schema.Set).List() {
-		if !old.(*schema.Set).Contains(id) {
+	for _, id := range cur.(*schema.Set).List() {
+		if !prev.(*schema.Set).Contains(id) {
 			assign = append(assign, id.(string))
 		}
 	}
@@ -522,7 +515,7 @@ func updateClusterSSHKeys(d *schema.ResourceData, k *metakubeProviderMeta) error
 		return err
 	}
 
-	for _, id := range unassign {
+	for _, id := range unassigned {
 		p := project.NewDetachSSHKeyFromClusterParams()
 		p.SetProjectID(projectID)
 		p.SetDC(seedDC)

@@ -162,12 +162,12 @@ func resourceProjectRead(d *schema.ResourceData, m interface{}) error {
 	if err := d.Set("labels", r.Payload.Labels); err != nil {
 		return err
 	}
-	d.Set("name", r.Payload.Name)
-	d.Set("status", r.Payload.Status)
-	d.Set("creation_timestamp", r.Payload.CreationTimestamp.String())
-	d.Set("deletion_timestamp", r.Payload.DeletionTimestamp.String())
+	_ = d.Set("name", r.Payload.Name)
+	_ = d.Set("status", r.Payload.Status)
+	_ = d.Set("creation_timestamp", r.Payload.CreationTimestamp.String())
+	_ = d.Set("deletion_timestamp", r.Payload.DeletionTimestamp.String())
 
-	users, err := metakubeProjectPersistedUsers(k, d.Id())
+	projectPersistedUsers, err := metakubeProjectPersistedUsers(k, d.Id())
 	if err != nil {
 		return err
 	}
@@ -177,10 +177,10 @@ func resourceProjectRead(d *schema.ResourceData, m interface{}) error {
 		return err
 	}
 
-	return d.Set("user", flattendProjectUsers(curUser, users))
+	return d.Set("user", flattenedProjectUsers(curUser, projectPersistedUsers))
 }
 
-func flattendProjectUsers(cur *models.User, u map[string]models.User) *schema.Set {
+func flattenedProjectUsers(cur *models.User, u map[string]models.User) *schema.Set {
 	var items []interface{}
 	for _, v := range u {
 		if v.Email == cur.Email {
@@ -358,15 +358,14 @@ func metakubeProjectPersistedUsers(k *metakubeProviderMeta, id string) (map[stri
 		k.log.Debugf("error while waiting for the users %v", err)
 		return nil, fmt.Errorf("error while waiting for the users %v", err)
 	}
-	users := rawUsers.(map[string]models.User)
+	u := rawUsers.(map[string]models.User)
 
-	return users, nil
+	return u, nil
 }
 
 func metakubeProjectConfiguredUsers(d *schema.ResourceData) map[string]models.User {
 	ret := make(map[string]models.User)
-	users := d.Get("user").(*schema.Set).List()
-	for _, u := range users {
+	for _, u := range d.Get("user").(*schema.Set).List() {
 		u := u.(map[string]interface{})
 		ret[u["email"].(string)] = models.User{Email: u["email"].(string), Projects: []*models.ProjectGroup{
 			{

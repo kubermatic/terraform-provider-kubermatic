@@ -70,7 +70,7 @@ type nodeSpecPreservedValues struct {
 }
 
 func readNodeDeploymentPreservedValues(d *schema.ResourceData) *nodeSpecPreservedValues {
-	if _, ok := d.GetOkExists("spec.0.template.0.cloud.0.azure.0"); !ok {
+	if _, ok := d.GetOk("spec.0.template.0.cloud.0.azure.0"); !ok {
 		return &nodeSpecPreservedValues{}
 	}
 	return &nodeSpecPreservedValues{
@@ -133,7 +133,7 @@ func metakubeNodeDeploymentParseID(id string) (string, string, string, string, e
 
 func resourceNodeDeploymentRead(d *schema.ResourceData, m interface{}) error {
 	k := m.(*metakubeProviderMeta)
-	projectID, seedDC, clusterID, nodeDeplID, err := metakubeNodeDeploymentParseID(d.Id())
+	projectID, seedDC, clusterID, nodeDeploymentID, err := metakubeNodeDeploymentParseID(d.Id())
 	if err != nil {
 		return err
 	}
@@ -141,7 +141,7 @@ func resourceNodeDeploymentRead(d *schema.ResourceData, m interface{}) error {
 	p.SetProjectID(projectID)
 	p.SetDC(seedDC)
 	p.SetClusterID(clusterID)
-	p.SetNodeDeploymentID(nodeDeplID)
+	p.SetNodeDeploymentID(nodeDeploymentID)
 
 	r, err := k.client.Project.GetNodeDeployment(p, k.auth)
 	if err != nil {
@@ -158,15 +158,15 @@ func resourceNodeDeploymentRead(d *schema.ResourceData, m interface{}) error {
 		return fmt.Errorf("unable to get node deployment '%s': %s", d.Id(), getErrorResponse(err))
 	}
 
-	d.Set("cluster_id", metakubeClusterMakeID(projectID, seedDC, clusterID))
+	_ = d.Set("cluster_id", metakubeClusterMakeID(projectID, seedDC, clusterID))
 
-	d.Set("name", r.Payload.Name)
+	_ = d.Set("name", r.Payload.Name)
 
-	d.Set("spec", flattenNodeDeploymentSpec(readNodeDeploymentPreservedValues(d), r.Payload.Spec))
+	_ = d.Set("spec", flattenNodeDeploymentSpec(readNodeDeploymentPreservedValues(d), r.Payload.Spec))
 
-	d.Set("creation_timestamp", r.Payload.CreationTimestamp.String())
+	_ = d.Set("creation_timestamp", r.Payload.CreationTimestamp.String())
 
-	d.Set("deletion_timestamp", r.Payload.DeletionTimestamp.String())
+	_ = d.Set("deletion_timestamp", r.Payload.DeletionTimestamp.String())
 
 	return nil
 }
@@ -174,7 +174,7 @@ func resourceNodeDeploymentRead(d *schema.ResourceData, m interface{}) error {
 func resourceNodeDeploymentUpdate(d *schema.ResourceData, m interface{}) error {
 	// TODO(furkhat): uncomment and adjust when client is fixed.
 	k := m.(*metakubeProviderMeta)
-	projectID, seedDC, clusterID, nodeDeplID, err := metakubeNodeDeploymentParseID(d.Id())
+	projectID, seedDC, clusterID, nodeDeploymentID, err := metakubeNodeDeploymentParseID(d.Id())
 	if err != nil {
 		return err
 	}
@@ -182,7 +182,7 @@ func resourceNodeDeploymentUpdate(d *schema.ResourceData, m interface{}) error {
 	p.SetProjectID(projectID)
 	p.SetDC(seedDC)
 	p.SetClusterID(clusterID)
-	p.SetNodeDeploymentID(nodeDeplID)
+	p.SetNodeDeploymentID(nodeDeploymentID)
 	p.SetPatch(models.NodeDeployment{
 		Spec: expandNodeDeploymentSpec(d.Get("spec").([]interface{})),
 	})
@@ -225,7 +225,7 @@ func waitForNodeDeploymentRead(k *metakubeProviderMeta, timeout time.Duration, p
 
 func resourceNodeDeploymentDelete(d *schema.ResourceData, m interface{}) error {
 	k := m.(*metakubeProviderMeta)
-	projectID, seedDC, clusterID, nodeDeplID, err := metakubeNodeDeploymentParseID(d.Id())
+	projectID, seedDC, clusterID, nodeDeploymentID, err := metakubeNodeDeploymentParseID(d.Id())
 	if err != nil {
 		return err
 	}
@@ -233,7 +233,7 @@ func resourceNodeDeploymentDelete(d *schema.ResourceData, m interface{}) error {
 	p.SetProjectID(projectID)
 	p.SetDC(seedDC)
 	p.SetClusterID(clusterID)
-	p.SetNodeDeploymentID(nodeDeplID)
+	p.SetNodeDeploymentID(nodeDeploymentID)
 
 	_, err = k.client.Project.DeleteNodeDeployment(p, k.auth)
 	if err != nil {
@@ -246,7 +246,7 @@ func resourceNodeDeploymentDelete(d *schema.ResourceData, m interface{}) error {
 		p.SetProjectID(projectID)
 		p.SetDC(seedDC)
 		p.SetClusterID(clusterID)
-		p.SetNodeDeploymentID(nodeDeplID)
+		p.SetNodeDeploymentID(nodeDeploymentID)
 
 		r, err := k.client.Project.GetNodeDeployment(p, k.auth)
 		if err != nil {

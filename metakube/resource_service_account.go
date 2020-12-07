@@ -118,8 +118,8 @@ func resourceServiceAccountRead(d *schema.ResourceData, m interface{}) error {
 		return nil
 	}
 
-	d.Set("name", serviceAccount.Name)
-	d.Set("group", serviceAccount.Group)
+	_ = d.Set("name", serviceAccount.Name)
+	_ = d.Set("group", serviceAccount.Group)
 
 	return nil
 }
@@ -160,29 +160,28 @@ func metakubeServiceAccountList(k *metakubeProviderMeta, projectID string) ([]*m
 }
 
 func resourceServiceAccountUpdate(d *schema.ResourceData, m interface{}) error {
-	// TODO(furkhat): uncomment when fix to `assignment to entry in nil map` released.
-	// k := m.(*metakubeProviderMeta)
+	k := m.(*metakubeProviderMeta)
 
-	// projectID, serviceAccountID, err := metakubeServiceAccountParseID(d.Id())
-	// if err != nil {
-	// 	return err
-	// }
+	projectID, serviceAccountID, err := metakubeServiceAccountParseID(d.Id())
+	if err != nil {
+		return err
+	}
 
-	// p := serviceaccounts.NewUpdateServiceAccountParams()
-	// p.SetProjectID(projectID)
-	// p.SetServiceAccountID(serviceAccountID)
-	// p.SetBody(&models.ServiceAccount{m
-	// 	ID:    serviceAccountID,
-	// 	Name:  d.Get("name").(string),
-	// 	Group: d.Get("group").(string),
-	// })
-	// _, err = k.client.Serviceaccounts.UpdateServiceAccount(p, k.auth)
-	// if err != nil {
-	// 	if e, ok := err.(*serviceaccounts.UpdateServiceAccountDefault); ok && errorMessage(e.Payload) != "" {
-	// 		return fmt.Errorf("unable to update service account: %s", errorMessage(e.Payload))
-	// 	}
-	// 	return fmt.Errorf("unable to update service account: %v", err)
-	// }
+	p := serviceaccounts.NewUpdateServiceAccountParams()
+	p.SetProjectID(projectID)
+	p.SetServiceAccountID(serviceAccountID)
+	p.SetBody(&models.ServiceAccount{
+		ID:    serviceAccountID,
+		Name:  d.Get("name").(string),
+		Group: d.Get("group").(string),
+	})
+	_, err = k.client.Serviceaccounts.UpdateServiceAccount(p, k.auth)
+	if err != nil {
+		if e, ok := err.(*serviceaccounts.UpdateServiceAccountDefault); ok && errorMessage(e.Payload) != "" {
+			return fmt.Errorf("unable to update service account: %s", errorMessage(e.Payload))
+		}
+		return fmt.Errorf("unable to update service account: %v", err)
+	}
 	return resourceServiceAccountRead(d, m)
 }
 
