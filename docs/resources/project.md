@@ -23,6 +23,7 @@ The following arguments are supported:
 
 ## Attributes
 
+* `id` - The ID of the project
 * `status` - The current state of the project.
 * `creation_timestamp` - Timestamp of resource creation.
 * `deletion_timestamp` - Timestamp of resource deletion.
