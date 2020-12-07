@@ -172,7 +172,6 @@ func resourceNodeDeploymentRead(d *schema.ResourceData, m interface{}) error {
 }
 
 func resourceNodeDeploymentUpdate(d *schema.ResourceData, m interface{}) error {
-	// TODO(furkhat): uncomment and adjust when client is fixed.
 	k := m.(*metakubeProviderMeta)
 	projectID, seedDC, clusterID, nodeDeploymentID, err := metakubeNodeDeploymentParseID(d.Id())
 	if err != nil {

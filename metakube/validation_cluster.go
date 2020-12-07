@@ -2,6 +2,7 @@ package metakube
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/syseleven/terraform-provider-metakube/go-metakube/client/openstack"
@@ -85,18 +86,18 @@ func validateVersionExists() schema.CustomizeDiffFunc {
 	}
 }
 
-func validateOnlyOneCloudProviderSpecified() schema.CustomizeDiffFunc {
+func validateOneCloudProviderSpecified() schema.CustomizeDiffFunc {
 	return func(d *schema.ResourceDiff, meta interface{}) error {
 		var existingProviders []string
 		counter := 0
 		for _, provider := range supportedProviders {
-			if _, ok := d.GetOk(fmt.Sprintf("spec.0.cloud.0.%s.0", provider)); ok {
+			if v, ok := d.GetOk(fmt.Sprintf("spec.0.cloud.0.%s", provider)); ok && v != nil && len(v.([]interface{})) > 0 {
 				existingProviders = append(existingProviders, provider)
 				counter++
 			}
 		}
-		if counter > 1 {
-			return fmt.Errorf("only one cloud provider must be specified: %v", existingProviders)
+		if counter != 1 {
+			return fmt.Errorf("only one cloud provider must be specified, found: %s", strings.Join(existingProviders, " "))
 		}
 		return nil
 	}

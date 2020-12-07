@@ -118,7 +118,7 @@ func resourceCluster() *schema.Resource {
 				return false
 			}),
 			validateVersionExists(),
-			validateOnlyOneCloudProviderSpecified(),
+			validateOneCloudProviderSpecified(),
 			validateOpenstackNetworkExistsIfSet("spec.0.cloud.0.openstack.0.floating_ip_pool", true),
 			validateOpenstackNetworkExistsIfSet("spec.0.cloud.0.openstack.0.network", false),
 			validateOpenstackSubnetWithIDExistsIfSet(),
