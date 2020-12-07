@@ -1,19 +1,25 @@
+terraform {
+  required_providers {
+    metakube = {
+      source  = "syseleven/metakube"
+    }
+  }
+}
 provider metakube {
-  host = "set_it_up"
 }
 resource "metakube_project" "example_project" {
   name = var.project_name
 }
 resource "metakube_cluster" "example_cluster" {
   name       = var.cluster_name
-  dc_name    = "aws-eu-central-1a"
+  dc_name    = "syseleven-aws-eu-central-1a"
   project_id = metakube_project.example_project.id
   spec {
     version = var.k8s_version
     cloud {
       aws {
-        access_key_id     = "set_it_up"
-        secret_access_key = "set_it_up"
+        access_key_id     = var.aws_access_key_id
+        secret_access_key = var.aws_secret_access_key
       }
     }
   }
@@ -30,7 +36,7 @@ resource "metakube_node_deployment" "example_node" {
           disk_size         = 25
           volume_type       = "standard"
           availability_zone = "eu-central-1c"
-          subnet_id         = "set_it_up"
+          subnet_id         = var.aws_subnet_id
           assign_public_ip  = true
 
         }
