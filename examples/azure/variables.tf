@@ -1,16 +1,16 @@
 variable "project_name" {
   description = "Name of the MetaKube project"
-  default     = "exampleProject"
+  type        = string
 }
 
 variable "cluster_name" {
   description = "Name of the MetaKube cluster"
-  default     = "exampleCluster"
+  type        = string
 }
 
 variable "k8s_version" {
   description = "The Kubernetes version"
-  default     = "1.18.8"
+  type        = string
 }
 
 variable "azure_client_id" {

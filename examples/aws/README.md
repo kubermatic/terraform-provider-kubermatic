@@ -6,4 +6,4 @@ To run, set up your AWS provider credentials and subnet ID. Configure MetaKube h
 
 Running the example
 
-run `terraform apply` to see it work.
+run `terraform init .` and then `terraform apply` to see it work.

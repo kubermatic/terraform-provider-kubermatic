@@ -6,4 +6,4 @@ To run, set up your Azure provider credentials. Configure MetaKube host address.
 
 Running the example
 
-run `terraform apply` to see it work.
+run `terraform init .` and then `terraform apply` to see it work.

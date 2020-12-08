@@ -40,7 +40,7 @@ variable tenant {
 }
 
 variable node_deployment_name {
-  description = "Name of the MetaKube project"
+  description = "Name of the MetaKube Node deployment
   type        = string
 }
 
