@@ -1,13 +1,15 @@
 package metakube
 
 import (
+	"context"
 	"fmt"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"strings"
 	"time"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/syseleven/terraform-provider-metakube/go-metakube/client/serviceaccounts"
 	"github.com/syseleven/terraform-provider-metakube/go-metakube/models"
 )
@@ -19,12 +21,12 @@ const (
 
 func resourceServiceAccount() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceServiceAccountCreate,
-		Read:   resourceServiceAccountRead,
-		Update: resourceServiceAccountUpdate,
-		Delete: resourceServiceAccountDelete,
+		CreateContext: resourceServiceAccountCreate,
+		ReadContext:   resourceServiceAccountRead,
+		UpdateContext: resourceServiceAccountUpdate,
+		DeleteContext: resourceServiceAccountDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -34,12 +36,14 @@ func resourceServiceAccount() *schema.Resource {
 				ForceNew:    true,
 				Description: "Reference project identifier",
 			},
+
 			"name": {
 				Type:         schema.TypeString,
 				Required:     true,
 				ValidateFunc: validation.NoZeroValues,
 				Description:  "Service account's name",
 			},
+
 			"group": {
 				Type:         schema.TypeString,
 				Required:     true,
@@ -72,10 +76,11 @@ func metakubeServiceAccountParseID(id string) (string, string, error) {
 	return parts[0], parts[1], nil
 }
 
-func resourceServiceAccountCreate(d *schema.ResourceData, m interface{}) error {
+func resourceServiceAccountCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	k := m.(*metakubeProviderMeta)
 
 	p := serviceaccounts.NewAddServiceAccountToProjectParams()
+	p.SetContext(ctx)
 	p.SetProjectID(d.Get("project_id").(string))
 	p.SetBody(&models.ServiceAccount{
 		Name:  d.Get("name").(string),
@@ -83,27 +88,24 @@ func resourceServiceAccountCreate(d *schema.ResourceData, m interface{}) error {
 	})
 	r, err := k.client.Serviceaccounts.AddServiceAccountToProject(p, k.auth)
 	if err != nil {
-		if e, ok := err.(*serviceaccounts.AddServiceAccountToProjectDefault); ok && errorMessage(e.Payload) != "" {
-			return fmt.Errorf("unable to create service account: %s", errorMessage(e.Payload))
-		}
-		return fmt.Errorf("unable to create service account: %v", err)
+		return diag.Errorf("unable to create service account: %s", getErrorResponse(err))
 	}
 	d.SetId(metakubeServiceAccountMakeID(d.Get("project_id").(string), r.Payload.ID))
 
-	return resourceServiceAccountRead(d, m)
+	return resourceServiceAccountRead(ctx, d, m)
 }
 
-func resourceServiceAccountRead(d *schema.ResourceData, m interface{}) error {
+func resourceServiceAccountRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	k := m.(*metakubeProviderMeta)
 
 	projectID, serviceAccountID, err := metakubeServiceAccountParseID(d.Id())
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
-	all, err := metakubeServiceAccountList(k, projectID)
+	all, err := metakubeServiceAccountList(ctx, k, projectID)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	var serviceAccount *models.ServiceAccount
@@ -124,7 +126,7 @@ func resourceServiceAccountRead(d *schema.ResourceData, m interface{}) error {
 	return nil
 }
 
-func metakubeServiceAccountList(k *metakubeProviderMeta, projectID string) ([]*models.ServiceAccount, error) {
+func metakubeServiceAccountList(ctx context.Context, k *metakubeProviderMeta, projectID string) ([]*models.ServiceAccount, error) {
 	listStateConf := &resource.StateChangeConf{
 		Pending: []string{
 			serviceAccountUnavailable,
@@ -134,6 +136,7 @@ func metakubeServiceAccountList(k *metakubeProviderMeta, projectID string) ([]*m
 		},
 		Refresh: func() (interface{}, string, error) {
 			p := serviceaccounts.NewListServiceAccountsParams()
+			p.SetContext(ctx)
 			p.SetProjectID(projectID)
 			s, err := k.client.Serviceaccounts.ListServiceAccounts(p, k.auth)
 			if err != nil {
@@ -149,7 +152,7 @@ func metakubeServiceAccountList(k *metakubeProviderMeta, projectID string) ([]*m
 		Delay:   requestDelay,
 	}
 
-	s, err := listStateConf.WaitForState()
+	s, err := listStateConf.WaitForStateContext(ctx)
 	if err != nil {
 		k.log.Debugf("error while waiting for the service account %v", err)
 		return nil, fmt.Errorf("error while waiting for the service account %v", err)
@@ -159,15 +162,16 @@ func metakubeServiceAccountList(k *metakubeProviderMeta, projectID string) ([]*m
 	return sa.Payload, nil
 }
 
-func resourceServiceAccountUpdate(d *schema.ResourceData, m interface{}) error {
+func resourceServiceAccountUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	k := m.(*metakubeProviderMeta)
 
 	projectID, serviceAccountID, err := metakubeServiceAccountParseID(d.Id())
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	p := serviceaccounts.NewUpdateServiceAccountParams()
+	p.SetContext(ctx)
 	p.SetProjectID(projectID)
 	p.SetServiceAccountID(serviceAccountID)
 	p.SetBody(&models.ServiceAccount{
@@ -177,31 +181,26 @@ func resourceServiceAccountUpdate(d *schema.ResourceData, m interface{}) error {
 	})
 	_, err = k.client.Serviceaccounts.UpdateServiceAccount(p, k.auth)
 	if err != nil {
-		if e, ok := err.(*serviceaccounts.UpdateServiceAccountDefault); ok && errorMessage(e.Payload) != "" {
-			return fmt.Errorf("unable to update service account: %s", errorMessage(e.Payload))
-		}
-		return fmt.Errorf("unable to update service account: %v", err)
+		return diag.Errorf("unable to update service account: %v", getErrorResponse(err))
 	}
-	return resourceServiceAccountRead(d, m)
+	return resourceServiceAccountRead(ctx, d, m)
 }
 
-func resourceServiceAccountDelete(d *schema.ResourceData, m interface{}) error {
+func resourceServiceAccountDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	k := m.(*metakubeProviderMeta)
 
 	projectID, serviceAccountID, err := metakubeServiceAccountParseID(d.Id())
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	p := serviceaccounts.NewDeleteServiceAccountParams()
+	p.SetContext(ctx)
 	p.SetProjectID(projectID)
 	p.SetServiceAccountID(serviceAccountID)
 	_, err = k.client.Serviceaccounts.DeleteServiceAccount(p, k.auth)
 	if err != nil {
-		if e, ok := err.(*serviceaccounts.DeleteServiceAccountDefault); ok && errorMessage(e.Payload) != "" {
-			return fmt.Errorf("unable to delete service account: %s", errorMessage(e.Payload))
-		}
-		return fmt.Errorf("unable to delete service account: %v", err)
+		return diag.Errorf("unable to delete service account: %v", getErrorResponse(err))
 	}
 	return nil
 }

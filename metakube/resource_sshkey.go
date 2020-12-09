@@ -1,13 +1,15 @@
 package metakube
 
 import (
+	"context"
 	"fmt"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"strings"
 	"time"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/syseleven/terraform-provider-metakube/go-metakube/client/project"
 	"github.com/syseleven/terraform-provider-metakube/go-metakube/models"
 )
@@ -19,11 +21,11 @@ const (
 
 func resourceSSHKey() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceSSHKeyCreate,
-		Read:   resourceSSHKeyRead,
-		Delete: resourceSSHKeyDelete,
+		CreateContext: resourceSSHKeyCreate,
+		ReadContext:   resourceSSHKeyRead,
+		DeleteContext: resourceSSHKeyDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -33,12 +35,14 @@ func resourceSSHKey() *schema.Resource {
 				ValidateFunc: validation.NoZeroValues,
 				ForceNew:     true,
 			},
+
 			"name": {
 				Type:         schema.TypeString,
 				Required:     true,
 				ValidateFunc: validation.NoZeroValues,
 				ForceNew:     true,
 			},
+
 			"public_key": {
 				Type:         schema.TypeString,
 				Required:     true,
@@ -52,7 +56,7 @@ func resourceSSHKey() *schema.Resource {
 	}
 }
 
-func resourceSSHKeyCreate(d *schema.ResourceData, m interface{}) error {
+func resourceSSHKeyCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	k := m.(*metakubeProviderMeta)
 	p := project.NewCreateSSHKeyParams()
 	p.SetProjectID(d.Get("project_id").(string))
@@ -64,13 +68,13 @@ func resourceSSHKeyCreate(d *schema.ResourceData, m interface{}) error {
 	}
 	created, err := k.client.Project.CreateSSHKey(p, k.auth)
 	if err != nil {
-		return fmt.Errorf("unable to create SSH key: %s", getErrorResponse(err))
+		return diag.Errorf("unable to create SSH key: %s", getErrorResponse(err))
 	}
 	d.SetId(created.Payload.ID)
-	return resourceSSHKeyRead(d, m)
+	return resourceSSHKeyRead(ctx, d, m)
 }
 
-func resourceSSHKeyRead(d *schema.ResourceData, m interface{}) error {
+func resourceSSHKeyRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	k := m.(*metakubeProviderMeta)
 
 	listStateConf := &resource.StateChangeConf{
@@ -82,6 +86,7 @@ func resourceSSHKeyRead(d *schema.ResourceData, m interface{}) error {
 		},
 		Refresh: func() (interface{}, string, error) {
 			p := project.NewListSSHKeysParams()
+			p.SetContext(ctx)
 			p.SetProjectID(d.Get("project_id").(string))
 			k, err := k.client.Project.ListSSHKeys(p, k.auth)
 			if err != nil {
@@ -97,10 +102,10 @@ func resourceSSHKeyRead(d *schema.ResourceData, m interface{}) error {
 		Delay:   requestDelay,
 	}
 
-	s, err := listStateConf.WaitForState()
+	s, err := listStateConf.WaitForStateContext(ctx)
 	if err != nil {
 		k.log.Debugf("error while waiting for the SSH keys: %v", err)
-		return fmt.Errorf("error while waiting for the SSH keys: %v", err)
+		return diag.Errorf("error while waiting for the SSH keys: %v", err)
 	}
 	keys := s.(*project.ListSSHKeysOK)
 
@@ -115,19 +120,20 @@ func resourceSSHKeyRead(d *schema.ResourceData, m interface{}) error {
 		d.SetId("")
 		return nil
 	}
-	d.Set("name", sshkey.Name)
-	d.Set("public_key", sshkey.Spec.PublicKey)
+	_ = d.Set("name", sshkey.Name)
+	_ = d.Set("public_key", sshkey.Spec.PublicKey)
 	return nil
 }
 
-func resourceSSHKeyDelete(d *schema.ResourceData, m interface{}) error {
+func resourceSSHKeyDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	k := m.(*metakubeProviderMeta)
 	p := project.NewDeleteSSHKeyParams()
+	p.SetContext(ctx)
 	p.SetProjectID(d.Get("project_id").(string))
 	p.SetSSHKeyID(d.Id())
 	_, err := k.client.Project.DeleteSSHKey(p, k.auth)
 	if err != nil {
-		return fmt.Errorf("unable to delete SSH key: %s", getErrorResponse(err))
+		return diag.Errorf("unable to delete SSH key: %s", getErrorResponse(err))
 	}
 	return nil
 }

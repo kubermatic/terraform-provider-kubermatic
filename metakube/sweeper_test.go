@@ -14,7 +14,7 @@ func sharedConfigForRegion(_ string) (*metakubeProviderMeta, error) {
 		return nil, fmt.Errorf("create client %v", err)
 	}
 	token := os.Getenv("METAKUBE_TOKEN")
-	auth, err := newAuth(token, "")
+	auth, err := newAuth(token, "", "")
 	if err != nil {
 		return nil, fmt.Errorf("auth api %v", err)
 	}

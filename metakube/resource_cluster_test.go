@@ -7,8 +7,8 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/terraform"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"github.com/syseleven/terraform-provider-metakube/go-metakube/client/project"
 	"github.com/syseleven/terraform-provider-metakube/go-metakube/models"
 )
@@ -125,7 +125,7 @@ func TestAccMetaKubeCluster_Openstack_Basic(t *testing.T) {
 					}),
 					testAccCheckMetaKubeClusterExists(&cluster),
 					testAccCheckMetaKubeClusterOpenstackAttributes(&cluster, testName+"-changed", username, password, tenant, nodeDC, versionK8s17, map[string]string{
-						"foo":      "bar", // label propogated from project
+						"foo":      "bar", // label propagated from project
 						"test-key": "test-value",
 					}, true),
 					resource.TestCheckResourceAttr("metakube_cluster.acctest_cluster", "name", testName+"-changed"),

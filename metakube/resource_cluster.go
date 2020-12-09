@@ -1,15 +1,18 @@
 package metakube
 
 import (
+	"context"
 	"fmt"
+	"github.com/hashicorp/go-cty/cty"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"net/http"
 	"strings"
 
 	"github.com/hashicorp/go-version"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/customdiff"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/syseleven/terraform-provider-metakube/go-metakube/client/datacenter"
 	"github.com/syseleven/terraform-provider-metakube/go-metakube/client/project"
 	"github.com/syseleven/terraform-provider-metakube/go-metakube/models"
@@ -23,12 +26,12 @@ var supportedProviders = []string{"aws", "openstack", "azure"}
 
 func resourceCluster() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceClusterCreate,
-		Read:   resourceClusterRead,
-		Update: resourceClusterUpdate,
-		Delete: resourceClusterDelete,
+		CreateContext: resourceClusterCreate,
+		ReadContext:   resourceClusterRead,
+		UpdateContext: resourceClusterUpdate,
+		DeleteContext: resourceClusterDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -38,22 +41,26 @@ func resourceCluster() *schema.Resource {
 				ForceNew:    true,
 				Description: "Reference project identifier",
 			},
+
 			"dc_name": {
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
 				Description: "Data center name",
 			},
+
 			"name": {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "Cluster name",
 			},
+
 			"labels": {
 				Type:        schema.TypeMap,
 				Optional:    true,
 				Description: "Labels added to cluster",
 			},
+
 			"sshkeys": {
 				Type:        schema.TypeSet,
 				Optional:    true,
@@ -63,6 +70,7 @@ func resourceCluster() *schema.Resource {
 					ValidateFunc: validation.NoZeroValues,
 				},
 			},
+
 			"spec": {
 				Type:        schema.TypeList,
 				Required:    true,
@@ -72,11 +80,13 @@ func resourceCluster() *schema.Resource {
 					Schema: clusterSpecFields(),
 				},
 			},
+
 			"credential": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "Cluster access credential",
 			},
+
 			"type": {
 				Type:        schema.TypeString,
 				Optional:    true,
@@ -84,11 +94,13 @@ func resourceCluster() *schema.Resource {
 				Default:     "kubernetes",
 				Description: "Cloud orchestrator, either Kubernetes or OpenShift",
 			},
+
 			"creation_timestamp": {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "Creation timestamp",
 			},
+
 			"deletion_timestamp": {
 				Type:        schema.TypeString,
 				Computed:    true,
@@ -99,7 +111,7 @@ func resourceCluster() *schema.Resource {
 		},
 
 		CustomizeDiff: customdiff.All(
-			customdiff.ForceNewIfChange("spec.0.version", func(old, new, meta interface{}) bool {
+			customdiff.ForceNewIfChange("spec.0.version", func(_ context.Context, old, new, meta interface{}) bool {
 				// "version" can only be upgraded to newer versions, so we must create a new resource
 				// if it is decreased.
 				newVer, err := version.NewVersion(new.(string))
@@ -117,26 +129,23 @@ func resourceCluster() *schema.Resource {
 				}
 				return false
 			}),
-			validateVersionExists(),
-			validateOneCloudProviderSpecified(),
-			validateOpenstackNetworkExistsIfSet("spec.0.cloud.0.openstack.0.floating_ip_pool", true),
-			validateOpenstackNetworkExistsIfSet("spec.0.cloud.0.openstack.0.network", false),
-			validateOpenstackSubnetWithIDExistsIfSet(),
 		),
 	}
 }
 
-func resourceClusterCreate(d *schema.ResourceData, m interface{}) error {
+func resourceClusterCreate(ctx context.Context, d *schema.ResourceData, m interface{}) (diagnostics diag.Diagnostics) {
 	k := m.(*metakubeProviderMeta)
-	pID := d.Get("project_id").(string)
-	dcName := d.Get("dc_name").(string)
-	p := project.NewCreateClusterParams()
 
-	dc, err := getDatacenterByName(k, dcName)
-	if err != nil {
-		return err
+	allDiagnostics := validateClusterFields(ctx, d, k)
+
+	dc, diagnostics := getDatacenterByName(k, d)
+	allDiagnostics = append(allDiagnostics, diagnostics...)
+	if len(allDiagnostics) != 0 {
+		return allDiagnostics
 	}
 
+	pID := d.Get("project_id").(string)
+	p := project.NewCreateClusterParams()
 	clusterSpec := expandClusterSpec(d.Get("spec").([]interface{}), d.Get("dc_name").(string))
 	createClusterSpec := &models.CreateClusterSpec{
 		Cluster: &models.Cluster{
@@ -151,11 +160,27 @@ func resourceClusterCreate(d *schema.ResourceData, m interface{}) error {
 		if n.DNSDomain != "" {
 			createClusterSpec.DNSDomain = n.DNSDomain
 		}
-		if v := clusterSpec.ClusterNetwork.Pods; v != nil && len(v.CIDRBlocks) == 1 {
-			createClusterSpec.PodsCIDR = v.CIDRBlocks[0]
+		if v := clusterSpec.ClusterNetwork.Pods; v != nil {
+			if len(v.CIDRBlocks) == 1 {
+				createClusterSpec.PodsCIDR = v.CIDRBlocks[0]
+			}
+			if len(v.CIDRBlocks) > 1 {
+				allDiagnostics = append(allDiagnostics, diag.Diagnostic{
+					Severity: diag.Warning,
+					Summary:  "API returned multiple pods CIDRs",
+				})
+			}
 		}
-		if v := clusterSpec.ClusterNetwork.Services; v != nil && len(v.CIDRBlocks) == 1 {
-			createClusterSpec.ServicesCIDR = v.CIDRBlocks[0]
+		if v := clusterSpec.ClusterNetwork.Services; v != nil {
+			if len(v.CIDRBlocks) == 1 {
+				createClusterSpec.ServicesCIDR = v.CIDRBlocks[0]
+			}
+			if len(v.CIDRBlocks) > 1 {
+				allDiagnostics = append(allDiagnostics, diag.Diagnostic{
+					Severity: diag.Warning,
+					Summary:  "API returned multiple services CIDRs",
+				})
+			}
 		}
 	}
 
@@ -165,7 +190,7 @@ func resourceClusterCreate(d *schema.ResourceData, m interface{}) error {
 
 	r, err := k.client.Project.CreateCluster(p, k.auth)
 	if err != nil {
-		return fmt.Errorf("unable to create cluster for project '%s': %s", pID, getErrorResponse(err))
+		return diag.Errorf("unable to create cluster for project '%s': %s", pID, getErrorResponse(err))
 	}
 	d.SetId(metakubeClusterMakeID(d.Get("project_id").(string), dc.Spec.Seed, r.Payload.ID))
 
@@ -174,19 +199,19 @@ func resourceClusterCreate(d *schema.ResourceData, m interface{}) error {
 	for _, v := range raw {
 		sshkeys = append(sshkeys, v.(string))
 	}
-	if err := assignSSHKeysToCluster(pID, dc.Spec.Seed, r.Payload.ID, sshkeys, k); err != nil {
-		return err
+	if diags := assignSSHKeysToCluster(pID, dc.Spec.Seed, r.Payload.ID, sshkeys, k); diags != nil {
+		return diags
 	}
 
 	projectID, seedDC, clusterID, err := metakubeClusterParseID(d.Id())
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
-	if err := waitClusterReady(k, d, projectID, seedDC, clusterID); err != nil {
-		return fmt.Errorf("cluster '%s' is not ready: %v", r.Payload.ID, err)
+	if err := waitClusterReady(ctx, k, d, projectID, seedDC, clusterID); err != nil {
+		return diag.Errorf("cluster '%s' is not ready: %v", r.Payload.ID, err)
 	}
 
-	return resourceClusterRead(d, m)
+	return resourceClusterRead(ctx, d, m)
 }
 
 func metakubeClusterMakeID(project, seedDC, id string) string {
@@ -215,31 +240,61 @@ func getLabels(d *schema.ResourceData) map[string]string {
 	return labels
 }
 
-func getDatacenterByName(k *metakubeProviderMeta, name string) (*models.Datacenter, error) {
+func getDatacenterByName(k *metakubeProviderMeta, d *schema.ResourceData) (*models.Datacenter, diag.Diagnostics) {
+	name := d.Get("dc_name").(string)
 	p := datacenter.NewListDatacentersParams()
 	r, err := k.client.Datacenter.ListDatacenters(p, k.auth)
 	if err != nil {
 		if e, ok := err.(*datacenter.ListDatacentersDefault); ok && errorMessage(e.Payload) != "" {
-			return nil, fmt.Errorf("list datacenters: %s", errorMessage(e.Payload))
+			return nil, diag.Diagnostics{{
+				Severity:      diag.Error,
+				Summary:       fmt.Sprintf("Can't list datacenters: %s", errorMessage(e.Payload)),
+				AttributePath: cty.Path{cty.GetAttrStep{Name: "dc_name"}},
+			}}
 		}
-		return nil, fmt.Errorf("list datacenters: %v", err)
+		return nil, diag.Diagnostics{{
+			Severity:      diag.Error,
+			Summary:       fmt.Sprintf("Can't list datacenters: %s", err),
+			AttributePath: cty.Path{cty.GetAttrStep{Name: "dc_name"}},
+		}}
 	}
 
+	available := make([]string, 0)
 	for _, v := range r.Payload {
+		if (isOpenstack(d) && v.Spec.Openstack != nil) || (isAWS(d) && v.Spec.Aws != nil) || (isAzure(d) && v.Spec.Azure != nil) {
+			available = append(available, v.Metadata.Name)
+		}
 		if v.Spec.Seed != "" && v.Metadata.Name == name {
 			return v, nil
 		}
 	}
 
-	return nil, fmt.Errorf("datacenter '%s' not found", name)
+	return nil, diag.Diagnostics{{
+		Severity:      diag.Error,
+		Summary:       "Unknown datacenter",
+		AttributePath: cty.Path{cty.GetAttrStep{Name: "dc_name"}},
+		Detail:        fmt.Sprintf("Please select one of available datacenters for the provider - %v", available),
+	}}
 }
 
-func resourceClusterRead(d *schema.ResourceData, m interface{}) error {
+func isOpenstack(d *schema.ResourceData) bool {
+	return d.Get("spec.0.cloud.0.openstack.#").(int) == 1
+}
+
+func isAzure(d *schema.ResourceData) bool {
+	return d.Get("spec.0.cloud.0.azure.#").(int) == 1
+}
+
+func isAWS(d *schema.ResourceData) bool {
+	return d.Get("spec.0.cloud.0.aws.#").(int) == 1
+}
+
+func resourceClusterRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	k := m.(*metakubeProviderMeta)
 	p := project.NewGetClusterParams()
 	projectID, seedDC, clusterID, err := metakubeClusterParseID(d.Id())
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	p.SetProjectID(projectID)
 	p.SetDC(seedDC)
@@ -263,18 +318,22 @@ func resourceClusterRead(d *schema.ResourceData, m interface{}) error {
 		// the GET request returns 500 http code instead of 404, probably it's a bug
 		// because of that manual action to clean terraform state file is required
 
-		return fmt.Errorf("unable to get cluster '%s': %s", d.Id(), getErrorResponse(err))
+		return diag.Errorf("unable to get cluster '%s': %s", d.Id(), getErrorResponse(err))
 	}
 
 	_ = d.Set("project_id", projectID)
 	_ = d.Set("dc_name", r.Payload.Spec.Cloud.DatacenterName)
 
-	labels, err := excludeProjectLabels(k, projectID, r.Payload.Labels)
-	if err != nil {
-		return err
+	labels, diagnostics := excludeProjectLabels(k, projectID, r.Payload.Labels)
+	if diagnostics != nil {
+		return diagnostics
 	}
 	if err := d.Set("labels", labels); err != nil {
-		return err
+		return diag.Diagnostics{{
+			Severity:      diag.Error,
+			Summary:       "Invalid value",
+			AttributePath: cty.Path{cty.GetAttrStep{Name: "labels"}},
+		}}
 	}
 
 	_ = d.Set("name", r.Payload.Name)
@@ -288,21 +347,29 @@ func resourceClusterRead(d *schema.ResourceData, m interface{}) error {
 	_ = d.Set("type", r.Payload.Type)
 
 	values := readClusterPreserveValues(d)
-	specFlattenned := flattenClusterSpec(values, r.Payload.Spec)
-	if err = d.Set("spec", specFlattenned); err != nil {
-		return err
+	specFlattened := flattenClusterSpec(values, r.Payload.Spec)
+	if err = d.Set("spec", specFlattened); err != nil {
+		return diag.Diagnostics{{
+			Severity:      diag.Error,
+			Summary:       "Invalid value",
+			AttributePath: cty.Path{cty.GetAttrStep{Name: "spec"}},
+		}}
 	}
 
 	_ = d.Set("creation_timestamp", r.Payload.CreationTimestamp.String())
 
 	_ = d.Set("deletion_timestamp", r.Payload.DeletionTimestamp.String())
 
-	keys, err := metakubeClusterGetAssignedSSHKeys(d, k)
-	if err != nil {
-		return err
+	keys, diagnostics := metakubeClusterGetAssignedSSHKeys(ctx, d, k)
+	if diagnostics != nil {
+		return diagnostics
 	}
 	if err := d.Set("sshkeys", keys); err != nil {
-		return err
+		return diag.Diagnostics{{
+			Severity:      diag.Error,
+			Summary:       "Invalid value",
+			AttributePath: cty.Path{cty.GetAttrStep{Name: "sshkeys"}},
+		}}
 	}
 
 	return nil
@@ -319,20 +386,19 @@ func getClusterErrResourceIsDeleted(err error) bool {
 	}
 
 	// All api replies and errors, that nevertheless indicate cluster was deleted.
-	// TODO: adjust when https://github.com/metakube/metakube/issues/5462 fixed
-	return e.Code() == http.StatusNotFound || errorMessage(e.Payload) == "no userInfo in request"
+	return e.Code() == http.StatusNotFound
 }
 
 // excludeProjectLabels excludes labels defined in project.
-// Project labels propogated to clusters. For better predictability of
+// Project labels propagated to clusters. For better predictability of
 // cluster's labels changes, project's labels are excluded from cluster state.
-func excludeProjectLabels(k *metakubeProviderMeta, projectID string, allLabels map[string]string) (map[string]string, error) {
+func excludeProjectLabels(k *metakubeProviderMeta, projectID string, allLabels map[string]string) (map[string]string, diag.Diagnostics) {
 	p := project.NewGetProjectParams()
 	p.SetProjectID(projectID)
 
 	r, err := k.client.Project.GetProject(p, k.auth)
 	if err != nil {
-		return nil, err
+		return nil, diag.Errorf("get project details %v", getErrorResponse(err))
 	}
 
 	for k := range r.Payload.Labels {
@@ -342,18 +408,22 @@ func excludeProjectLabels(k *metakubeProviderMeta, projectID string, allLabels m
 	return allLabels, nil
 }
 
-func metakubeClusterGetAssignedSSHKeys(d *schema.ResourceData, k *metakubeProviderMeta) ([]string, error) {
+func metakubeClusterGetAssignedSSHKeys(ctx context.Context, d *schema.ResourceData, k *metakubeProviderMeta) ([]string, diag.Diagnostics) {
 	p := project.NewListSSHKeysAssignedToClusterParams()
 	projectID, seedDC, clusterID, err := metakubeClusterParseID(d.Id())
 	if err != nil {
-		return nil, err
+		return nil, diag.FromErr(err)
 	}
 	p.SetProjectID(projectID)
 	p.SetDC(seedDC)
 	p.SetClusterID(clusterID)
 	ret, err := k.client.Project.ListSSHKeysAssignedToCluster(p, k.auth)
 	if err != nil {
-		return nil, err
+		return nil, diag.Diagnostics{{
+			Severity:      diag.Error,
+			Summary:       fmt.Sprintf("List project keys error %v", getErrorResponse(err)),
+			AttributePath: cty.Path{cty.GetAttrStep{Name: "sshkeys"}},
+		}}
 	}
 
 	var ids []string
@@ -364,11 +434,9 @@ func metakubeClusterGetAssignedSSHKeys(d *schema.ResourceData, k *metakubeProvid
 }
 
 // clusterPreserveValues helps avoid misleading diffs during read phase.
-// API result does not have some important fields valeus, like sensitive
-// access key or password fields. When API result is flattened and written to
-// terraform state it creating state diff that might force undesired updates and
-// even force replacement of a cluster. Solution is to set values for preserved
-// values in flattened object before comitting it to state.
+// API does not return some important fields, like access key or password.
+// To avoid diffs because of missing field when API reply is flattened we manually set
+// values for fields to preserve in flattened object before committing it to state.
 type clusterPreserveValues struct {
 	openstack *clusterOpenstackPreservedValues
 	// API returns empty spec for Azure and AWS clusters, so we just preserve values used for creation
@@ -431,37 +499,46 @@ func readClusterPreserveValues(d *schema.ResourceData) clusterPreserveValues {
 	}
 }
 
-func resourceClusterUpdate(d *schema.ResourceData, m interface{}) error {
+func resourceClusterUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	k := m.(*metakubeProviderMeta)
 
+	allDiagnostics := validateClusterFields(ctx, d, k)
+
+	_, diagnostics := getDatacenterByName(k, d)
+	allDiagnostics = append(allDiagnostics, diagnostics...)
+	if len(allDiagnostics) != 0 {
+		return allDiagnostics
+	}
+
 	if d.HasChanges("name", "labels", "spec") {
-		if err := patchClusterFields(d, k); err != nil {
-			return err
+		if err := patchClusterFields(ctx, d, k); err != nil {
+			return diag.FromErr(err)
 		}
 	}
 	if d.HasChange("sshkeys") {
-		if err := updateClusterSSHKeys(d, k); err != nil {
-			return err
+		if dErr := updateClusterSSHKeys(ctx, d, k); dErr != nil {
+			return dErr
 		}
 	}
 
 	projectID, seedDC, clusterID, err := metakubeClusterParseID(d.Id())
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
-	if err := waitClusterReady(k, d, projectID, seedDC, clusterID); err != nil {
-		return fmt.Errorf("cluster '%s' is not ready: %v", d.Id(), err)
+	if err := waitClusterReady(ctx, k, d, projectID, seedDC, clusterID); err != nil {
+		return diag.Errorf("cluster '%s' is not ready: %v", d.Id(), err)
 	}
 
-	return resourceClusterRead(d, m)
+	return resourceClusterRead(ctx, d, m)
 }
 
-func patchClusterFields(d *schema.ResourceData, k *metakubeProviderMeta) error {
+func patchClusterFields(ctx context.Context, d *schema.ResourceData, k *metakubeProviderMeta) error {
 	p := project.NewPatchClusterParams()
 	projectID, seedDC, clusterID, err := metakubeClusterParseID(d.Id())
 	if err != nil {
 		return err
 	}
+	p.SetContext(ctx)
 	p.SetProjectID(projectID)
 	p.SetDC(seedDC)
 	p.SetClusterID(clusterID)
@@ -475,7 +552,7 @@ func patchClusterFields(d *schema.ResourceData, k *metakubeProviderMeta) error {
 		"spec":   clusterSpec,
 	})
 
-	err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+	err = resource.RetryContext(ctx, d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
 		_, err := k.client.Project.PatchCluster(p, k.auth)
 		if err != nil {
 			if e, ok := err.(*project.PatchClusterDefault); ok && e.Code() == http.StatusConflict {
@@ -494,7 +571,7 @@ func patchClusterFields(d *schema.ResourceData, k *metakubeProviderMeta) error {
 	return nil
 }
 
-func updateClusterSSHKeys(d *schema.ResourceData, k *metakubeProviderMeta) error {
+func updateClusterSSHKeys(ctx context.Context, d *schema.ResourceData, k *metakubeProviderMeta) diag.Diagnostics {
 	var unassigned, assign []string
 	prev, cur := d.GetChange("sshkeys")
 
@@ -512,7 +589,7 @@ func updateClusterSSHKeys(d *schema.ResourceData, k *metakubeProviderMeta) error
 
 	projectID, seedDC, clusterID, err := metakubeClusterParseID(d.Id())
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	for _, id := range unassigned {
@@ -526,7 +603,7 @@ func updateClusterSSHKeys(d *schema.ResourceData, k *metakubeProviderMeta) error
 			if e, ok := err.(*project.DetachSSHKeyFromClusterDefault); ok && e.Code() == http.StatusNotFound {
 				continue
 			}
-			return err
+			return diag.FromErr(err)
 		}
 	}
 
@@ -537,7 +614,7 @@ func updateClusterSSHKeys(d *schema.ResourceData, k *metakubeProviderMeta) error
 	return nil
 }
 
-func assignSSHKeysToCluster(projectID, seedDC, clusterID string, sshkeyIDs []string, k *metakubeProviderMeta) error {
+func assignSSHKeysToCluster(projectID, seedDC, clusterID string, sshkeyIDs []string, k *metakubeProviderMeta) diag.Diagnostics {
 	for _, id := range sshkeyIDs {
 		p := project.NewAssignSSHKeyToClusterParams()
 		p.SetProjectID(projectID)
@@ -546,17 +623,22 @@ func assignSSHKeysToCluster(projectID, seedDC, clusterID string, sshkeyIDs []str
 		p.SetKeyID(id)
 		_, err := k.client.Project.AssignSSHKeyToCluster(p, k.auth)
 		if err != nil {
-			return fmt.Errorf("unable to assign sshkeys to cluster '%s': %v", clusterID, err)
+			return diag.Diagnostics{{
+				Severity:      diag.Error,
+				Summary:       fmt.Sprintf("Can't assign sshkeys to cluster '%s': %v", clusterID, err),
+				AttributePath: cty.Path{cty.GetAttrStep{Name: "sshkeys"}},
+			}}
 		}
 	}
 
 	return nil
 }
 
-func waitClusterReady(k *metakubeProviderMeta, d *schema.ResourceData, projectID, seedDC, clusterID string) error {
-	return resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
+func waitClusterReady(ctx context.Context, k *metakubeProviderMeta, d *schema.ResourceData, projectID, seedDC, clusterID string) error {
+	return resource.RetryContext(ctx, d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
 
 		p := project.NewGetClusterHealthParams()
+		p.SetContext(ctx)
 		p.SetProjectID(projectID)
 		p.SetDC(seedDC)
 		p.SetClusterID(clusterID)
@@ -581,11 +663,12 @@ func waitClusterReady(k *metakubeProviderMeta, d *schema.ResourceData, projectID
 	})
 }
 
-func resourceClusterDelete(d *schema.ResourceData, m interface{}) error {
+func resourceClusterDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	k := m.(*metakubeProviderMeta)
+
 	projectID, seedDC, clusterID, err := metakubeClusterParseID(d.Id())
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	p := project.NewDeleteClusterParams()
 
@@ -594,7 +677,7 @@ func resourceClusterDelete(d *schema.ResourceData, m interface{}) error {
 	p.SetClusterID(clusterID)
 
 	deleteSent := false
-	return resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
+	err = resource.RetryContext(ctx, d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
 		if !deleteSent {
 			_, err := k.client.Project.DeleteCluster(p, k.auth)
 			if err != nil {
@@ -635,4 +718,8 @@ func resourceClusterDelete(d *schema.ResourceData, m interface{}) error {
 			d.Id(), r.Payload.DeletionTimestamp.String())
 		return resource.RetryableError(fmt.Errorf("cluster '%s' deletion in progress", d.Id()))
 	})
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	return nil
 }

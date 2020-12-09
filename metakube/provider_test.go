@@ -5,10 +5,10 @@ import (
 	"os"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/terraform"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 const (
@@ -45,13 +45,13 @@ const (
 )
 
 var (
-	testAccProviders map[string]terraform.ResourceProvider
+	testAccProviders map[string]*schema.Provider
 	testAccProvider  *schema.Provider
 )
 
 func TestMain(m *testing.M) {
-	testAccProvider = Provider().(*schema.Provider)
-	testAccProviders = map[string]terraform.ResourceProvider{
+	testAccProvider = Provider()
+	testAccProviders = map[string]*schema.Provider{
 		"metakube": testAccProvider,
 	}
 	resource.TestMain(m)
@@ -118,12 +118,12 @@ func testResourceInstanceState(name string, check func(*terraform.InstanceState)
 		if rs, ok := m.Resources[name]; ok {
 			is := rs.Primary
 			if is == nil {
-				return fmt.Errorf("No primary instance: %s", name)
+				return fmt.Errorf("no instance: %s", name)
 			}
 
 			return check(is)
 		}
-		return fmt.Errorf("Not found: %s", name)
+		return fmt.Errorf("not found: %s", name)
 
 	}
 }

@@ -1,26 +1,28 @@
 package metakube
 
 import (
+	"context"
 	"fmt"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"net/http"
 	"strings"
 	"time"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/customdiff"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/syseleven/terraform-provider-metakube/go-metakube/client/project"
 	"github.com/syseleven/terraform-provider-metakube/go-metakube/models"
 )
 
 func resourceNodeDeployment() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceNodeDeploymentCreate,
-		Read:   resourceNodeDeploymentRead,
-		Update: resourceNodeDeploymentUpdate,
-		Delete: resourceNodeDeploymentDelete,
+		CreateContext: resourceNodeDeploymentCreate,
+		ReadContext:   resourceNodeDeploymentRead,
+		UpdateContext: resourceNodeDeploymentUpdate,
+		DeleteContext: resourceNodeDeploymentDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 		CustomizeDiff: customdiff.All(
 			validateNodeSpecMatchesCluster(),
@@ -34,6 +36,7 @@ func resourceNodeDeployment() *schema.Resource {
 				ForceNew:    true,
 				Description: "Reference full cluster identifier of format <project id>:<seed dc>:<cluster id>",
 			},
+
 			"name": {
 				Type: schema.TypeString,
 				// TODO(furkhat): make field "Computed: true" when back end error is fixed.
@@ -41,6 +44,7 @@ func resourceNodeDeployment() *schema.Resource {
 				ForceNew:    true,
 				Description: "Node deployment name",
 			},
+
 			"spec": {
 				Type:        schema.TypeList,
 				MaxItems:    1,
@@ -50,11 +54,13 @@ func resourceNodeDeployment() *schema.Resource {
 					Schema: nodeDeploymentSpecFields(),
 				},
 			},
+
 			"creation_timestamp": {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "Creation timestamp",
 			},
+
 			"deletion_timestamp": {
 				Type:        schema.TypeString,
 				Computed:    true,
@@ -78,15 +84,15 @@ func readNodeDeploymentPreservedValues(d *schema.ResourceData) *nodeSpecPreserve
 	}
 }
 
-func resourceNodeDeploymentCreate(d *schema.ResourceData, m interface{}) error {
-
+func resourceNodeDeploymentCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	projectID, seedDC, clusterID, err := metakubeClusterParseID(d.Get("cluster_id").(string))
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	k := m.(*metakubeProviderMeta)
 
 	p := project.NewCreateNodeDeploymentParams()
+	p.SetContext(ctx)
 	p.SetProjectID(projectID)
 	p.SetDC(seedDC)
 	p.SetClusterID(clusterID)
@@ -95,25 +101,21 @@ func resourceNodeDeploymentCreate(d *schema.ResourceData, m interface{}) error {
 		Spec: expandNodeDeploymentSpec(d.Get("spec").([]interface{})),
 	})
 
-	if err := waitClusterReady(k, d, projectID, seedDC, clusterID); err != nil {
-		return fmt.Errorf("cluster is not ready: %v", err)
+	if err := waitClusterReady(ctx, k, d, projectID, seedDC, clusterID); err != nil {
+		return diag.Errorf("cluster is not ready: %v", err)
 	}
 
 	r, err := k.client.Project.CreateNodeDeployment(p, k.auth)
 	if err != nil {
-		if e, ok := err.(*project.CreateNodeDeploymentDefault); ok && errorMessage(e.Payload) != "" {
-			return fmt.Errorf("unable to create node deployment: %s", errorMessage(e.Payload))
-		}
-
-		return fmt.Errorf("unable to create a node deployment: %v", getErrorResponse(err))
+		return diag.Errorf("unable to create a node deployment: %v", getErrorResponse(err))
 	}
 	d.SetId(metakubeNodeDeploymentMakeID(projectID, seedDC, clusterID, r.Payload.ID))
 
-	if err := waitForNodeDeploymentRead(k, d.Timeout(schema.TimeoutCreate), projectID, seedDC, clusterID, r.Payload.ID); err != nil {
-		return err
+	if err := waitForNodeDeploymentRead(ctx, k, d.Timeout(schema.TimeoutCreate), projectID, seedDC, clusterID, r.Payload.ID); err != nil {
+		return diag.FromErr(err)
 	}
 
-	return resourceNodeDeploymentRead(d, m)
+	return resourceNodeDeploymentRead(ctx, d, m)
 
 }
 
@@ -131,13 +133,14 @@ func metakubeNodeDeploymentParseID(id string) (string, string, string, string, e
 	return parts[0], parts[1], parts[2], parts[3], nil
 }
 
-func resourceNodeDeploymentRead(d *schema.ResourceData, m interface{}) error {
+func resourceNodeDeploymentRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	k := m.(*metakubeProviderMeta)
 	projectID, seedDC, clusterID, nodeDeploymentID, err := metakubeNodeDeploymentParseID(d.Id())
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	p := project.NewGetNodeDeploymentParams()
+	p.SetContext(ctx)
 	p.SetProjectID(projectID)
 	p.SetDC(seedDC)
 	p.SetClusterID(clusterID)
@@ -155,7 +158,7 @@ func resourceNodeDeploymentRead(d *schema.ResourceData, m interface{}) error {
 			d.SetId("")
 			return nil
 		}
-		return fmt.Errorf("unable to get node deployment '%s': %s", d.Id(), getErrorResponse(err))
+		return diag.Errorf("unable to get node deployment '%s': %s", d.Id(), getErrorResponse(err))
 	}
 
 	_ = d.Set("cluster_id", metakubeClusterMakeID(projectID, seedDC, clusterID))
@@ -171,13 +174,14 @@ func resourceNodeDeploymentRead(d *schema.ResourceData, m interface{}) error {
 	return nil
 }
 
-func resourceNodeDeploymentUpdate(d *schema.ResourceData, m interface{}) error {
+func resourceNodeDeploymentUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	k := m.(*metakubeProviderMeta)
 	projectID, seedDC, clusterID, nodeDeploymentID, err := metakubeNodeDeploymentParseID(d.Id())
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	p := project.NewPatchNodeDeploymentParams()
+	p.SetContext(ctx)
 	p.SetProjectID(projectID)
 	p.SetDC(seedDC)
 	p.SetClusterID(clusterID)
@@ -188,22 +192,20 @@ func resourceNodeDeploymentUpdate(d *schema.ResourceData, m interface{}) error {
 
 	r, err := k.client.Project.PatchNodeDeployment(p, k.auth)
 	if err != nil {
-		if e, ok := err.(*project.PatchNodeDeploymentDefault); ok && errorMessage(e.Payload) != "" {
-			return fmt.Errorf("unable to update a node deployment: %v", errorMessage(e.Payload))
-		}
-		return fmt.Errorf("unable to update a node deployment: %v", getErrorResponse(err))
+		return diag.Errorf("unable to update a node deployment: %v", getErrorResponse(err))
 	}
 
-	if err := waitForNodeDeploymentRead(k, d.Timeout(schema.TimeoutCreate), projectID, seedDC, clusterID, r.Payload.ID); err != nil {
-		return err
+	if err := waitForNodeDeploymentRead(ctx, k, d.Timeout(schema.TimeoutCreate), projectID, seedDC, clusterID, r.Payload.ID); err != nil {
+		return diag.FromErr(err)
 	}
 
-	return resourceNodeDeploymentRead(d, m)
+	return resourceNodeDeploymentRead(ctx, d, m)
 }
 
-func waitForNodeDeploymentRead(k *metakubeProviderMeta, timeout time.Duration, projectID, seedDC, clusterID, id string) error {
-	return resource.Retry(timeout, func() *resource.RetryError {
+func waitForNodeDeploymentRead(ctx context.Context, k *metakubeProviderMeta, timeout time.Duration, projectID, seedDC, clusterID, id string) error {
+	return resource.RetryContext(ctx, timeout, func() *resource.RetryError {
 		p := project.NewGetNodeDeploymentParams()
+		p.SetContext(ctx)
 		p.SetProjectID(projectID)
 		p.SetClusterID(clusterID)
 		p.SetDC(seedDC)
@@ -222,11 +224,11 @@ func waitForNodeDeploymentRead(k *metakubeProviderMeta, timeout time.Duration, p
 	})
 }
 
-func resourceNodeDeploymentDelete(d *schema.ResourceData, m interface{}) error {
+func resourceNodeDeploymentDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	k := m.(*metakubeProviderMeta)
 	projectID, seedDC, clusterID, nodeDeploymentID, err := metakubeNodeDeploymentParseID(d.Id())
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	p := project.NewDeleteNodeDeploymentParams()
 	p.SetProjectID(projectID)
@@ -236,12 +238,17 @@ func resourceNodeDeploymentDelete(d *schema.ResourceData, m interface{}) error {
 
 	_, err = k.client.Project.DeleteNodeDeployment(p, k.auth)
 	if err != nil {
-		// TODO: check if not found
-		return fmt.Errorf("unable to delete node deployment '%s': %s", d.Id(), getErrorResponse(err))
+		if e, ok := err.(*project.DeleteNodeDeploymentDefault); ok && e.Code() == http.StatusNotFound {
+			k.log.Infof("removing node deployment '%s' from terraform state file, could not find the resource", d.Id())
+			d.SetId("")
+			return nil
+		}
+		return diag.Errorf("unable to delete node deployment '%s': %s", d.Id(), getErrorResponse(err))
 	}
 
-	return resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
+	err = resource.RetryContext(ctx, d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
 		p := project.NewGetNodeDeploymentParams()
+		p.SetContext(ctx)
 		p.SetProjectID(projectID)
 		p.SetDC(seedDC)
 		p.SetClusterID(clusterID)
@@ -261,4 +268,8 @@ func resourceNodeDeploymentDelete(d *schema.ResourceData, m interface{}) error {
 			d.Id(), r.Payload.DeletionTimestamp.String())
 		return resource.RetryableError(fmt.Errorf("node deployment '%s' deletion in progress", d.Id()))
 	})
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	return nil
 }

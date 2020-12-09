@@ -1,12 +1,14 @@
 package metakube
 
 import (
+	"context"
 	"fmt"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"strings"
 	"time"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/syseleven/terraform-provider-metakube/go-metakube/client/tokens"
 	"github.com/syseleven/terraform-provider-metakube/go-metakube/models"
 )
@@ -18,12 +20,12 @@ const (
 
 func resourceServiceAccountToken() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceServiceAccountTokenCreate,
-		Read:   resourceServiceAccountTokenRead,
-		Update: resourceServiceAccountTokenUpdate,
-		Delete: resourceServiceAccountTokenDelete,
+		CreateContext: resourceServiceAccountTokenCreate,
+		ReadContext:   resourceServiceAccountTokenRead,
+		UpdateContext: resourceServiceAccountTokenUpdate,
+		DeleteContext: resourceServiceAccountTokenDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -70,15 +72,16 @@ func metakubeServiceAccountTokenParseID(id string) (string, string, string, erro
 	return parts[0], parts[1], parts[2], nil
 }
 
-func resourceServiceAccountTokenCreate(d *schema.ResourceData, m interface{}) error {
+func resourceServiceAccountTokenCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	k := m.(*metakubeProviderMeta)
 
 	projectID, serviceAccountID, err := metakubeServiceAccountParseID(d.Get("service_account_id").(string))
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	p := tokens.NewAddTokenToServiceAccountParams()
+	p.SetContext(ctx)
 	p.SetProjectID(projectID)
 	p.SetServiceAccountID(serviceAccountID)
 	p.SetBody(&models.ServiceAccountToken{
@@ -86,21 +89,18 @@ func resourceServiceAccountTokenCreate(d *schema.ResourceData, m interface{}) er
 	})
 	r, err := k.client.Tokens.AddTokenToServiceAccount(p, k.auth)
 	if err != nil {
-		if e, ok := err.(*tokens.AddTokenToServiceAccountDefault); ok && errorMessage(e.Payload) != "" {
-			return fmt.Errorf("unable to create token: %s", errorMessage(e.Payload))
-		}
-		return fmt.Errorf("unable to create token: %v", err)
+		return diag.Errorf("unable to create token: %v", getErrorResponse(err))
 	}
 	_ = d.Set("token", r.Payload.Token)
 	d.SetId(metakubeServiceAccountTokenMakeID(projectID, serviceAccountID, r.Payload.ID))
-	return resourceServiceAccountTokenRead(d, m)
+	return resourceServiceAccountTokenRead(ctx, d, m)
 }
 
-func resourceServiceAccountTokenRead(d *schema.ResourceData, m interface{}) error {
+func resourceServiceAccountTokenRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	k := m.(*metakubeProviderMeta)
 	projectID, serviceAccountID, tokenID, err := metakubeServiceAccountTokenParseID(d.Id())
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	listStateConf := &resource.StateChangeConf{
 		Pending: []string{
@@ -130,7 +130,7 @@ func resourceServiceAccountTokenRead(d *schema.ResourceData, m interface{}) erro
 	s, err := listStateConf.WaitForState()
 	if err != nil {
 		k.log.Debugf("error while waiting for the tokens: %v", err)
-		return fmt.Errorf("error while waiting for the tokens: %v", err)
+		return diag.Errorf("error while waiting for the tokens: %v", err)
 	}
 	saTokens := s.(*tokens.ListServiceAccountTokensOK)
 	var token *models.PublicServiceAccountToken
@@ -151,12 +151,12 @@ func resourceServiceAccountTokenRead(d *schema.ResourceData, m interface{}) erro
 	return nil
 }
 
-func resourceServiceAccountTokenUpdate(d *schema.ResourceData, m interface{}) error {
+func resourceServiceAccountTokenUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	k := m.(*metakubeProviderMeta)
 
 	projectID, serviceAccountID, tokenID, err := metakubeServiceAccountTokenParseID(d.Id())
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	p := tokens.NewPatchServiceAccountTokenParams()
 	p.SetProjectID(projectID)
@@ -168,20 +168,17 @@ func resourceServiceAccountTokenUpdate(d *schema.ResourceData, m interface{}) er
 	})
 	_, err = k.client.Tokens.PatchServiceAccountToken(p, k.auth)
 	if err != nil {
-		if e, ok := err.(*tokens.PatchServiceAccountTokenDefault); ok && errorMessage(e.Payload) != "" {
-			return fmt.Errorf("failed to update token: %s", errorMessage(e.Payload))
-		}
-		return fmt.Errorf("failed to update token: %v", err)
+		return diag.Errorf("failed to update token: %s", getErrorResponse(err))
 	}
-	return resourceServiceAccountTokenRead(d, m)
+	return resourceServiceAccountTokenRead(ctx, d, m)
 }
 
-func resourceServiceAccountTokenDelete(d *schema.ResourceData, m interface{}) error {
+func resourceServiceAccountTokenDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	k := m.(*metakubeProviderMeta)
 
 	projectID, serviceAccountID, tokenID, err := metakubeServiceAccountTokenParseID(d.Id())
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	p := tokens.NewDeleteServiceAccountTokenParams()
@@ -190,10 +187,7 @@ func resourceServiceAccountTokenDelete(d *schema.ResourceData, m interface{}) er
 	p.SetTokenID(tokenID)
 	_, err = k.client.Tokens.DeleteServiceAccountToken(p, k.auth)
 	if err != nil {
-		if e, ok := err.(*tokens.DeleteServiceAccountTokenDefault); ok && errorMessage(e.Payload) != "" {
-			return fmt.Errorf("failed to delete token: %s", errorMessage(e.Payload))
-		}
-		return fmt.Errorf("failed to delete token: %v", err)
+		return diag.Errorf("failed to delete token: %v", getErrorResponse(err))
 	}
 	return nil
 }

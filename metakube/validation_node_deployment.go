@@ -1,17 +1,18 @@
 package metakube
 
 import (
+	"context"
 	"fmt"
 
 	version "github.com/hashicorp/go-version"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/syseleven/terraform-provider-metakube/go-metakube/client/project"
 	"github.com/syseleven/terraform-provider-metakube/go-metakube/client/versions"
 	"github.com/syseleven/terraform-provider-metakube/go-metakube/models"
 )
 
 func validateNodeSpecMatchesCluster() schema.CustomizeDiffFunc {
-	return func(d *schema.ResourceDiff, meta interface{}) error {
+	return func(ctx context.Context, d *schema.ResourceDiff, meta interface{}) error {
 		k := meta.(*metakubeProviderMeta)
 		clusterID := d.Get("cluster_id").(string)
 		if clusterID == "" {
@@ -22,9 +23,7 @@ func validateNodeSpecMatchesCluster() schema.CustomizeDiffFunc {
 			return err
 		}
 		clusterVersion := cluster.Spec.Version.(string)
-		if err != nil {
-			return err
-		}
+
 		err = validateVersionAgainstCluster(d, clusterVersion)
 		if err != nil {
 			return err
@@ -150,7 +149,7 @@ func getClusterForNodeDeployment(id string, k *metakubeProviderMeta) (*models.Cl
 }
 
 func validateAutoscalerFields() schema.CustomizeDiffFunc {
-	return func(d *schema.ResourceDiff, _ interface{}) error {
+	return func(ctx context.Context, d *schema.ResourceDiff, _ interface{}) error {
 		minReplicas, ok1 := d.GetOk("spec.0.min_replicas")
 		maxReplicas, ok2 := d.GetOk("spec.0.max_replicas")
 		if ok1 && ok1 != ok2 {

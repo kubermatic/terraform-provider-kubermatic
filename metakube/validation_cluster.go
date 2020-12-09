@@ -1,26 +1,25 @@
 package metakube
 
 import (
+	"context"
 	"fmt"
-	"strings"
-
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/go-cty/cty"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/syseleven/terraform-provider-metakube/go-metakube/client/openstack"
 	"github.com/syseleven/terraform-provider-metakube/go-metakube/client/versions"
 	"github.com/syseleven/terraform-provider-metakube/go-metakube/models"
 )
 
 type openstackValidationData struct {
-	dcName         *string
-	credentials    *string
-	domain         *string
-	username       *string
-	password       *string
-	tenant         *string
-	floatingIPPool *string
-	securityGroup  *string
-	network        *string
-	subnetID       *string
+	dcName      *string
+	credentials *string
+	domain      *string
+	username    *string
+	password    *string
+	tenant      *string
+	network     *string
+	subnetID    *string
 }
 
 type generalOpenstackReqParams interface {
@@ -30,29 +29,29 @@ type generalOpenstackReqParams interface {
 	SetUsername(*string)
 	SetPassword(*string)
 	SetTenant(*string)
+	SetContext(context.Context)
 }
 
-func (data *openstackValidationData) setParams(p generalOpenstackReqParams) {
+func (data *openstackValidationData) setParams(ctx context.Context, p generalOpenstackReqParams) {
 	p.SetDatacenterName(data.dcName)
 	p.SetCredential(data.credentials)
 	p.SetDomain(data.domain)
 	p.SetUsername(data.username)
 	p.SetPassword(data.password)
 	p.SetTenant(data.tenant)
+	p.SetContext(ctx)
 }
 
-func newOpenstackValidationData(d *schema.ResourceDiff) openstackValidationData {
+func newOpenstackValidationData(d *schema.ResourceData) openstackValidationData {
 	return openstackValidationData{
-		dcName:         toStrPtrOrNil(d.Get("dc_name")),
-		credentials:    toStrPtrOrNil(d.Get("credential")),
-		domain:         strToPtr("Default"),
-		username:       toStrPtrOrNil(d.Get("spec.0.cloud.0.openstack.0.username")),
-		password:       toStrPtrOrNil(d.Get("spec.0.cloud.0.openstack.0.password")),
-		tenant:         toStrPtrOrNil(d.Get("spec.0.cloud.0.openstack.0.tenant")),
-		floatingIPPool: toStrPtrOrNil(d.Get("spec.0.cloud.0.openstack.0.floatingIPPool")),
-		securityGroup:  toStrPtrOrNil(d.Get("spec.0.cloud.0.openstack.0.securityGroup")),
-		network:        toStrPtrOrNil(d.Get("spec.0.cloud.0.openstack.0.network")),
-		subnetID:       toStrPtrOrNil(d.Get("spec.0.cloud.0.openstack.0.subnetID")),
+		dcName:      toStrPtrOrNil(d.Get("dc_name")),
+		credentials: toStrPtrOrNil(d.Get("credential")),
+		domain:      strToPtr("Default"),
+		username:    toStrPtrOrNil(d.Get("spec.0.cloud.0.openstack.0.username")),
+		password:    toStrPtrOrNil(d.Get("spec.0.cloud.0.openstack.0.password")),
+		tenant:      toStrPtrOrNil(d.Get("spec.0.cloud.0.openstack.0.tenant")),
+		network:     toStrPtrOrNil(d.Get("spec.0.cloud.0.openstack.0.network")),
+		subnetID:    toStrPtrOrNil(d.Get("spec.0.cloud.0.openstack.0.subnet_id")),
 	}
 }
 
@@ -63,89 +62,136 @@ func toStrPtrOrNil(v interface{}) *string {
 	return strToPtr(v.(string))
 }
 
-func validateVersionExists() schema.CustomizeDiffFunc {
-	return func(d *schema.ResourceDiff, meta interface{}) error {
-		k := meta.(*metakubeProviderMeta)
-		version := d.Get("spec.0.version").(string)
-		p := versions.NewGetMasterVersionsParams()
-		r, err := k.client.Versions.GetMasterVersions(p, k.auth)
-		if err != nil {
-			if e, ok := err.(*versions.GetMasterVersionsDefault); ok && errorMessage(e.Payload) != "" {
-				return fmt.Errorf("get cluster upgrades: %s", errorMessage(e.Payload))
-			}
-			return err
-		}
-
-		for _, v := range r.Payload {
-			if s, ok := v.Version.(string); ok && s == version {
-				return nil
-			}
-		}
-
-		return fmt.Errorf("unknown version %s", version)
-	}
+func validateClusterFields(ctx context.Context, d *schema.ResourceData, k *metakubeProviderMeta) diag.Diagnostics {
+	ret := validateVersionExists(ctx, d, k)
+	ret = append(ret, diagnoseOpenstackFloatingIPPoolIfSet(ctx, d, k)...)
+	ret = append(ret, diagnoseOpenstackNetworkExistsIfSet(ctx, d, k)...)
+	return append(ret, diagnoseOpenstackSubnetWithIDExistsIfSet(ctx, d, k)...)
 }
 
-func validateOneCloudProviderSpecified() schema.CustomizeDiffFunc {
-	return func(d *schema.ResourceDiff, meta interface{}) error {
-		var existingProviders []string
-		counter := 0
-		for _, provider := range supportedProviders {
-			if v, ok := d.GetOk(fmt.Sprintf("spec.0.cloud.0.%s", provider)); ok && v != nil && len(v.([]interface{})) > 0 {
-				existingProviders = append(existingProviders, provider)
-				counter++
-			}
+func validateVersionExists(ctx context.Context, d *schema.ResourceData, k *metakubeProviderMeta) diag.Diagnostics {
+	version := d.Get("spec.0.version").(string)
+	p := versions.NewGetMasterVersionsParams().WithContext(ctx)
+	r, err := k.client.Versions.GetMasterVersions(p, k.auth)
+	if err != nil {
+		diag.Errorf("%s", getErrorResponse(err))
+	}
+
+	available := make([]string, 0)
+	for _, v := range r.Payload {
+		available = append(available, v.Version.(string))
+		if s, ok := v.Version.(string); ok && s == version {
+			return nil
 		}
-		if counter != 1 {
-			return fmt.Errorf("only one cloud provider must be specified, found: %s", strings.Join(existingProviders, " "))
+	}
+
+	return diag.Diagnostics{{
+		Severity:      diag.Error,
+		Summary:       fmt.Sprintf("unknown version %s", version),
+		AttributePath: cty.GetAttrPath("spec").IndexInt(0).GetAttr("version"),
+		Detail:        fmt.Sprintf("Please select one of available versions: %v", available),
+	}}
+}
+
+func diagnoseOpenstackFloatingIPPoolIfSet(ctx context.Context, d *schema.ResourceData, k *metakubeProviderMeta) diag.Diagnostics {
+	nets, err := validateOpenstackNetworkExistsIfSet(ctx, d, k, "spec.0.cloud.0.openstack.0.floating_ip_pool", true)
+	names := make([]string, 0)
+	for _, n := range nets {
+		if n.External {
+			names = append(names, n.Name)
 		}
+	}
+	var diagnoseDetail string
+	if len(names) > 0 {
+		diagnoseDetail = fmt.Sprintf("We found following floating IP pools: %v", names)
+	}
+	if err != nil {
+		return diag.Diagnostics{{
+			Severity:      diag.Error,
+			Summary:       err.Error(),
+			AttributePath: cty.GetAttrPath("spec").IndexInt(0).GetAttr("cloud").IndexInt(0).GetAttr("openstack").IndexInt(0).GetAttr("floating_ip_pool"),
+			Detail:        diagnoseDetail,
+		}}
+	}
+	return nil
+}
+
+func diagnoseOpenstackNetworkExistsIfSet(ctx context.Context, d *schema.ResourceData, k *metakubeProviderMeta) diag.Diagnostics {
+	nets, err := validateOpenstackNetworkExistsIfSet(ctx, d, k, "spec.0.cloud.0.openstack.0.network", false)
+	names := make([]string, 0)
+	for _, n := range nets {
+		if n.External == false {
+			names = append(names, n.Name)
+		}
+	}
+	var diagnoseDetail string
+	if len(names) > 0 {
+		diagnoseDetail = fmt.Sprintf("We found following networks: %v", names)
+	}
+	if err != nil {
+		return diag.Diagnostics{{
+			Severity:      diag.Error,
+			Summary:       err.Error(),
+			AttributePath: cty.GetAttrPath("spec").IndexInt(0).GetAttr("cloud").IndexInt(0).GetAttr("openstack").IndexInt(0).GetAttr("network"),
+			Detail:        diagnoseDetail,
+		}}
+	}
+	return nil
+}
+
+func validateOpenstackNetworkExistsIfSet(ctx context.Context, d *schema.ResourceData, k *metakubeProviderMeta, field string, external bool) ([]*models.OpenstackNetwork, error) {
+	value, ok := d.GetOk(field)
+	if !ok {
+		return nil, nil
+	}
+
+	data := newOpenstackValidationData(d)
+	_, nets, err := getNetwork(ctx, k, data, value.(string), external)
+	return nets, err
+}
+
+func diagnoseOpenstackSubnetWithIDExistsIfSet(ctx context.Context, d *schema.ResourceData, k *metakubeProviderMeta) diag.Diagnostics {
+	data := newOpenstackValidationData(d)
+	if data.network == nil || data.subnetID == nil {
 		return nil
 	}
-}
-
-func validateOpenstackNetworkExistsIfSet(field string, external bool) schema.CustomizeDiffFunc {
-	return func(d *schema.ResourceDiff, meta interface{}) error {
-		value, ok := d.GetOk(field)
-		if !ok {
-			return nil
-		}
-
-		data := newOpenstackValidationData(d)
-		k := meta.(*metakubeProviderMeta)
-		_, err := getNetwork(k, data, value.(string), external)
-		return err
+	network, _, err := getNetwork(ctx, k, data, *data.network, true)
+	if err != nil {
+		return nil
 	}
-}
 
-func validateOpenstackSubnetWithIDExistsIfSet() schema.CustomizeDiffFunc {
-	return func(d *schema.ResourceDiff, meta interface{}) error {
-		data := newOpenstackValidationData(d)
-		if data.network == nil || data.subnetID == nil {
-			return nil
-		}
-		k := meta.(*metakubeProviderMeta)
-		network, err := getNetwork(k, data, *data.network, true)
-		if err != nil {
-			return err
-		}
-
-		_, err = getSubnet(k, data, network.ID)
-		return err
+	subnets, err, ok := getSubnet(ctx, k, data, network.ID)
+	if ok {
+		return nil
 	}
+	var diagnoseDetail string
+	if len(subnets) > 0 {
+		tmp := make([]string, 0)
+		for _, i := range subnets {
+			tmp = append(tmp, fmt.Sprintf("%s/%s", i.Name, i.ID))
+		}
+		diagnoseDetail = fmt.Sprintf("We found following subnets (name/id): %v", tmp)
+	}
+	return diag.Diagnostics{{
+		Severity:      diag.Error,
+		Summary:       err.Error(),
+		AttributePath: cty.GetAttrPath("spec").IndexInt(0).GetAttr("cloud").IndexInt(0).GetAttr("openstack").IndexInt(0).GetAttr("subnetID"),
+		Detail:        diagnoseDetail,
+	}}
 }
 
-func getNetwork(k *metakubeProviderMeta, data openstackValidationData, name string, external bool) (*models.OpenstackNetwork, error) {
+func getNetwork(ctx context.Context, k *metakubeProviderMeta, data openstackValidationData, name string, external bool) (*models.OpenstackNetwork, []*models.OpenstackNetwork, error) {
 	p := openstack.NewListOpenstackNetworksParams()
-	data.setParams(p)
+	data.setParams(ctx, p)
 	res, err := k.client.Openstack.ListOpenstackNetworks(p, k.auth)
 	if err != nil {
-		return nil, fmt.Errorf("find network instance %v", getErrorResponse(err))
+		return nil, nil, fmt.Errorf("find network instance %v", getErrorResponse(err))
 	}
 	ret := findNetwork(res.Payload, name, external)
 	if ret == nil {
-		return nil, fmt.Errorf("network `%s` not found", name)
+		return nil, res.Payload, fmt.Errorf("network `%s` not found", name)
 	}
-	return ret, nil
+	return ret, res.Payload, nil
 }
 
 func findNetwork(list []*models.OpenstackNetwork, network string, external bool) *models.OpenstackNetwork {
@@ -157,15 +203,15 @@ func findNetwork(list []*models.OpenstackNetwork, network string, external bool)
 	return nil
 }
 
-func getSubnet(k *metakubeProviderMeta, data openstackValidationData, networkID string) (bool, error) {
+func getSubnet(ctx context.Context, k *metakubeProviderMeta, data openstackValidationData, networkID string) ([]*models.OpenstackSubnet, error, bool) {
 	p := openstack.NewListOpenstackSubnetsParams()
-	data.setParams(p)
+	data.setParams(ctx, p)
 	p.SetNetworkID(&networkID)
 	res, err := k.client.Openstack.ListOpenstackSubnets(p, k.auth)
 	if err != nil {
-		return false, fmt.Errorf("list network subnets: %v", getErrorResponse(err))
+		return nil, fmt.Errorf("list network subnets: %v", getErrorResponse(err)), false
 	}
-	return findSubnet(res.Payload, *data.subnetID) != nil, nil
+	return res.Payload, nil, findSubnet(res.Payload, *data.subnetID) != nil
 }
 
 func findSubnet(list []*models.OpenstackSubnet, id string) *models.OpenstackSubnet {

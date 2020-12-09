@@ -2,17 +2,20 @@ package metakube
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/go-openapi/strfmt"
+	"github.com/syseleven/terraform-provider-metakube/go-metakube/models"
 	"io/ioutil"
 	"net/url"
 	"os"
 	"time"
 
 	"github.com/go-openapi/runtime"
-	oclient "github.com/go-openapi/runtime/client"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/terraform"
+	"github.com/hashicorp/go-cty/cty"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/mitchellh/go-homedir"
 	k8client "github.com/syseleven/terraform-provider-metakube/go-metakube/client"
 	"go.uber.org/zap"
@@ -32,8 +35,8 @@ type metakubeProviderMeta struct {
 	log    *zap.SugaredLogger
 }
 
-// Provider is a MetaKube Terraform Provider.
-func Provider() terraform.ResourceProvider {
+// Provider returns a schema.Provider for MetaKube.
+func Provider() *schema.Provider {
 	p := &schema.Provider{
 		Schema: map[string]*schema.Schema{
 			"host": {
@@ -92,7 +95,7 @@ func Provider() terraform.ResourceProvider {
 	// as an example the standard log pkg points to the "old" stderr
 	stderr := os.Stderr
 
-	p.ConfigureFunc = func(d *schema.ResourceData) (interface{}, error) {
+	p.ConfigureContextFunc = func(_ context.Context, d *schema.ResourceData) (interface{}, diag.Diagnostics) {
 		terraformVersion := p.TerraformVersion
 		if terraformVersion == "" {
 			// Terraform 0.12 introduced this field to the protocol
@@ -105,46 +108,33 @@ func Provider() terraform.ResourceProvider {
 	return p
 }
 
-func configure(d *schema.ResourceData, terraformVersion string, fd *os.File) (interface{}, error) {
-	logDev := d.Get("development").(bool)
-	logDebug := d.Get("debug").(bool)
-	logPath := d.Get("log_path").(string)
-	host := d.Get("host").(string)
-	token := d.Get("token").(string)
-	tokenPath := d.Get("token_path").(string)
-	return newMetaKubeProviderMeta(logDev, logDebug, logPath, host, token, tokenPath, fd)
-}
-
-func newMetaKubeProviderMeta(logDev, logDebug bool, logPath, host, token, tokenPath string, fd *os.File) (*metakubeProviderMeta, error) {
+func configure(d *schema.ResourceData, terraformVersion string, fd *os.File) (interface{}, diag.Diagnostics) {
 	var (
-		k   metakubeProviderMeta
-		err error
+		k                metakubeProviderMeta
+		diagnostics, tmp diag.Diagnostics
 	)
 
-	k.log, err = newLogger(logDev, logDebug, logPath, fd)
-	if err != nil {
-		return nil, err
-	}
+	k.log, tmp = newLogger(d, fd)
+	diagnostics = append(diagnostics, tmp...)
+	k.client, tmp = newClient(d.Get("host").(string))
+	diagnostics = append(diagnostics, tmp...)
 
-	k.client, err = newClient(host)
-	if err != nil {
-		return nil, err
-	}
+	k.auth, tmp = newAuth(d.Get("token").(string), d.Get("token_path").(string), terraformVersion)
+	diagnostics = append(diagnostics, tmp...)
 
-	k.auth, err = newAuth(token, tokenPath)
-	if err != nil {
-		return nil, err
-	}
-
-	return &k, nil
+	return &k, diagnostics
 }
 
-func newLogger(logDev, logDebug bool, logPath string, fd *os.File) (*zap.SugaredLogger, error) {
+func newLogger(d *schema.ResourceData, fd *os.File) (*zap.SugaredLogger, diag.Diagnostics) {
 	var (
 		ec    zapcore.EncoderConfig
 		cores []zapcore.Core
 		level = zap.NewAtomicLevelAt(zapcore.InfoLevel)
 	)
+
+	logDev := d.Get("development").(bool)
+	logDebug := d.Get("debug").(bool)
+	logPath := d.Get("log_path").(string)
 
 	if logDev || logDebug {
 		level = zap.NewAtomicLevelAt(zapcore.DebugLevel)
@@ -167,7 +157,11 @@ func newLogger(logDev, logDebug bool, logPath string, fd *os.File) (*zap.Sugared
 		jsonEC.EncodeLevel = zapcore.LowercaseLevelEncoder
 		sink, _, err := zap.Open(logPath)
 		if err != nil {
-			return nil, err
+			return nil, diag.Diagnostics{{
+				Severity:      diag.Error,
+				Summary:       fmt.Sprintf("Can't access location: %v", err),
+				AttributePath: cty.Path{cty.GetAttrStep{Name: "log_path"}},
+			}}
 		}
 		cores = append(cores, zapcore.NewCore(zapcore.NewJSONEncoder(jsonEC), sink, level))
 	}
@@ -177,10 +171,14 @@ func newLogger(logDev, logDebug bool, logPath string, fd *os.File) (*zap.Sugared
 	return zap.New(core).Sugar(), nil
 }
 
-func newClient(host string) (*k8client.MetaKube, error) {
+func newClient(host string) (*k8client.MetaKube, diag.Diagnostics) {
 	u, err := url.Parse(host)
 	if err != nil {
-		return nil, err
+		return nil, diag.Diagnostics{{
+			Severity:      diag.Error,
+			Summary:       fmt.Sprintf("Can't parse host: %v", err),
+			AttributePath: cty.Path{cty.GetAttrStep{Name: "host"}},
+		}}
 	}
 
 	return k8client.NewHTTPClientWithConfig(nil, &k8client.TransportConfig{
@@ -190,22 +188,45 @@ func newClient(host string) (*k8client.MetaKube, error) {
 	}), nil
 }
 
-func newAuth(token, tokenPath string) (runtime.ClientAuthInfoWriter, error) {
+func newAuth(token, tokenPath, terraformVersion string) (runtime.ClientAuthInfoWriter, diag.Diagnostics) {
 	if token == "" && tokenPath != "" {
 		p, err := homedir.Expand(tokenPath)
 		if err != nil {
-			return nil, err
+			return nil, diag.Diagnostics{{
+				Severity:      diag.Error,
+				Summary:       fmt.Sprintf("Can't parse path: %v", err),
+				AttributePath: cty.Path{cty.GetAttrStep{Name: "token_path"}},
+			}}
 		}
 		rawToken, err := ioutil.ReadFile(p)
 		if err != nil {
-			return nil, err
+			return nil, diag.Diagnostics{{
+				Severity:      diag.Error,
+				Summary:       fmt.Sprintf("Can't read token file: %v", err),
+				AttributePath: cty.Path{cty.GetAttrStep{Name: "token_path"}},
+			}}
 		}
 		token = string(bytes.Trim(rawToken, "\n"))
 	} else if token == "" {
-		return nil, fmt.Errorf("Missing authorization token")
+		return nil, diag.Diagnostics{{
+			Severity:      diag.Error,
+			Summary:       "Missing authorization token",
+			AttributePath: cty.Path{cty.GetAttrStep{Name: "token_path"}, cty.GetAttrStep{Name: "token"}},
+		}}
 	}
 
-	return oclient.BearerToken(token), nil
+	auth := runtime.ClientAuthInfoWriterFunc(func(r runtime.ClientRequest, _ strfmt.Registry) error {
+		err := r.SetHeaderParam("Authorization", "Bearer "+token)
+		if err != nil {
+			return err
+		}
+		return r.SetHeaderParam("User-Agent", fmt.Sprintf("Terraform/%s", terraformVersion))
+	})
+	return auth, nil
+}
+
+type apiDefaultError struct {
+	Payload *models.ErrorResponse
 }
 
 // getErrorResponse converts the client error response to string
@@ -214,5 +235,10 @@ func getErrorResponse(err error) string {
 	if newErr != nil {
 		return err.Error()
 	}
-	return string(rawData)
+
+	v := &apiDefaultError{}
+	if err := json.Unmarshal(rawData, &v); err == nil && errorMessage(v.Payload) != "" {
+		return errorMessage(v.Payload)
+	}
+	return err.Error()
 }

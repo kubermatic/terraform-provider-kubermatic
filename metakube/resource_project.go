@@ -1,13 +1,16 @@
 package metakube
 
 import (
+	"context"
 	"fmt"
+	"github.com/hashicorp/go-cty/cty"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"net/http"
 	"time"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/syseleven/terraform-provider-metakube/go-metakube/client/project"
 	"github.com/syseleven/terraform-provider-metakube/go-metakube/client/users"
 	"github.com/syseleven/terraform-provider-metakube/go-metakube/models"
@@ -18,47 +21,62 @@ const (
 	projectInactive  = "Inactive"
 	usersReady       = "Ready"
 	usersUnavailable = "Unavailable"
+
+	projectSchemaName              = "name"
+	projectSchemaLabels            = "labels"
+	projectSchemaUsers             = "user"
+	projectSchemaStatus            = "status"
+	projectSchemaCreationTimestamp = "creation_timestamp"
+	projectSchemaDeletionTimestamp = "deletion_timestamp"
+	projectUserSchemaEmail         = "email"
+	projectUserSchemaGroup         = "group"
 )
 
 func resourceProject() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceProjectCreate,
-		Read:   resourceProjectRead,
-		Update: resourceProjectUpdate,
-		Delete: resourceProjectDelete,
+		CreateContext: resourceProjectCreate,
+		ReadContext:   resourceProjectRead,
+		UpdateContext: resourceProjectUpdate,
+		DeleteContext: resourceProjectDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		Schema: map[string]*schema.Schema{
-			"name": {
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "Project name",
+			projectSchemaName: {
+				Type:         schema.TypeString,
+				Required:     true,
+				Description:  "Project name",
+				ValidateFunc: validation.NoZeroValues,
 			},
-			"labels": {
+
+			projectSchemaLabels: {
 				Type:        schema.TypeMap,
 				Optional:    true,
 				Description: "Project labels",
 				Elem:        schema.TypeString,
 			},
-			"user": {
+
+			projectSchemaUsers: {
 				Type:        schema.TypeSet,
 				Optional:    true,
 				Description: "Project user",
 				Elem:        projectUsersSchema(),
 			},
-			"status": {
+
+			projectSchemaStatus: {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "Status represents the current state of the project",
 			},
-			"creation_timestamp": {
+
+			projectSchemaCreationTimestamp: {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "Creation timestamp",
 			},
-			"deletion_timestamp": {
+
+			projectSchemaDeletionTimestamp: {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "Deletion timestamp",
@@ -70,13 +88,14 @@ func resourceProject() *schema.Resource {
 func projectUsersSchema() *schema.Resource {
 	return &schema.Resource{
 		Schema: map[string]*schema.Schema{
-			"email": {
+			projectUserSchemaEmail: {
 				Type:         schema.TypeString,
 				Required:     true,
 				ValidateFunc: validation.NoZeroValues,
 				Description:  "User's email address",
 			},
-			"group": {
+
+			projectUserSchemaGroup: {
 				Type:         schema.TypeString,
 				Required:     true,
 				ValidateFunc: validation.StringInSlice([]string{"owners", "editors", "viewers"}, false),
@@ -86,26 +105,41 @@ func projectUsersSchema() *schema.Resource {
 	}
 }
 
-func resourceProjectCreate(d *schema.ResourceData, m interface{}) error {
+func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	k := m.(*metakubeProviderMeta)
+
 	p := project.NewCreateProjectParams()
-
-	p.Body.Name = d.Get("name").(string)
-	if l, ok := d.GetOk("labels"); ok {
-		p.Body.Labels = make(map[string]string)
-		att := l.(map[string]interface{})
-		for key, val := range att {
-			p.Body.Labels[key] = val.(string)
-		}
-	}
-
+	p.SetContext(ctx)
+	p.SetBody(project.CreateProjectBody{
+		Name:   d.Get(projectSchemaName).(string),
+		Labels: metakubeProjectConfiguredLabels(d),
+	})
 	r, err := k.client.Project.CreateProject(p, k.auth)
 	if err != nil {
-		return fmt.Errorf("error when creating a project: %s", getErrorResponse(err))
+		return diag.Errorf("%s", getErrorResponse(err))
 	}
-	d.SetId(r.Payload.ID)
 
-	id := r.Payload.ID
+	projectID := r.Payload.ID
+
+	d.SetId(projectID)
+
+	// wait for completion
+	if err := metakubeProjectWaitForActiveStatus(ctx, d, projectID, k); err != nil {
+		return diag.FromErr(err)
+	}
+
+	if err := metakubeProjectUpdateUsers(ctx, k, d); err != nil {
+		return diag.Diagnostics{{
+			Severity:      diag.Error,
+			Summary:       fmt.Sprintf("error updating project's users: %v", err),
+			AttributePath: cty.GetAttrPath(projectSchemaUsers),
+		}}
+	}
+
+	return resourceProjectRead(ctx, d, m)
+}
+
+func metakubeProjectWaitForActiveStatus(ctx context.Context, d *schema.ResourceData, projectID string, k *metakubeProviderMeta) error {
 	createStateConf := &resource.StateChangeConf{
 		Pending: []string{
 			projectInactive,
@@ -114,15 +148,15 @@ func resourceProjectCreate(d *schema.ResourceData, m interface{}) error {
 			projectActive,
 		},
 		Refresh: func() (interface{}, string, error) {
-			p := project.NewGetProjectParams()
-			r, err := k.client.Project.GetProject(p.WithProjectID(id), k.auth)
+			p := project.NewGetProjectParams().WithContext(ctx).WithProjectID(projectID)
+			r, err := k.client.Project.GetProject(p, k.auth)
 			if err != nil {
 				if e, ok := err.(*project.GetProjectDefault); ok && (e.Code() == http.StatusForbidden || e.Code() == http.StatusNotFound) {
 					return r, projectInactive, fmt.Errorf("project not ready: %v", err)
 				}
 				return nil, "", err
 			}
-			k.log.Debugf("creating project '%s', currently in '%s' state", id, r.Payload.Status)
+			k.log.Debugf("creating project '%s', currently in '%s' state", projectID, r.Payload.Status)
 			return r, projectActive, nil
 		},
 		Timeout:    d.Timeout(schema.TimeoutCreate),
@@ -130,54 +164,84 @@ func resourceProjectCreate(d *schema.ResourceData, m interface{}) error {
 		Delay:      5 * requestDelay,
 	}
 
-	if _, err := createStateConf.WaitForState(); err != nil {
-		k.log.Debugf("error while waiting for project '%s' to be created: %s", id, err)
-		return fmt.Errorf("error while waiting for project '%s' to be created: %s", id, err)
+	if _, err := createStateConf.WaitForStateContext(ctx); err != nil {
+		k.log.Debugf("error while waiting for project '%s' to be created: %s", projectID, err)
+		return fmt.Errorf("error while waiting for project '%s' to be created: %s", projectID, err)
 	}
-
-	if err := metakubeProjectUpdateUsers(k, d); err != nil {
-		return fmt.Errorf("error updating project's users: %v", err)
-	}
-
-	return resourceProjectRead(d, m)
+	return nil
 }
 
-func resourceProjectRead(d *schema.ResourceData, m interface{}) error {
+func metakubeProjectConfiguredLabels(d *schema.ResourceData) map[string]string {
+	if l, ok := d.GetOk(projectSchemaLabels); ok {
+		ret := make(map[string]string)
+		att := l.(map[string]interface{})
+		for key, val := range att {
+			ret[key] = val.(string)
+		}
+		return ret
+	}
+	return nil
+}
+
+func resourceProjectRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	k := m.(*metakubeProviderMeta)
 	p := project.NewGetProjectParams()
+	p.WithContext(ctx)
+	p.SetProjectID(d.Id())
 
-	r, err := k.client.Project.GetProject(p.WithProjectID(d.Id()), k.auth)
+	r, err := k.client.Project.GetProject(p, k.auth)
 	if err != nil {
 		if e, ok := err.(*project.GetProjectDefault); ok && (e.Code() == http.StatusForbidden || e.Code() == http.StatusNotFound) {
 			// remove a project from terraform state file that a user does not have access or does not exist
-			k.log.Infof("removing project '%s' from terraform state file, code '%d' has been returned", d.Id(), e.Code())
+			comment := fmt.Sprintf("removing project '%s' from terraform state file, code '%d' has been returned", d.Id(), e.Code())
+			k.log.Info(comment)
 			d.SetId("")
-			return nil
-
+			return diag.Diagnostics{{
+				Severity: diag.Warning,
+				Summary:  comment,
+			}}
 		}
 
-		return fmt.Errorf("unable to get project '%s': %s", d.Id(), getErrorResponse(err))
+		return diag.Errorf("unable to get project '%s': %s", d.Id(), getErrorResponse(err))
 	}
 
-	if err := d.Set("labels", r.Payload.Labels); err != nil {
-		return err
+	if err := d.Set(projectSchemaLabels, r.Payload.Labels); err != nil {
+		return diag.Diagnostics{{
+			Severity:      diag.Error,
+			Summary:       fmt.Sprintf("Can't set value: %v", err),
+			AttributePath: cty.GetAttrPath(projectSchemaLabels),
+		}}
 	}
-	_ = d.Set("name", r.Payload.Name)
-	_ = d.Set("status", r.Payload.Status)
-	_ = d.Set("creation_timestamp", r.Payload.CreationTimestamp.String())
-	_ = d.Set("deletion_timestamp", r.Payload.DeletionTimestamp.String())
+	_ = d.Set(projectSchemaName, r.Payload.Name)
+	_ = d.Set(projectSchemaStatus, r.Payload.Status)
+	_ = d.Set(projectSchemaCreationTimestamp, r.Payload.CreationTimestamp.String())
+	_ = d.Set(projectSchemaDeletionTimestamp, r.Payload.DeletionTimestamp.String())
 
-	projectPersistedUsers, err := metakubeProjectPersistedUsers(k, d.Id())
+	projectUsers, err := metakubeProjectUsers(ctx, k, d.Id())
 	if err != nil {
-		return err
+		return diag.Diagnostics{{
+			Severity:      diag.Error,
+			Summary:       fmt.Sprintf("could not get project users: %v", err),
+			AttributePath: cty.GetAttrPath(projectSchemaUsers),
+		}}
 	}
 
-	curUser, err := metakubeProjectCurrentUser(k)
+	curUser, err := metakubeProjectCurrentUser(ctx, k)
 	if err != nil {
-		return err
+		return diag.Diagnostics{{
+			Severity:      diag.Error,
+			Summary:       err.Error(),
+			AttributePath: cty.GetAttrPath(projectSchemaUsers),
+		}}
 	}
-
-	return d.Set("user", flattenedProjectUsers(curUser, projectPersistedUsers))
+	if err := d.Set(projectSchemaUsers, flattenedProjectUsers(curUser, projectUsers)); err != nil {
+		return diag.Diagnostics{{
+			Severity:      diag.Error,
+			Summary:       fmt.Sprintf("Can't set value: %v", err),
+			AttributePath: cty.GetAttrPath(projectSchemaUsers),
+		}}
+	}
+	return nil
 }
 
 func flattenedProjectUsers(cur *models.User, u map[string]models.User) *schema.Set {
@@ -187,55 +251,49 @@ func flattenedProjectUsers(cur *models.User, u map[string]models.User) *schema.S
 			continue
 		}
 		items = append(items, map[string]interface{}{
-			"email": v.Email,
-			"group": v.Projects[0].GroupPrefix,
+			projectUserSchemaEmail: v.Email,
+			projectUserSchemaGroup: v.Projects[0].GroupPrefix,
 		})
 	}
 	return schema.NewSet(schema.HashResource(projectUsersSchema()), items)
 }
 
-func resourceProjectUpdate(d *schema.ResourceData, m interface{}) error {
+func resourceProjectUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	k := m.(*metakubeProviderMeta)
 	p := project.NewUpdateProjectParams()
 	p.Body = &models.Project{
 		// name is always required for update requests, otherwise bad request returns
-		Name: d.Get("name").(string),
-	}
-
-	if d.HasChange("name") {
-		p.Body.Name = d.Get("name").(string)
-	}
-
-	if d.HasChange("labels") {
-		p.Body.Labels = make(map[string]string)
-		for key, val := range d.Get("labels").(map[string]interface{}) {
-			p.Body.Labels[key] = val.(string)
-		}
+		Name:   d.Get(projectSchemaName).(string),
+		Labels: metakubeProjectConfiguredLabels(d),
 	}
 
 	_, err := k.client.Project.UpdateProject(p.WithProjectID(d.Id()), k.auth)
 	if err != nil {
-		return fmt.Errorf("unable to update project '%s': %s", d.Id(), getErrorResponse(err))
+		return diag.Errorf("unable to update project '%s': %s", d.Id(), getErrorResponse(err))
 	}
 
-	if d.HasChange("user") {
-		if err := metakubeProjectUpdateUsers(k, d); err != nil {
-			return fmt.Errorf("error updating project's users: %v", err)
+	if d.HasChange(projectSchemaUsers) {
+		if err := metakubeProjectUpdateUsers(ctx, k, d); err != nil {
+			return diag.Diagnostics{{
+				Severity:      diag.Error,
+				Summary:       fmt.Sprintf("error updating project's users: %v", err),
+				AttributePath: cty.GetAttrPath(projectSchemaUsers),
+			}}
 		}
 	}
 
-	return resourceProjectRead(d, m)
+	return resourceProjectRead(ctx, d, m)
 }
 
-func metakubeProjectUpdateUsers(k *metakubeProviderMeta, d *schema.ResourceData) error {
-	curUser, err := metakubeProjectCurrentUser(k)
+func metakubeProjectUpdateUsers(ctx context.Context, k *metakubeProviderMeta, d *schema.ResourceData) error {
+	curUser, err := metakubeProjectCurrentUser(ctx, k)
 	if err != nil {
 		return err
 	}
 
-	persistedUsers, err := metakubeProjectPersistedUsers(k, d.Id())
-	if err != nil {
-		return err
+	persistedUsers, diags := metakubeProjectUsers(ctx, k, d.Id())
+	if diags != nil {
+		return diags
 	}
 
 	configuredUsers := metakubeProjectConfiguredUsers(d)
@@ -248,20 +306,20 @@ func metakubeProjectUpdateUsers(k *metakubeProviderMeta, d *schema.ResourceData)
 		if cu, ok := configuredUsers[email]; ok {
 			if pu.Projects[0].GroupPrefix != cu.Projects[0].GroupPrefix {
 				pu.Projects[0].GroupPrefix = cu.Projects[0].GroupPrefix
-				if err := metakubeProjectEditUser(k, d.Id(), &pu); err != nil {
+				if err := metakubeProjectEditUser(ctx, k, d.Id(), &pu); err != nil {
 					return err
 				}
 			}
 			continue
 		}
-		if err := metakubeProjectDeleteUser(k, d.Id(), pu.ID); err != nil {
+		if err := metakubeProjectDeleteUser(ctx, k, d.Id(), pu.ID); err != nil {
 			return err
 		}
 	}
 
 	for email, cu := range configuredUsers {
 		if _, ok := persistedUsers[email]; !ok {
-			if err := metakubeProjectAddUser(k, d.Id(), &cu); err != nil {
+			if err := metakubeProjectAddUser(ctx, k, d.Id(), &cu); err != nil {
 				return err
 			}
 		}
@@ -270,8 +328,9 @@ func metakubeProjectUpdateUsers(k *metakubeProviderMeta, d *schema.ResourceData)
 	return nil
 }
 
-func metakubeProjectEditUser(k *metakubeProviderMeta, pid string, u *models.User) error {
+func metakubeProjectEditUser(ctx context.Context, k *metakubeProviderMeta, pid string, u *models.User) error {
 	p := users.NewEditUserInProjectParams()
+	p.SetContext(ctx)
 	p.SetProjectID(pid)
 	p.SetUserID(u.ID)
 	p.SetBody(u)
@@ -285,8 +344,9 @@ func metakubeProjectEditUser(k *metakubeProviderMeta, pid string, u *models.User
 	return nil
 }
 
-func metakubeProjectDeleteUser(k *metakubeProviderMeta, pid, uid string) error {
+func metakubeProjectDeleteUser(ctx context.Context, k *metakubeProviderMeta, pid, uid string) error {
 	p := users.NewDeleteUserFromProjectParams()
+	p.SetContext(ctx)
 	p.SetProjectID(pid)
 	p.SetUserID(uid)
 	_, err := k.client.Users.DeleteUserFromProject(p, k.auth)
@@ -299,9 +359,10 @@ func metakubeProjectDeleteUser(k *metakubeProviderMeta, pid, uid string) error {
 	return nil
 }
 
-func metakubeProjectAddUser(k *metakubeProviderMeta, pid string, u *models.User) error {
+func metakubeProjectAddUser(ctx context.Context, k *metakubeProviderMeta, pid string, u *models.User) error {
 	p := users.NewAddUserToProjectParams()
 	p.SetProjectID(pid)
+	p.SetContext(ctx)
 	p.SetBody(u)
 	if _, err := k.client.Users.AddUserToProject(p, k.auth); err != nil {
 		if e, ok := err.(*users.AddUserToProjectDefault); ok && errorMessage(e.Payload) != "" {
@@ -312,8 +373,8 @@ func metakubeProjectAddUser(k *metakubeProviderMeta, pid string, u *models.User)
 	return nil
 }
 
-func metakubeProjectCurrentUser(k *metakubeProviderMeta) (*models.User, error) {
-	r, err := k.client.Users.GetCurrentUser(users.NewGetCurrentUserParams(), k.auth)
+func metakubeProjectCurrentUser(ctx context.Context, k *metakubeProviderMeta) (*models.User, error) {
+	r, err := k.client.Users.GetCurrentUser(users.NewGetCurrentUserParams().WithContext(ctx), k.auth)
 	if err != nil {
 		if e, ok := err.(*users.GetCurrentUserDefault); ok && errorMessage(e.Payload) != "" {
 			return nil, fmt.Errorf("get current user errored: %s", errorMessage(e.Payload))
@@ -323,7 +384,7 @@ func metakubeProjectCurrentUser(k *metakubeProviderMeta) (*models.User, error) {
 	return r.Payload, nil
 }
 
-func metakubeProjectPersistedUsers(k *metakubeProviderMeta, id string) (map[string]models.User, error) {
+func metakubeProjectUsers(ctx context.Context, k *metakubeProviderMeta, id string) (map[string]models.User, error) {
 	listStateConf := &resource.StateChangeConf{
 		Pending: []string{
 			usersUnavailable,
@@ -333,15 +394,12 @@ func metakubeProjectPersistedUsers(k *metakubeProviderMeta, id string) (map[stri
 		},
 		Refresh: func() (interface{}, string, error) {
 			p := users.NewGetUsersForProjectParams()
+			p.SetContext(ctx)
 			p.SetProjectID(id)
 
 			r, err := k.client.Users.GetUsersForProject(p, k.auth)
 			if err != nil {
-				// wait for the RBACs
-				if _, ok := err.(*users.GetUsersForProjectForbidden); ok {
-					return r, usersUnavailable, nil
-				}
-				return nil, usersUnavailable, fmt.Errorf("get users for project error: %v", err)
+				return nil, usersUnavailable, fmt.Errorf("%v", getErrorResponse(err))
 			}
 			ret := make(map[string]models.User)
 			for _, p := range r.Payload {
@@ -353,10 +411,10 @@ func metakubeProjectPersistedUsers(k *metakubeProviderMeta, id string) (map[stri
 		Delay:   5 * requestDelay,
 	}
 
-	rawUsers, err := listStateConf.WaitForState()
+	rawUsers, err := listStateConf.WaitForStateContext(ctx)
 	if err != nil {
 		k.log.Debugf("error while waiting for the users %v", err)
-		return nil, fmt.Errorf("error while waiting for the users %v", err)
+		return nil, err
 	}
 	u := rawUsers.(map[string]models.User)
 
@@ -365,11 +423,11 @@ func metakubeProjectPersistedUsers(k *metakubeProviderMeta, id string) (map[stri
 
 func metakubeProjectConfiguredUsers(d *schema.ResourceData) map[string]models.User {
 	ret := make(map[string]models.User)
-	for _, u := range d.Get("user").(*schema.Set).List() {
+	for _, u := range d.Get(projectSchemaUsers).(*schema.Set).List() {
 		u := u.(map[string]interface{})
-		ret[u["email"].(string)] = models.User{Email: u["email"].(string), Projects: []*models.ProjectGroup{
+		ret[u[projectUserSchemaEmail].(string)] = models.User{Email: u[projectUserSchemaEmail].(string), Projects: []*models.ProjectGroup{
 			{
-				GroupPrefix: u["group"].(string),
+				GroupPrefix: u[projectUserSchemaGroup].(string),
 				ID:          d.Id(),
 			},
 		}}
@@ -377,15 +435,16 @@ func metakubeProjectConfiguredUsers(d *schema.ResourceData) map[string]models.Us
 	return ret
 }
 
-func resourceProjectDelete(d *schema.ResourceData, m interface{}) error {
+func resourceProjectDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	k := m.(*metakubeProviderMeta)
 	p := project.NewDeleteProjectParams()
+	p.SetContext(ctx)
 	_, err := k.client.Project.DeleteProject(p.WithProjectID(d.Id()), k.auth)
 	if err != nil {
-		return fmt.Errorf("unable to delete project '%s': %s", d.Id(), getErrorResponse(err))
+		return diag.Errorf("unable to delete project '%s': %s", d.Id(), getErrorResponse(err))
 	}
 
-	return resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
+	err = resource.RetryContext(ctx, d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
 		p := project.NewGetProjectParams()
 		r, err := k.client.Project.GetProject(p.WithProjectID(d.Id()), k.auth)
 		if err != nil {
@@ -402,4 +461,8 @@ func resourceProjectDelete(d *schema.ResourceData, m interface{}) error {
 			fmt.Errorf("project '%s' still exists, currently in '%s' state", d.Id(), r.Payload.Status),
 		)
 	})
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	return nil
 }
