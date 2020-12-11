@@ -106,8 +106,11 @@ func resourceCluster() *schema.Resource {
 				Computed:    true,
 				Description: "Deletion timestamp",
 			},
-			// TODO: uncomment once `no consumer: "application/yaml"` error in metakube client is fixed.
-			// "kube_config": kubernetesConfigSchema(),
+
+			"kube_config": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 		},
 
 		CustomizeDiff: customdiff.All(
@@ -368,8 +371,26 @@ func resourceClusterRead(ctx context.Context, d *schema.ResourceData, m interfac
 		return diag.Diagnostics{{
 			Severity:      diag.Error,
 			Summary:       "Invalid value",
-			AttributePath: cty.Path{cty.GetAttrStep{Name: "sshkeys"}},
+			AttributePath: cty.GetAttrPath("sshkeys"),
 		}}
+	}
+
+	kubeConfigParams := project.NewGetClusterKubeconfigParams()
+	kubeConfigParams.SetContext(ctx)
+	kubeConfigParams.SetProjectID(projectID)
+	kubeConfigParams.SetDC(seedDC)
+	kubeConfigParams.SetClusterID(clusterID)
+	ret, err := k.client.Project.GetClusterKubeconfig(kubeConfigParams, k.auth)
+	if err != nil {
+		return diag.Diagnostics{{
+			Severity:      diag.Warning,
+			Summary:       fmt.Sprintf("Failed to get kube_config: %v", getErrorResponse(err)),
+			AttributePath: cty.GetAttrPath("kube_config"),
+		}}
+	}
+	err = d.Set("kube_config", string(ret.Payload))
+	if err != nil {
+		k.log.Error(err)
 	}
 
 	return nil

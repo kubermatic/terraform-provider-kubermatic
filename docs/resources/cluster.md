@@ -23,6 +23,12 @@ resource "metakube_cluster" "example" {
     }
   }
 }
+
+# create admin.conf file
+resource "local_file" "kubeconfig" {
+  content     = metakube_cluster.cluster.kube_config
+  filename = "${path.module}/admin.conf"
+}
 ```
 
 ## Argument Reference
@@ -40,6 +46,7 @@ The following arguments are supported:
 
 ## Attributes
 
+* `kube_config` - Kube config raw content which can be dumped to a file using [local_file](https://registry.terraform.io/providers/hashicorp/local/latest/docs/resources/file).
 * `creation_timestamp` - Timestamp of resource creation.
 * `deletion_timestamp` - Timestamp of resource deletion.
 

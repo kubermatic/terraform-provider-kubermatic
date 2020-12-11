@@ -288,20 +288,3 @@ func openstackCloudSpecFields() map[string]*schema.Schema {
 		},
 	}
 }
-
-func kubernetesConfigSchema() *schema.Schema {
-	return &schema.Schema{
-		Type:      schema.TypeList,
-		MaxItems:  1,
-		Computed:  true,
-		Sensitive: true,
-		Elem: &schema.Resource{
-			Schema: map[string]*schema.Schema{
-				"raw_config": {
-					Type:     schema.TypeString,
-					Computed: true,
-				},
-			},
-		},
-	}
-}
