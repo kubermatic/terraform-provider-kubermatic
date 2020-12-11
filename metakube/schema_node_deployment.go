@@ -252,7 +252,7 @@ func openstackNodeFields() map[string]*schema.Schema {
 		"flavor": {
 			Type:        schema.TypeString,
 			Required:    true,
-			Description: "Instante type",
+			Description: "Instance type",
 		},
 		"image": {
 			Type:        schema.TypeString,

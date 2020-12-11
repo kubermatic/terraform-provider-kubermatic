@@ -38,9 +38,9 @@ func resourceNodeDeployment() *schema.Resource {
 			},
 
 			"name": {
-				Type: schema.TypeString,
-				// TODO(furkhat): make field "Computed: true" when back end error is fixed.
-				Required:    true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Computed:    true,
 				ForceNew:    true,
 				Description: "Node deployment name",
 			},

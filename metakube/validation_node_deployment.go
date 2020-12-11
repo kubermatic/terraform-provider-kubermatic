@@ -104,6 +104,10 @@ func validateVersionAgainstCluster(d *schema.ResourceDiff, clusterVersion string
 
 func validateKubeletVersionIsAvailable(d *schema.ResourceDiff, k *metakubeProviderMeta, clusterVersion string) error {
 	version := d.Get("spec.0.template.0.versions.0.kubelet").(string)
+	if version == "" {
+		return nil
+	}
+
 	versionType := "kubernetes"
 
 	p := versions.NewGetNodeUpgradesParams()

@@ -35,7 +35,7 @@ resource "metakube_node_deployment" "example_node" {
 The following arguments are supported:
 
 * `cluster_id` - (Required) Reference full cluster identifier of format <project id>:<seed dc>:<cluster id>.
-* `name` - (Required) Cluster name.
+* `name` - (Optional) Node deployment name.
 * `spec` - (Required) Node deployment specification.
 
 ## Attributes
