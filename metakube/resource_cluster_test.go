@@ -23,8 +23,18 @@ func TestAccMetaKubeCluster_Openstack_Basic(t *testing.T) {
 	nodeDC := os.Getenv(testEnvOpenstackNodeDC)
 	versionK8s17 := os.Getenv(testEnvK8sVersion)
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheckForOpenstack(t) },
+		PreCheck:     func() {
+			testAccPreCheckForOpenstack(t)
+			checkEnv(t, "OS_AUTH_URL")
+			checkEnv(t, "OS_USERNAME")
+			checkEnv(t, "OS_PASSWORD")
+		},
 		Providers:    testAccProviders,
+		ExternalProviders: map[string]resource.ExternalProvider{
+			"openstack": resource.ExternalProvider{
+				Source: "terraform-provider-openstack/openstack",
+			},
+		},
 		CheckDestroy: testAccCheckMetaKubeClusterDestroy,
 		Steps: []resource.TestStep{
 			{
@@ -47,7 +57,10 @@ func TestAccMetaKubeCluster_Openstack_Basic(t *testing.T) {
 					resource.TestCheckResourceAttr("metakube_cluster.acctest_cluster", "spec.0.cloud.0.openstack.0.tenant", tenant),
 					resource.TestCheckResourceAttr("metakube_cluster.acctest_cluster", "spec.0.cloud.0.openstack.0.username", username),
 					resource.TestCheckResourceAttr("metakube_cluster.acctest_cluster", "spec.0.cloud.0.openstack.0.password", password),
-					resource.TestCheckResourceAttr("metakube_cluster.acctest_cluster", "spec.0.cloud.0.openstack.0.floating_ip_pool", "ext-net"),
+					resource.TestCheckResourceAttrSet("metakube_cluster.acctest_cluster", "spec.0.cloud.0.openstack.0.security_group"),
+					resource.TestCheckResourceAttrSet("metakube_cluster.acctest_cluster", "spec.0.cloud.0.openstack.0.network"),
+					resource.TestCheckResourceAttrSet("metakube_cluster.acctest_cluster", "spec.0.cloud.0.openstack.0.subnet_id"),
+					resource.TestCheckResourceAttr("metakube_cluster.acctest_cluster", "spec.0.cloud.0.openstack.0.subnet_cidr", "192.168.2.0/24"),
 					// Test spec.0.machine_networks value
 					testResourceInstanceState("metakube_cluster.acctest_cluster", func(is *terraform.InstanceState) error {
 						n, err := strconv.Atoi(is.Attributes["spec.0.machine_networks.#"])
@@ -146,6 +159,10 @@ func TestAccMetaKubeCluster_Openstack_Basic(t *testing.T) {
 					resource.TestCheckResourceAttr("metakube_cluster.acctest_cluster", "spec.0.cloud.0.openstack.0.username", username),
 					resource.TestCheckResourceAttr("metakube_cluster.acctest_cluster", "spec.0.cloud.0.openstack.0.password", password),
 					resource.TestCheckResourceAttr("metakube_cluster.acctest_cluster", "spec.0.cloud.0.openstack.0.floating_ip_pool", "ext-net"),
+					resource.TestCheckResourceAttrSet("metakube_cluster.acctest_cluster", "spec.0.cloud.0.openstack.0.security_group"),
+					resource.TestCheckResourceAttrSet("metakube_cluster.acctest_cluster", "spec.0.cloud.0.openstack.0.network"),
+					resource.TestCheckResourceAttrSet("metakube_cluster.acctest_cluster", "spec.0.cloud.0.openstack.0.subnet_id"),
+					resource.TestCheckResourceAttr("metakube_cluster.acctest_cluster", "spec.0.cloud.0.openstack.0.subnet_cidr", "192.168.2.0/24"),
 					// Test spec.0.machine_networks value
 					testResourceInstanceState("metakube_cluster.acctest_cluster", func(is *terraform.InstanceState) error {
 						n, err := strconv.Atoi(is.Attributes["spec.0.machine_networks.#"])
@@ -276,12 +293,31 @@ func testAccCheckMetaKubeClusterOpenstackBasic(testName, username, password, ten
 					username = "%s"
 					password = "%s"
 					floating_ip_pool = "ext-net"
+					security_group = openstack_networking_secgroup_v2.cluster-net.name
+					network = openstack_networking_network_v2.network_1.name
+					subnet_id = openstack_networking_subnet_v2.subnet_1.id
+					subnet_cidr = "192.168.2.0/24"
 				}
 			}
 			domain_name = "foodomain.local"
 			services_cidr = "10.240.16.0/18"
 			pods_cidr = "172.25.0.0/18"
 		}
+	}
+
+	resource "openstack_networking_secgroup_v2" "cluster-net" {
+	  name = "tf-test"
+	}
+	
+	resource "openstack_networking_network_v2" "network_1" {
+	  name = "network_1"
+	}
+	
+	resource "openstack_networking_subnet_v2" "subnet_1" {
+	  name = "subnet_1"
+	  network_id = openstack_networking_network_v2.network_1.id
+	  cidr = "192.168.0.0/16"
+	  ip_version = 4
 	}
 `
 
@@ -317,6 +353,10 @@ func testAccCheckMetaKubeClusterOpenstackBasic2(testName, username, password, te
 					username = "%s"
 					password = "%s"
 					floating_ip_pool = "ext-net"
+					security_group = openstack_networking_secgroup_v2.cluster-net.name
+					network = openstack_networking_network_v2.network_1.name
+					subnet_id = openstack_networking_subnet_v2.subnet_1.id
+					subnet_cidr = "192.168.2.0/24"
 				}
 			}
 
@@ -329,6 +369,21 @@ func testAccCheckMetaKubeClusterOpenstackBasic2(testName, username, password, te
 			services_cidr = "10.240.16.0/18"
 			pods_cidr = "172.25.0.0/18"
 		}
+	}
+
+	resource "openstack_networking_secgroup_v2" "cluster-net" {
+	  name = "tf-test"
+	}
+	
+	resource "openstack_networking_network_v2" "network_1" {
+	  name = "network_1"
+	}
+	
+	resource "openstack_networking_subnet_v2" "subnet_1" {
+	  name = "subnet_1"
+	  network_id = openstack_networking_network_v2.network_1.id
+	  cidr = "192.168.0.0/16"
+	  ip_version = 4
 	}`
 	return fmt.Sprintf(config, testName, testName, nodeDC, k8sVersion, tenant, username, password)
 }

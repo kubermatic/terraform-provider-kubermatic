@@ -26,6 +26,9 @@ testacc:
 # METAKUBE_ANOTHER_USER_EMAIL - email of an existing user to test cluster access sharing
 # METAKUBE_K8S_VERSION - the kubernetes version
 # METAKUBE_K8S_OLDER_VERSION - lower kubernetes version then METAKUBE_K8S_VERSION
+# OS_AUTH_URL - Openstack auth url
+# OS_USERNAME - Openstack username
+# OS_PASSWORD - Openstack password
 # METAKUBE_OPENSTACK_IMAGE - an image available for openstack clusters
 # METAKUBE_OPENSTACK_IMAGE2 - another image available for openstack clusters
 # METAKUBE_OPENSTACK_FLAVOR - openstack flavor to use
