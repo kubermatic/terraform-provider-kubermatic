@@ -23,15 +23,15 @@ func TestAccMetaKubeCluster_Openstack_Basic(t *testing.T) {
 	nodeDC := os.Getenv(testEnvOpenstackNodeDC)
 	versionK8s17 := os.Getenv(testEnvK8sVersion)
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() {
+		PreCheck: func() {
 			testAccPreCheckForOpenstack(t)
 			checkEnv(t, "OS_AUTH_URL")
 			checkEnv(t, "OS_USERNAME")
 			checkEnv(t, "OS_PASSWORD")
 		},
-		Providers:    testAccProviders,
+		Providers: testAccProviders,
 		ExternalProviders: map[string]resource.ExternalProvider{
-			"openstack": resource.ExternalProvider{
+			"openstack": {
 				Source: "terraform-provider-openstack/openstack",
 			},
 		},

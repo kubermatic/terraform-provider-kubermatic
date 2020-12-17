@@ -9,12 +9,12 @@ import (
 )
 
 func isLabelOrTagReserved(path string) bool {
-	r := regexp.MustCompile(`(tags|labels)\.(system|kubernetes\.io)\/`)
+	r := regexp.MustCompile(`(tags|labels)\.(metakube|system|kubernetes\.io)(\/|\-)`)
 	return r.MatchString(path)
 }
 
 func validateLabelOrTag(key string) error {
-	r := regexp.MustCompile(`^(system|kubernetes\.io)\/`)
+	r := regexp.MustCompile(`^(metakube|system|kubernetes\.io)(\/|\-)`)
 	if r.MatchString(key) {
 		return fmt.Errorf("forbidden tag or label prefix %s", key)
 	}
