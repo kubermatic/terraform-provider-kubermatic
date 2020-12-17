@@ -1,10 +1,40 @@
+variable "server_group_name" {
+  description = "Openstack server group name"
+  type = string
+  default = "server_group_1"
+}
+variable "cluster_network_name" {
+  description = "Openstack cluster network name"
+  type = string
+  default = "network_1"
+}
+variable "subnet_name" {
+  description = "Openstack subnet name"
+  type = string
+  default = "subnet_1"
+}
+variable "router_name" {
+  description = "Openstack router name"
+  type = string
+  default = "router_1"
+}
 variable project_name {
   description = "Name of the MetaKube project"
   type        = string
 }
+variable "public_sshkey_file" {
+  description = "Path to public ssh key to add to cluster"
+  type = string
+  default = "~/.ssh/id_rsa.pub"
+}
 variable cluster_name {
   description = "Name of the MetaKube cluster"
   type        = string
+}
+variable "cluster_domain" {
+  description = "MetaKube Cluster domain"
+  type = string
+  default = "cluster.local"
 }
 
 variable k8s_version {
@@ -27,21 +57,19 @@ variable floating_ip_pool {
 variable username {
   description = "OpenStack username"
   type        = string
+  default = null
 }
 
 variable password {
   description = "OpenStack password"
   type        = string
+  default = null
 }
 
 variable tenant {
   description = "OpenStack tenant"
   type        = string
-}
-
-variable node_deployment_name {
-  description = "Name of the MetaKube Node deployment"
-  type        = string
+  default = null
 }
 
 variable node_flavor {
@@ -60,6 +88,24 @@ variable node_replicas {
   description = "Amount of worker nodes in this node deployment"
   type        = string
   default     = 3
+}
+
+variable "node_max_replicas" {
+  description = "Max number of replicas to autoscale to"
+  type = number
+  default = 3
+}
+
+variable "node_min_replicas" {
+  description = "Min number of replicas to downscale to"
+  type = number
+  default = 3
+}
+
+variable "node_disk_size" {
+  description = "Disk size for a node"
+  type = number
+  default = null
 }
 
 variable use_floating_ip {
