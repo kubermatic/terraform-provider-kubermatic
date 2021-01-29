@@ -94,7 +94,7 @@ One of the following must be selected.
 
 #### Arguments
 
-* `effect` - (Required) Effect for taint. Accepted values are NO_SCHEDULE, PREFER_NO_SCHEDULE, and NO_EXECUTE.
+* `effect` - (Required) Effect for taint. Accepted values are NoSchedule, PreferNoSchedule, and NoExecute.
 * `key` - (Required) Key for taint.
 * `value` - (Required) Value for taint.
 
