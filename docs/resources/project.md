@@ -10,6 +10,11 @@ resource "metakube_project" "example" {
   labels = {
     "foo": "bar"
   }
+
+  user {
+    email = "user1@example.org"
+    group = "owners"
+  }
 }
 ```
 
@@ -35,4 +40,4 @@ The following arguments are supported:
 #### Arguments
 
 * `email` - (Required) User's email address.
-* `group` - (Required) User's role in the project.
+* `group` - (Required) User's role in the project. Can be `owners`, `editors` or `viewers`.
