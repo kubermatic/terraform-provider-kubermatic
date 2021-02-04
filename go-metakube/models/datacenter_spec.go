@@ -16,17 +16,24 @@ import (
 // swagger:model DatacenterSpec
 type DatacenterSpec struct {
 
-	// country
+	// Optional: Country of the seed as ISO-3166 two-letter code, e.g. DE or UK.
+	// It is used for informational purposes.
 	Country string `json:"country,omitempty"`
 
 	// EnforceAuditLogging enforces audit logging on every cluster within the DC,
 	// ignoring cluster-specific settings.
 	EnforceAuditLogging bool `json:"enforceAuditLogging,omitempty"`
 
-	// location
+	// EnforcePodSecurityPolicy enforces pod security policy plugin on every clusters within the DC,
+	// ignoring cluster-specific settings
+	EnforcePodSecurityPolicy bool `json:"enforcePodSecurityPolicy,omitempty"`
+
+	// Optional: Detailed location of the cluster, like "Hamburg" or "Datacenter 7".
+	// It is used for informational purposes.
 	Location string `json:"location,omitempty"`
 
-	// provider
+	// Name of the datacenter provider. Extracted based on which provider is defined in the spec.
+	// It is used for informational purposes.
 	Provider string `json:"provider,omitempty"`
 
 	// Deprecated. Automatically migrated to the RequiredEmailDomains field.
@@ -35,41 +42,47 @@ type DatacenterSpec struct {
 	// required email domains
 	RequiredEmailDomains []string `json:"requiredEmailDomains"`
 
-	// seed
+	// Name of the seed this datacenter belongs to.
 	Seed string `json:"seed,omitempty"`
 
 	// alibaba
-	Alibaba *AlibabaDatacenterSpec `json:"alibaba,omitempty"`
+	Alibaba *DatacenterSpecAlibaba `json:"alibaba,omitempty"`
 
 	// aws
-	Aws *AWSDatacenterSpec `json:"aws,omitempty"`
+	Aws *DatacenterSpecAWS `json:"aws,omitempty"`
 
 	// azure
-	Azure *AzureDatacenterSpec `json:"azure,omitempty"`
+	Azure *DatacenterSpecAzure `json:"azure,omitempty"`
 
 	// bringyourown
-	Bringyourown BringYourOwnDatacenterSpec `json:"bringyourown,omitempty"`
+	Bringyourown DatacenterSpecBringYourOwn `json:"bringyourown,omitempty"`
 
 	// digitalocean
-	Digitalocean *DigitialoceanDatacenterSpec `json:"digitalocean,omitempty"`
+	Digitalocean *DatacenterSpecDigitalocean `json:"digitalocean,omitempty"`
+
+	// fake
+	Fake *DatacenterSpecFake `json:"fake,omitempty"`
 
 	// gcp
-	Gcp *GCPDatacenterSpec `json:"gcp,omitempty"`
+	Gcp *DatacenterSpecGCP `json:"gcp,omitempty"`
 
 	// hetzner
-	Hetzner *HetznerDatacenterSpec `json:"hetzner,omitempty"`
+	Hetzner *DatacenterSpecHetzner `json:"hetzner,omitempty"`
 
 	// kubevirt
-	Kubevirt KubevirtDatacenterSpec `json:"kubevirt,omitempty"`
+	Kubevirt DatacenterSpecKubevirt `json:"kubevirt,omitempty"`
+
+	// node
+	Node *NodeSettings `json:"node,omitempty"`
 
 	// openstack
-	Openstack *OpenstackDatacenterSpec `json:"openstack,omitempty"`
+	Openstack *DatacenterSpecOpenstack `json:"openstack,omitempty"`
 
 	// packet
-	Packet *PacketDatacenterSpec `json:"packet,omitempty"`
+	Packet *DatacenterSpecPacket `json:"packet,omitempty"`
 
 	// vsphere
-	Vsphere *VSphereDatacenterSpec `json:"vsphere,omitempty"`
+	Vsphere *DatacenterSpecVSphere `json:"vsphere,omitempty"`
 }
 
 // Validate validates this datacenter spec
@@ -92,11 +105,19 @@ func (m *DatacenterSpec) Validate(formats strfmt.Registry) error {
 		res = append(res, err)
 	}
 
+	if err := m.validateFake(formats); err != nil {
+		res = append(res, err)
+	}
+
 	if err := m.validateGcp(formats); err != nil {
 		res = append(res, err)
 	}
 
 	if err := m.validateHetzner(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateNode(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -190,6 +211,24 @@ func (m *DatacenterSpec) validateDigitalocean(formats strfmt.Registry) error {
 	return nil
 }
 
+func (m *DatacenterSpec) validateFake(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.Fake) { // not required
+		return nil
+	}
+
+	if m.Fake != nil {
+		if err := m.Fake.Validate(formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("fake")
+			}
+			return err
+		}
+	}
+
+	return nil
+}
+
 func (m *DatacenterSpec) validateGcp(formats strfmt.Registry) error {
 
 	if swag.IsZero(m.Gcp) { // not required
@@ -218,6 +257,24 @@ func (m *DatacenterSpec) validateHetzner(formats strfmt.Registry) error {
 		if err := m.Hetzner.Validate(formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("hetzner")
+			}
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (m *DatacenterSpec) validateNode(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.Node) { // not required
+		return nil
+	}
+
+	if m.Node != nil {
+		if err := m.Node.Validate(formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("node")
 			}
 			return err
 		}

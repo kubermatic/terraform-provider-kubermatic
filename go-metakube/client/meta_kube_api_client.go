@@ -25,6 +25,7 @@ import (
 	"github.com/syseleven/terraform-provider-metakube/go-metakube/client/operations"
 	"github.com/syseleven/terraform-provider-metakube/go-metakube/client/packet"
 	"github.com/syseleven/terraform-provider-metakube/go-metakube/client/project"
+	"github.com/syseleven/terraform-provider-metakube/go-metakube/client/seed"
 	"github.com/syseleven/terraform-provider-metakube/go-metakube/client/serviceaccounts"
 	"github.com/syseleven/terraform-provider-metakube/go-metakube/client/settings"
 	"github.com/syseleven/terraform-provider-metakube/go-metakube/client/tokens"
@@ -33,7 +34,7 @@ import (
 	"github.com/syseleven/terraform-provider-metakube/go-metakube/client/vsphere"
 )
 
-// Default meta kube HTTP client.
+// Default meta kube API HTTP client.
 var Default = NewHTTPClient(nil)
 
 const (
@@ -48,14 +49,14 @@ const (
 // DefaultSchemes are the default schemes found in Meta (info) section of spec file
 var DefaultSchemes = []string{"https"}
 
-// NewHTTPClient creates a new meta kube HTTP client.
-func NewHTTPClient(formats strfmt.Registry) *MetaKube {
+// NewHTTPClient creates a new meta kube API HTTP client.
+func NewHTTPClient(formats strfmt.Registry) *MetaKubeAPI {
 	return NewHTTPClientWithConfig(formats, nil)
 }
 
-// NewHTTPClientWithConfig creates a new meta kube HTTP client,
+// NewHTTPClientWithConfig creates a new meta kube API HTTP client,
 // using a customizable transport config.
-func NewHTTPClientWithConfig(formats strfmt.Registry, cfg *TransportConfig) *MetaKube {
+func NewHTTPClientWithConfig(formats strfmt.Registry, cfg *TransportConfig) *MetaKubeAPI {
 	// ensure nullable parameters have default
 	if cfg == nil {
 		cfg = DefaultTransportConfig()
@@ -66,14 +67,14 @@ func NewHTTPClientWithConfig(formats strfmt.Registry, cfg *TransportConfig) *Met
 	return New(transport, formats)
 }
 
-// New creates a new meta kube client
-func New(transport runtime.ClientTransport, formats strfmt.Registry) *MetaKube {
+// New creates a new meta kube API client
+func New(transport runtime.ClientTransport, formats strfmt.Registry) *MetaKubeAPI {
 	// ensure nullable parameters have default
 	if formats == nil {
 		formats = strfmt.Default
 	}
 
-	cli := new(MetaKube)
+	cli := new(MetaKubeAPI)
 	cli.Transport = transport
 	cli.Addon = addon.New(transport, formats)
 	cli.Admin = admin.New(transport, formats)
@@ -90,6 +91,7 @@ func New(transport runtime.ClientTransport, formats strfmt.Registry) *MetaKube {
 	cli.Operations = operations.New(transport, formats)
 	cli.Packet = packet.New(transport, formats)
 	cli.Project = project.New(transport, formats)
+	cli.Seed = seed.New(transport, formats)
 	cli.Serviceaccounts = serviceaccounts.New(transport, formats)
 	cli.Settings = settings.New(transport, formats)
 	cli.Tokens = tokens.New(transport, formats)
@@ -138,8 +140,8 @@ func (cfg *TransportConfig) WithSchemes(schemes []string) *TransportConfig {
 	return cfg
 }
 
-// MetaKube is a client for meta kube
-type MetaKube struct {
+// MetaKubeAPI is a client for meta kube API
+type MetaKubeAPI struct {
 	Addon addon.ClientService
 
 	Admin admin.ClientService
@@ -170,6 +172,8 @@ type MetaKube struct {
 
 	Project project.ClientService
 
+	Seed seed.ClientService
+
 	Serviceaccounts serviceaccounts.ClientService
 
 	Settings settings.ClientService
@@ -186,7 +190,7 @@ type MetaKube struct {
 }
 
 // SetTransport changes the transport on the client and all its subresources
-func (c *MetaKube) SetTransport(transport runtime.ClientTransport) {
+func (c *MetaKubeAPI) SetTransport(transport runtime.ClientTransport) {
 	c.Transport = transport
 	c.Addon.SetTransport(transport)
 	c.Admin.SetTransport(transport)
@@ -203,6 +207,7 @@ func (c *MetaKube) SetTransport(transport runtime.ClientTransport) {
 	c.Operations.SetTransport(transport)
 	c.Packet.SetTransport(transport)
 	c.Project.SetTransport(transport)
+	c.Seed.SetTransport(transport)
 	c.Serviceaccounts.SetTransport(transport)
 	c.Settings.SetTransport(transport)
 	c.Tokens.SetTransport(transport)

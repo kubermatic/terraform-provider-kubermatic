@@ -31,8 +31,17 @@ type SettingSpec struct {
 	// enable dashboard
 	EnableDashboard bool `json:"enableDashboard,omitempty"`
 
+	// enable external cluster import
+	EnableExternalClusterImport bool `json:"enableExternalClusterImport,omitempty"`
+
 	// enable o ID c kubeconfig
 	EnableOIDCKubeconfig bool `json:"enableOIDCKubeconfig,omitempty"`
+
+	// restrict project creation
+	RestrictProjectCreation bool `json:"restrictProjectCreation,omitempty"`
+
+	// user projects limit
+	UserProjectsLimit int64 `json:"userProjectsLimit,omitempty"`
 
 	// cleanup options
 	CleanupOptions *CleanupOptions `json:"cleanupOptions,omitempty"`

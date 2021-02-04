@@ -10,22 +10,25 @@ import (
 	"github.com/go-openapi/swag"
 )
 
-// AzureDatacenterSpec AzureDatacenterSpec specifies a datacenter of Azure.
+// Body body
 //
-// swagger:model AzureDatacenterSpec
-type AzureDatacenterSpec struct {
+// swagger:model body
+type Body struct {
 
-	// location
-	Location string `json:"location,omitempty"`
+	// Kubeconfig Base64 encoded kubeconfig
+	Kubeconfig string `json:"kubeconfig,omitempty"`
+
+	// Name is human readable name for the external cluster
+	Name string `json:"name,omitempty"`
 }
 
-// Validate validates this azure datacenter spec
-func (m *AzureDatacenterSpec) Validate(formats strfmt.Registry) error {
+// Validate validates this body
+func (m *Body) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
 // MarshalBinary interface implementation
-func (m *AzureDatacenterSpec) MarshalBinary() ([]byte, error) {
+func (m *Body) MarshalBinary() ([]byte, error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -33,8 +36,8 @@ func (m *AzureDatacenterSpec) MarshalBinary() ([]byte, error) {
 }
 
 // UnmarshalBinary interface implementation
-func (m *AzureDatacenterSpec) UnmarshalBinary(b []byte) error {
-	var res AzureDatacenterSpec
+func (m *Body) UnmarshalBinary(b []byte) error {
+	var res Body
 	if err := swag.ReadJSON(b, &res); err != nil {
 		return err
 	}

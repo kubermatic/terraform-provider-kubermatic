@@ -1,4 +1,9 @@
+DOMAIN=syseleven.de
+NAMESPACE=syseleven
 PKG_NAME=metakube
+BINARY=terraform-provider-${NAME}
+VERSION=0.2.1
+PLATFORM=darwin_amd64
 SWEEP_DIR?=./metakube
 SWEEP?=all
 
@@ -8,13 +13,12 @@ export GO111MODULE=on
 
 default: install
 
-build: fmtcheck bin/terraform-provider-metakube
+build: fmtcheck
+	go build -v -o ${BINARY}
 
-bin/terraform-provider-metakube:
-	go build -v -o $@
-
-install: fmtcheck
-	go install
+install: build
+	mkdir -p ~/.terraform.d/plugins/${DOMAIN}/${NAMESPACE}/${PKG_NAME}/${VERSION}/${PLATFORM}
+	mv ${BINARY} ~/.terraform.d/plugins/${DOMAIN}/${NAMESPACE}/${PKG_NAME}/${VERSION}/${PLATFORM}
 
 test: fmtcheck
 	go test ./$(PKG_NAME)
@@ -26,6 +30,7 @@ testacc:
 # METAKUBE_ANOTHER_USER_EMAIL - email of an existing user to test cluster access sharing
 # METAKUBE_K8S_VERSION - the kubernetes version
 # METAKUBE_K8S_OLDER_VERSION - lower kubernetes version then METAKUBE_K8S_VERSION
+# OS_PROJECT - Openstack project name
 # OS_AUTH_URL - Openstack auth url
 # OS_USERNAME - Openstack username
 # OS_PASSWORD - Openstack password

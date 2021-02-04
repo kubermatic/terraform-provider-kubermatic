@@ -5,12 +5,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/go-openapi/strfmt"
-	"github.com/syseleven/terraform-provider-metakube/go-metakube/models"
 	"io/ioutil"
 	"net/url"
 	"os"
 	"time"
+
+	"github.com/go-openapi/strfmt"
+	"github.com/syseleven/terraform-provider-metakube/go-metakube/models"
 
 	"github.com/go-openapi/runtime"
 	"github.com/hashicorp/go-cty/cty"
@@ -30,7 +31,7 @@ const (
 )
 
 type metakubeProviderMeta struct {
-	client *k8client.MetaKube
+	client *k8client.MetaKubeAPI
 	auth   runtime.ClientAuthInfoWriter
 	log    *zap.SugaredLogger
 }
@@ -171,7 +172,7 @@ func newLogger(d *schema.ResourceData, fd *os.File) (*zap.SugaredLogger, diag.Di
 	return zap.New(core).Sugar(), nil
 }
 
-func newClient(host string) (*k8client.MetaKube, diag.Diagnostics) {
+func newClient(host string) (*k8client.MetaKubeAPI, diag.Diagnostics) {
 	u, err := url.Parse(host)
 	if err != nil {
 		return nil, diag.Diagnostics{{

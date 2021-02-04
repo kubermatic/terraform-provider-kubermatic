@@ -10,22 +10,22 @@ import (
 	"github.com/go-openapi/swag"
 )
 
-// PacketDatacenterSpec PacketDatacenterSpec specifies a datacenter of Packet.
+// DatacenterMeta DatacenterMeta holds datacenter metadata information.
 //
-// swagger:model PacketDatacenterSpec
-type PacketDatacenterSpec struct {
+// swagger:model DatacenterMeta
+type DatacenterMeta struct {
 
-	// facilities
-	Facilities []string `json:"facilities"`
+	// name
+	Name string `json:"name,omitempty"`
 }
 
-// Validate validates this packet datacenter spec
-func (m *PacketDatacenterSpec) Validate(formats strfmt.Registry) error {
+// Validate validates this datacenter meta
+func (m *DatacenterMeta) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
 // MarshalBinary interface implementation
-func (m *PacketDatacenterSpec) MarshalBinary() ([]byte, error) {
+func (m *DatacenterMeta) MarshalBinary() ([]byte, error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -33,8 +33,8 @@ func (m *PacketDatacenterSpec) MarshalBinary() ([]byte, error) {
 }
 
 // UnmarshalBinary interface implementation
-func (m *PacketDatacenterSpec) UnmarshalBinary(b []byte) error {
-	var res PacketDatacenterSpec
+func (m *DatacenterMeta) UnmarshalBinary(b []byte) error {
+	var res DatacenterMeta
 	if err := swag.ReadJSON(b, &res); err != nil {
 		return err
 	}

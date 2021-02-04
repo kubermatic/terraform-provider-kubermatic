@@ -19,17 +19,11 @@ type AWSCloudSpec struct {
 	// access key ID
 	AccessKeyID string `json:"accessKeyId,omitempty"`
 
-	// availability zone
-	AvailabilityZone string `json:"availabilityZone,omitempty"`
-
 	// The IAM role, the control plane will use. The control plane will perform an assume-role
 	ControlPlaneRoleARN string `json:"roleARN,omitempty"`
 
 	// instance profile name
 	InstanceProfileName string `json:"instanceProfileName,omitempty"`
-
-	// openstack billing tenant
-	OpenstackBillingTenant string `json:"openstackBillingTenant,omitempty"`
 
 	// DEPRECATED. Don't care for the role name. We only require the ControlPlaneRoleARN to be set so the control plane
 	// can perform the assume-role.
