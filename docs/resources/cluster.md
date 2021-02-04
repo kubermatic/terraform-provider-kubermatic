@@ -80,7 +80,7 @@ One of the following must be selected.
 ### `openstack`
 
 #### Arguments
-* `tenant` - (Required) The project to use for billing. You can set it using environment variable `OS_PROJECT_NAME`.
+* `tenant` - (Required) The project to use for billing. You can set it using environment variable `OS_PROJECT`.
 * `username` - (Required) The account's username. You can set it using environment variable `OS_USERNAME`.
 * `password` - (Required) The account's password. You can set it using environment variable `OS_PASSWORD`.
 * `floating_ip_pool` - (Required) The floating ip pool used by all worker nodes to receive a public ip.

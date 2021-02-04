@@ -229,7 +229,7 @@ func openstackCloudSpecFields() map[string]*schema.Schema {
 			Type:         schema.TypeString,
 			Required:     true,
 			ForceNew:     true,
-			DefaultFunc:  schema.EnvDefaultFunc("OS_PROJECT_NAME", ""),
+			DefaultFunc:  schema.EnvDefaultFunc("OS_PROJECT", ""),
 			ValidateFunc: validation.NoZeroValues,
 			Description:  "The opestack project to use for billing",
 		},
