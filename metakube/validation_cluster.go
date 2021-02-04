@@ -3,6 +3,7 @@ package metakube
 import (
 	"context"
 	"fmt"
+
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -117,18 +118,18 @@ func diagnoseOpenstackFloatingIPPoolIfSet(ctx context.Context, d *schema.Resourc
 }
 
 func diagnoseOpenstackNetworkExistsIfSet(ctx context.Context, d *schema.ResourceData, k *metakubeProviderMeta) diag.Diagnostics {
-	nets, err := validateOpenstackNetworkExistsIfSet(ctx, d, k, "spec.0.cloud.0.openstack.0.network", false)
-	names := make([]string, 0)
-	for _, n := range nets {
-		if n.External == false {
-			names = append(names, n.Name)
-		}
-	}
-	var diagnoseDetail string
-	if len(names) > 0 {
-		diagnoseDetail = fmt.Sprintf("We found following networks: %v", names)
-	}
+	allnets, err := validateOpenstackNetworkExistsIfSet(ctx, d, k, "spec.0.cloud.0.openstack.0.network", false)
 	if err != nil {
+		names := make([]string, 0)
+		for _, n := range allnets {
+			if n.External == false {
+				names = append(names, n.Name)
+			}
+		}
+		var diagnoseDetail string
+		if len(names) > 0 {
+			diagnoseDetail = fmt.Sprintf("We found following networks: %v", names)
+		}
 		return diag.Diagnostics{{
 			Severity:      diag.Error,
 			Summary:       err.Error(),
@@ -146,8 +147,8 @@ func validateOpenstackNetworkExistsIfSet(ctx context.Context, d *schema.Resource
 	}
 
 	data := newOpenstackValidationData(d)
-	_, nets, err := getNetwork(ctx, k, data, value.(string), external)
-	return nets, err
+	_, all, err := getNetwork(ctx, k, data, value.(string), external)
+	return all, err
 }
 
 func diagnoseOpenstackSubnetWithIDExistsIfSet(ctx context.Context, d *schema.ResourceData, k *metakubeProviderMeta) diag.Diagnostics {
@@ -160,7 +161,7 @@ func diagnoseOpenstackSubnetWithIDExistsIfSet(ctx context.Context, d *schema.Res
 		return nil
 	}
 
-	subnets, err, ok := getSubnet(ctx, k, data, network.ID)
+	subnets, ok, err := getSubnet(ctx, k, data, network.ID)
 	if ok {
 		return nil
 	}
@@ -203,15 +204,15 @@ func findNetwork(list []*models.OpenstackNetwork, network string, external bool)
 	return nil
 }
 
-func getSubnet(ctx context.Context, k *metakubeProviderMeta, data openstackValidationData, networkID string) ([]*models.OpenstackSubnet, error, bool) {
+func getSubnet(ctx context.Context, k *metakubeProviderMeta, data openstackValidationData, networkID string) ([]*models.OpenstackSubnet, bool, error) {
 	p := openstack.NewListOpenstackSubnetsParams()
 	data.setParams(ctx, p)
 	p.SetNetworkID(&networkID)
 	res, err := k.client.Openstack.ListOpenstackSubnets(p, k.auth)
 	if err != nil {
-		return nil, fmt.Errorf("list network subnets: %v", getErrorResponse(err)), false
+		return nil, false, fmt.Errorf("list network subnets: %v", getErrorResponse(err))
 	}
-	return res.Payload, nil, findSubnet(res.Payload, *data.subnetID) != nil
+	return res.Payload, findSubnet(res.Payload, *data.subnetID) != nil, nil
 }
 
 func findSubnet(list []*models.OpenstackSubnet, id string) *models.OpenstackSubnet {

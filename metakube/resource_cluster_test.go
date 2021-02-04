@@ -276,6 +276,13 @@ func TestAccMetaKubeCluster_Openstack_UpgradeVersion(t *testing.T) {
 }
 func testAccCheckMetaKubeClusterOpenstackBasic(testName, username, password, tenant, nodeDC, version string) string {
 	config := `
+	terraform {
+		required_providers {
+			openstack = {
+				source = "terraform-provider-openstack/openstack"
+			}
+		}
+	}
 	resource "metakube_project" "acctest_project" {
 		name = "%s"
 	}
@@ -326,6 +333,13 @@ func testAccCheckMetaKubeClusterOpenstackBasic(testName, username, password, ten
 
 func testAccCheckMetaKubeClusterOpenstackBasic2(testName, username, password, tenant, nodeDC, k8sVersion string) string {
 	config := `
+	terraform {
+		required_providers {
+			openstack = {
+				source = "terraform-provider-openstack/openstack"
+			}
+		}
+	}
 	resource "metakube_project" "acctest_project" {
 		name = "%s"
 		labels = {

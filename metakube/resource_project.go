@@ -3,10 +3,11 @@ package metakube
 import (
 	"context"
 	"fmt"
-	"github.com/hashicorp/go-cty/cty"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"net/http"
 	"time"
+
+	"github.com/hashicorp/go-cty/cty"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -441,6 +442,10 @@ func resourceProjectDelete(ctx context.Context, d *schema.ResourceData, m interf
 	p.SetContext(ctx)
 	_, err := k.client.Project.DeleteProject(p.WithProjectID(d.Id()), k.auth)
 	if err != nil {
+		if e, ok := err.(*project.DeleteProjectDefault); ok && e.Code() == http.StatusNotFound {
+			k.log.Warnf("project '%s' was not found", d.Id())
+			return nil
+		}
 		return diag.Errorf("unable to delete project '%s': %s", d.Id(), getErrorResponse(err))
 	}
 

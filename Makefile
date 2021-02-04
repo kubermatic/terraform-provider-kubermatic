@@ -1,7 +1,7 @@
 DOMAIN=syseleven.de
 NAMESPACE=syseleven
 PKG_NAME=metakube
-BINARY=terraform-provider-${NAME}
+BINARY=terraform-provider-${PKG_NAME}
 VERSION=0.2.1
 PLATFORM=darwin_amd64
 SWEEP_DIR?=./metakube
