@@ -9,7 +9,6 @@ resource "metakube_cluster" "example" {
   project_id = metakube_project.example.id
   name = "example"
   dc_name = "europe-west3-c"
-  credential = ""
 
   spec {
     version = "1.18.8"
@@ -41,7 +40,6 @@ The following arguments are supported:
 * `spec` - (Required) Cluster specification.
 * `labels` - (Optional) Labels added to cluster.
 * `sshkeys` - (Optional) SSH keys attached to nodes.
-* `credential` - (Optional) Cluster access credentials.
 * `type` - (Optional) Cloud orchestrator, either Kubernetes or OpenShift.
 
 ## Attributes

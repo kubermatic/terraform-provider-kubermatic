@@ -106,18 +106,6 @@ func TestAccMetaKubeCluster_Openstack_Basic(t *testing.T) {
 						return nil
 					}),
 					resource.TestCheckResourceAttr("metakube_cluster.acctest_cluster", "spec.0.audit_logging", "false"),
-					// Test credential
-					testResourceInstanceState("metakube_cluster.acctest_cluster", func(is *terraform.InstanceState) error {
-						v, ok := is.Attributes["credential"]
-						if !ok && cluster.Credential != "" {
-							return fmt.Errorf("cluster credential not set")
-						}
-						if want := cluster.Credential; want != v {
-							return fmt.Errorf("want .Credential=%s, got %s", want, v)
-						}
-
-						return nil
-					}),
 					resource.TestCheckResourceAttr("metakube_cluster.acctest_cluster", "type", "kubernetes"),
 					resource.TestCheckResourceAttrSet("metakube_cluster.acctest_cluster", "creation_timestamp"),
 					resource.TestCheckResourceAttrSet("metakube_cluster.acctest_cluster", "deletion_timestamp"),
@@ -208,18 +196,6 @@ func TestAccMetaKubeCluster_Openstack_Basic(t *testing.T) {
 						return nil
 					}),
 					resource.TestCheckResourceAttr("metakube_cluster.acctest_cluster", "spec.0.audit_logging", "true"),
-					// Test credential
-					testResourceInstanceState("metakube_cluster.acctest_cluster", func(is *terraform.InstanceState) error {
-						v, ok := is.Attributes["credential"]
-						if !ok && cluster.Credential != "" {
-							return fmt.Errorf("cluster credential not set")
-						}
-						if want := cluster.Credential; want != v {
-							return fmt.Errorf("want .Credential=%s, got %s", want, v)
-						}
-
-						return nil
-					}),
 					resource.TestCheckResourceAttr("metakube_cluster.acctest_cluster", "type", "kubernetes"),
 					resource.TestCheckResourceAttrSet("metakube_cluster.acctest_cluster", "creation_timestamp"),
 					resource.TestCheckResourceAttrSet("metakube_cluster.acctest_cluster", "deletion_timestamp"),
@@ -243,8 +219,13 @@ func TestAccMetaKubeCluster_Openstack_UpgradeVersion(t *testing.T) {
 	versionK8s17 := os.Getenv(testEnvK8sVersion)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheckForOpenstack(t) },
-		Providers:    testAccProviders,
+		PreCheck:  func() { testAccPreCheckForOpenstack(t) },
+		Providers: testAccProviders,
+		ExternalProviders: map[string]resource.ExternalProvider{
+			"openstack": {
+				Source: "terraform-provider-openstack/openstack",
+			},
+		},
 		CheckDestroy: testAccCheckMetaKubeClusterDestroy,
 		Steps: []resource.TestStep{
 			{

@@ -247,52 +247,70 @@ func expandClusterSpec(p []interface{}, dcName string) *models.ClusterSpec {
 	in := p[0].(map[string]interface{})
 
 	if v, ok := in["version"]; ok {
-		obj.Version = v.(string)
+		if vv, ok := v.(string); ok {
+			obj.Version = vv
+		}
 	}
 
 	if v, ok := in["machine_networks"]; ok {
-		obj.MachineNetworks = expandMachineNetworks(v.([]interface{}))
+		if vv, ok := v.([]interface{}); ok {
+			obj.MachineNetworks = expandMachineNetworks(vv)
+		}
 	}
 
 	if v, ok := in["audit_logging"]; ok {
-		obj.AuditLogging = expandAuditLogging(v.(bool))
+		if vv, ok := v.(bool); ok {
+			obj.AuditLogging = expandAuditLogging(vv)
+		}
 	}
 
 	if v, ok := in["pod_security_policy"]; ok {
-		obj.UsePodSecurityPolicyAdmissionPlugin = v.(bool)
+		if vv, ok := v.(bool); ok {
+			obj.UsePodSecurityPolicyAdmissionPlugin = vv
+		}
 	}
 
 	if v, ok := in["pod_node_selector"]; ok {
-		obj.UsePodNodeSelectorAdmissionPlugin = v.(bool)
+		if vv, ok := v.(bool); ok {
+			obj.UsePodNodeSelectorAdmissionPlugin = vv
+		}
 	}
 
 	if v, ok := in["services_cidr"]; ok {
-		if obj.ClusterNetwork == nil {
-			obj.ClusterNetwork = &models.ClusterNetworkingConfig{}
-		}
-		obj.ClusterNetwork.Services = &models.NetworkRanges{
-			CIDRBlocks: []string{v.(string)},
+		if vv, ok := v.(string); ok && vv != "" {
+			if obj.ClusterNetwork == nil {
+				obj.ClusterNetwork = &models.ClusterNetworkingConfig{}
+			}
+			obj.ClusterNetwork.Services = &models.NetworkRanges{
+				CIDRBlocks: []string{vv},
+			}
 		}
 	}
 
 	if v, ok := in["pods_cidr"]; ok {
-		if obj.ClusterNetwork == nil {
-			obj.ClusterNetwork = &models.ClusterNetworkingConfig{}
-		}
-		obj.ClusterNetwork.Pods = &models.NetworkRanges{
-			CIDRBlocks: []string{v.(string)},
+		if vv, ok := v.(string); ok && vv != "" {
+			if obj.ClusterNetwork == nil {
+				obj.ClusterNetwork = &models.ClusterNetworkingConfig{}
+			}
+			obj.ClusterNetwork.Pods = &models.NetworkRanges{
+				CIDRBlocks: []string{vv},
+			}
 		}
 	}
 
 	if v, ok := in["domain_name"]; ok {
-		if obj.ClusterNetwork == nil {
-			obj.ClusterNetwork = &models.ClusterNetworkingConfig{}
+		if vv, ok := v.(string); ok && v != "" {
+			if obj.ClusterNetwork == nil {
+				obj.ClusterNetwork = &models.ClusterNetworkingConfig{}
+			}
+			obj.ClusterNetwork.DNSDomain = vv
 		}
-		obj.ClusterNetwork.DNSDomain = v.(string)
 	}
 
 	if v, ok := in["cloud"]; ok {
-		obj.Cloud = expandClusterCloudSpec(v.([]interface{}), dcName)
+		if vv, ok := v.([]interface{}); ok {
+			obj.Cloud = expandClusterCloudSpec(vv, dcName)
+		}
 	}
 
 	return obj
@@ -308,16 +326,24 @@ func expandMachineNetworks(p []interface{}) []*models.MachineNetworkingConfig {
 		obj := &models.MachineNetworkingConfig{}
 
 		if v, ok := in["cidr"]; ok {
-			obj.CIDR = v.(string)
+			if vv, ok := v.(string); ok && v != "" {
+				obj.CIDR = vv
+			}
 		}
 
 		if v, ok := in["gateway"]; ok {
-			obj.Gateway = v.(string)
+			if vv, ok := v.(string); ok && v != "" {
+				obj.Gateway = vv
+			}
 		}
 
 		if v, ok := in["dns_servers"]; ok {
-			for _, s := range v.([]interface{}) {
-				obj.DNSServers = append(obj.DNSServers, s.(string))
+			if vv, ok := v.([]interface{}); ok {
+				for _, s := range vv {
+					if ss, ok := s.(string); ok && s != "" {
+						obj.DNSServers = append(obj.DNSServers, ss)
+					}
+				}
 			}
 		}
 
@@ -346,19 +372,27 @@ func expandClusterCloudSpec(p []interface{}, dcName string) *models.CloudSpec {
 	obj.DatacenterName = dcName
 
 	if v, ok := in["bringyourown"]; ok {
-		obj.Bringyourown = expandBringYourOwnCloudSpec(v.([]interface{}))
+		if vv, ok := v.([]interface{}); ok {
+			obj.Bringyourown = expandBringYourOwnCloudSpec(vv)
+		}
 	}
 
 	if v, ok := in["aws"]; ok {
-		obj.Aws = expandAWSCloudSpec(v.([]interface{}))
+		if vv, ok := v.([]interface{}); ok {
+			obj.Aws = expandAWSCloudSpec(vv)
+		}
 	}
 
 	if v, ok := in["openstack"]; ok {
-		obj.Openstack = expandOpenstackCloudSpec(v.([]interface{}))
+		if vv, ok := v.([]interface{}); ok {
+			obj.Openstack = expandOpenstackCloudSpec(vv)
+		}
 	}
 
 	if v, ok := in["azure"]; ok {
-		obj.Azure = expandAzureCloudSpec(v.([]interface{}))
+		if vv, ok := v.([]interface{}); ok {
+			obj.Azure = expandAzureCloudSpec(vv)
+		}
 	}
 
 	return obj
@@ -383,31 +417,45 @@ func expandAWSCloudSpec(p []interface{}) *models.AWSCloudSpec {
 	in := p[0].(map[string]interface{})
 
 	if v, ok := in["access_key_id"]; ok {
-		obj.AccessKeyID = v.(string)
+		if vv, ok := v.(string); ok && vv != "" {
+			obj.AccessKeyID = vv
+		}
 	}
 
 	if v, ok := in["secret_access_key"]; ok {
-		obj.SecretAccessKey = v.(string)
+		if vv, ok := v.(string); ok && vv != "" {
+			obj.SecretAccessKey = vv
+		}
 	}
 
 	if v, ok := in["vpc_id"]; ok {
-		obj.VPCID = v.(string)
+		if vv, ok := v.(string); ok && vv != "" {
+			obj.VPCID = vv
+		}
 	}
 
 	if v, ok := in["security_group_id"]; ok {
-		obj.SecurityGroupID = v.(string)
+		if vv, ok := v.(string); ok && vv != "" {
+			obj.SecurityGroupID = vv
+		}
 	}
 
 	if v, ok := in["instance_profile_name"]; ok {
-		obj.InstanceProfileName = v.(string)
+		if vv, ok := v.(string); ok && vv != "" {
+			obj.InstanceProfileName = vv
+		}
 	}
 
 	if v, ok := in["role_arn"]; ok {
-		obj.ControlPlaneRoleARN = v.(string)
+		if vv, ok := v.(string); ok && vv != "" {
+			obj.ControlPlaneRoleARN = vv
+		}
 	}
 
 	if v, ok := in["route_table_id"]; ok {
-		obj.RouteTableID = v.(string)
+		if vv, ok := v.(string); ok && vv != "" {
+			obj.RouteTableID = vv
+		}
 	}
 
 	return obj
@@ -425,35 +473,51 @@ func expandOpenstackCloudSpec(p []interface{}) *models.OpenstackCloudSpec {
 	in := p[0].(map[string]interface{})
 
 	if v, ok := in["tenant"]; ok {
-		obj.Tenant = v.(string)
+		if vv, ok := v.(string); ok && vv != "" {
+			obj.Tenant = vv
+		}
 	}
 
 	if v, ok := in["floating_ip_pool"]; ok {
-		obj.FloatingIPPool = v.(string)
+		if vv, ok := v.(string); ok && vv != "" {
+			obj.FloatingIPPool = vv
+		}
 	}
 
 	if v, ok := in["security_group"]; ok {
-		obj.SecurityGroups = v.(string)
+		if vv, ok := v.(string); ok && vv != "" {
+			obj.SecurityGroups = vv
+		}
 	}
 
 	if v, ok := in["network"]; ok {
-		obj.Network = v.(string)
+		if vv, ok := v.(string); ok && vv != "" {
+			obj.Network = vv
+		}
 	}
 
 	if v, ok := in["subnet_id"]; ok {
-		obj.SubnetID = v.(string)
+		if vv, ok := v.(string); ok && vv != "" {
+			obj.SubnetID = vv
+		}
 	}
 
 	if v, ok := in["subnet_cidr"]; ok {
-		obj.SubnetCIDR = v.(string)
+		if vv, ok := v.(string); ok && vv != "" {
+			obj.SubnetCIDR = vv
+		}
 	}
 
 	if v, ok := in["username"]; ok {
-		obj.Username = v.(string)
+		if vv, ok := v.(string); ok && vv != "" {
+			obj.Username = vv
+		}
 	}
 
 	if v, ok := in["password"]; ok {
-		obj.Password = v.(string)
+		if vv, ok := v.(string); ok && vv != "" {
+			obj.Password = vv
+		}
 	}
 
 	// HACK(furkhat): API doesn't return domain for cluster. Use 'Default' all the time.
@@ -476,43 +540,63 @@ func expandAzureCloudSpec(p []interface{}) *models.AzureCloudSpec {
 	in := p[0].(map[string]interface{})
 
 	if v, ok := in["availability_set"]; ok {
-		obj.AvailabilitySet = v.(string)
+		if vv, ok := v.(string); ok && vv != "" {
+			obj.AvailabilitySet = vv
+		}
 	}
 
 	if v, ok := in["client_id"]; ok {
-		obj.ClientID = v.(string)
+		if vv, ok := v.(string); ok && vv != "" {
+			obj.ClientID = vv
+		}
 	}
 
 	if v, ok := in["client_secret"]; ok {
-		obj.ClientSecret = v.(string)
+		if vv, ok := v.(string); ok && vv != "" {
+			obj.ClientSecret = vv
+		}
 	}
 
 	if v, ok := in["subscription_id"]; ok {
-		obj.SubscriptionID = v.(string)
+		if vv, ok := v.(string); ok && vv != "" {
+			obj.SubscriptionID = vv
+		}
 	}
 
 	if v, ok := in["tenant_id"]; ok {
-		obj.TenantID = v.(string)
+		if vv, ok := v.(string); ok && vv != "" {
+			obj.TenantID = vv
+		}
 	}
 
 	if v, ok := in["resource_group"]; ok {
-		obj.ResourceGroup = v.(string)
+		if vv, ok := v.(string); ok && vv != "" {
+			obj.ResourceGroup = vv
+		}
 	}
 
 	if v, ok := in["route_table"]; ok {
-		obj.RouteTableName = v.(string)
+		if vv, ok := v.(string); ok && vv != "" {
+			obj.RouteTableName = vv
+		}
 	}
 
 	if v, ok := in["security_group"]; ok {
-		obj.SecurityGroup = v.(string)
+		if vv, ok := v.(string); ok && vv != "" {
+			obj.SecurityGroup = vv
+		}
 	}
 
 	if v, ok := in["subnet"]; ok {
-		obj.SubnetName = v.(string)
+		if vv, ok := v.(string); ok && vv != "" {
+			obj.SubnetName = vv
+		}
 	}
 
 	if v, ok := in["vnet"]; ok {
-		obj.VNetName = v.(string)
+		if vv, ok := v.(string); ok && vv != "" {
+			obj.VNetName = vv
+		}
 	}
 
 	return obj

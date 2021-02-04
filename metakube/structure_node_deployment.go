@@ -305,26 +305,40 @@ func expandNodeDeploymentSpec(p []interface{}) *models.NodeDeploymentSpec {
 	if p[0] == nil {
 		return obj
 	}
-	in := p[0].(map[string]interface{})
+
+	in, ok := p[0].(map[string]interface{})
+	if !ok {
+		return obj
+	}
 
 	if v, ok := in["replicas"]; ok {
-		obj.Replicas = int32ToPtr(int32(v.(int)))
+		if vv, ok := v.(int); ok {
+			obj.Replicas = int32ToPtr(int32(vv))
+		}
 	}
 
 	if v, ok := in["min_replicas"]; ok {
-		obj.MinReplicas = int32(v.(int))
+		if vv, ok := v.(int); ok {
+			obj.MinReplicas = int32(vv)
+		}
 	}
 
 	if v, ok := in["max_replicas"]; ok {
-		obj.MaxReplicas = int32(v.(int))
+		if vv, ok := v.(int); ok {
+			obj.MaxReplicas = int32(vv)
+		}
 	}
 
 	if v, ok := in["template"]; ok {
-		obj.Template = expandNodeSpec(v.([]interface{}))
+		if vv, ok := v.([]interface{}); ok {
+			obj.Template = expandNodeSpec(vv)
+		}
 	}
 
 	if v, ok := in["dynamic_config"]; ok {
-		obj.DynamicConfig = v.(bool)
+		if vv, ok := v.(bool); ok {
+			obj.DynamicConfig = vv
+		}
 	}
 
 	return obj
@@ -338,31 +352,49 @@ func expandNodeSpec(p []interface{}) *models.NodeSpec {
 	if p[0] == nil {
 		return obj
 	}
-	in := p[0].(map[string]interface{})
+
+	in, ok := p[0].(map[string]interface{})
+	if !ok {
+		return obj
+	}
 
 	if v, ok := in["labels"]; ok {
 		obj.Labels = make(map[string]string)
-		for key, val := range v.(map[string]interface{}) {
-			obj.Labels[key] = val.(string)
+		if vv, ok := v.(map[string]interface{}); ok {
+			for key, val := range vv {
+				if s, ok := val.(string); ok && s != "" {
+					obj.Labels[key] = s
+				}
+			}
 		}
 	}
 
 	if v, ok := in["operating_system"]; ok {
-		obj.OperatingSystem = expandOperatingSystem(v.([]interface{}))
+		if vv, ok := v.([]interface{}); ok {
+			obj.OperatingSystem = expandOperatingSystem(vv)
+		}
 	}
 
 	if v, ok := in["versions"]; ok {
-		obj.Versions = expandNodeVersion(v.([]interface{}))
+		if vv, ok := v.([]interface{}); ok {
+			obj.Versions = expandNodeVersion(vv)
+		}
 	}
 
 	if v, ok := in["taints"]; ok {
-		for _, t := range v.([]interface{}) {
-			obj.Taints = append(obj.Taints, expandTaintSpec(t.(map[string]interface{})))
+		if vv, ok := v.([]interface{}); ok {
+			for _, t := range vv {
+				if tt, ok := t.(map[string]interface{}); ok {
+					obj.Taints = append(obj.Taints, expandTaintSpec(tt))
+				}
+			}
 		}
 	}
 
 	if v, ok := in["cloud"]; ok {
-		obj.Cloud = expandNodeCloudSpec(v.([]interface{}))
+		if vv, ok := v.([]interface{}); ok {
+			obj.Cloud = expandNodeCloudSpec(vv)
+		}
 	}
 
 	return obj
@@ -376,19 +408,29 @@ func expandOperatingSystem(p []interface{}) *models.OperatingSystemSpec {
 	if p[0] == nil {
 		return obj
 	}
-	in := p[0].(map[string]interface{})
+
+	in, ok := p[0].(map[string]interface{})
+	if !ok {
+		return obj
+	}
 
 	if v, ok := in["ubuntu"]; ok {
-		obj.Ubuntu = expandUbuntu(v.([]interface{}))
+		if vv, ok := v.([]interface{}); ok {
+			obj.Ubuntu = expandUbuntu(vv)
+		}
 	}
 
 	if v, ok := in["centos"]; ok {
-		obj.Centos = expandCentos(v.([]interface{}))
+		if vv, ok := v.([]interface{}); ok {
+			obj.Centos = expandCentos(vv)
+		}
 
 	}
 
 	if v, ok := in["container_linux"]; ok {
-		obj.ContainerLinux = expandContainerLinux(v.([]interface{}))
+		if vv, ok := v.([]interface{}); ok {
+			obj.ContainerLinux = expandContainerLinux(vv)
+		}
 	}
 
 	return obj
@@ -402,10 +444,16 @@ func expandUbuntu(p []interface{}) *models.UbuntuSpec {
 	if p[0] == nil {
 		return obj
 	}
-	in := p[0].(map[string]interface{})
+
+	in, ok := p[0].(map[string]interface{})
+	if !ok {
+		return obj
+	}
 
 	if v, ok := in["dist_upgrade_on_boot"]; ok {
-		obj.DistUpgradeOnBoot = v.(bool)
+		if vv, ok := v.(bool); ok {
+			obj.DistUpgradeOnBoot = vv
+		}
 	}
 
 	return obj
@@ -419,10 +467,16 @@ func expandCentos(p []interface{}) *models.CentOSSpec {
 	if p[0] == nil {
 		return obj
 	}
-	in := p[0].(map[string]interface{})
+
+	in, ok := p[0].(map[string]interface{})
+	if !ok {
+		return obj
+	}
 
 	if v, ok := in["dist_upgrade_on_boot"]; ok {
-		obj.DistUpgradeOnBoot = v.(bool)
+		if vv, ok := v.(bool); ok {
+			obj.DistUpgradeOnBoot = vv
+		}
 	}
 
 	return obj
@@ -436,10 +490,16 @@ func expandContainerLinux(p []interface{}) *models.ContainerLinuxSpec {
 	if p[0] == nil {
 		return obj
 	}
-	in := p[0].(map[string]interface{})
+
+	in, ok := p[0].(map[string]interface{})
+	if !ok {
+		return obj
+	}
 
 	if v, ok := in["disable_auto_update"]; ok {
-		obj.DisableAutoUpdate = v.(bool)
+		if vv, ok := v.(bool); ok {
+			obj.DisableAutoUpdate = vv
+		}
 	}
 
 	return obj
@@ -453,10 +513,16 @@ func expandNodeVersion(p []interface{}) *models.NodeVersionInfo {
 	if p[0] == nil {
 		return obj
 	}
-	in := p[0].(map[string]interface{})
+
+	in, ok := p[0].(map[string]interface{})
+	if !ok {
+		return obj
+	}
 
 	if v, ok := in["kubelet"]; ok {
-		obj.Kubelet = v.(string)
+		if vv, ok := v.(string); ok && vv != "" {
+			obj.Kubelet = vv
+		}
 	}
 
 	return obj
@@ -466,15 +532,21 @@ func expandTaintSpec(in map[string]interface{}) *models.TaintSpec {
 	obj := &models.TaintSpec{}
 
 	if v, ok := in["key"]; ok {
-		obj.Key = v.(string)
+		if vv, ok := v.(string); ok && vv != "" {
+			obj.Key = vv
+		}
 	}
 
 	if v, ok := in["value"]; ok {
-		obj.Value = v.(string)
+		if vv, ok := v.(string); ok && vv != "" {
+			obj.Value = vv
+		}
 	}
 
 	if v, ok := in["effect"]; ok {
-		obj.Effect = v.(string)
+		if vv, ok := v.(string); ok && vv != "" {
+			obj.Effect = vv
+		}
 	}
 
 	return obj
@@ -488,18 +560,28 @@ func expandNodeCloudSpec(p []interface{}) *models.NodeCloudSpec {
 	if p[0] == nil {
 		return obj
 	}
-	in := p[0].(map[string]interface{})
+
+	in, ok := p[0].(map[string]interface{})
+	if !ok {
+		return obj
+	}
 
 	if v, ok := in["aws"]; ok {
-		obj.Aws = expandAWSNodeSpec(v.([]interface{}))
+		if vv, ok := v.([]interface{}); ok {
+			obj.Aws = expandAWSNodeSpec(vv)
+		}
 	}
 
 	if v, ok := in["openstack"]; ok {
-		obj.Openstack = expandOpenstackNodeSpec(v.([]interface{}))
+		if vv, ok := v.([]interface{}); ok {
+			obj.Openstack = expandOpenstackNodeSpec(vv)
+		}
 	}
 
 	if v, ok := in["azure"]; ok {
-		obj.Azure = expandAzureNodeSpec(v.([]interface{}))
+		if vv, ok := v.([]interface{}); ok {
+			obj.Azure = expandAzureNodeSpec(vv)
+		}
 	}
 
 	return obj
@@ -513,40 +595,62 @@ func expandAWSNodeSpec(p []interface{}) *models.AWSNodeSpec {
 	if p[0] == nil {
 		return obj
 	}
-	in := p[0].(map[string]interface{})
+
+	in, ok := p[0].(map[string]interface{})
+	if !ok {
+		return obj
+	}
 
 	if v, ok := in["instance_type"]; ok {
-		obj.InstanceType = strToPtr(v.(string))
+		if vv, ok := v.(string); ok && vv != "" {
+			obj.InstanceType = strToPtr(vv)
+		}
 	}
 
 	if v, ok := in["disk_size"]; ok {
-		obj.VolumeSize = int64ToPtr(v.(int))
+		if vv, ok := v.(int); ok {
+			obj.VolumeSize = int64ToPtr(vv)
+		}
 	}
 
 	if v, ok := in["volume_type"]; ok {
-		obj.VolumeType = strToPtr(v.(string))
+		if vv, ok := v.(string); ok && vv != "" {
+			obj.VolumeType = strToPtr(vv)
+		}
 	}
 
 	if v, ok := in["availability_zone"]; ok {
-		obj.AvailabilityZone = v.(string)
+		if vv, ok := v.(string); ok && vv != "" {
+			obj.AvailabilityZone = vv
+		}
 	}
 
 	if v, ok := in["subnet_id"]; ok {
-		obj.SubnetID = v.(string)
+		if vv, ok := v.(string); ok && vv != "" {
+			obj.SubnetID = vv
+		}
 	}
 
 	if v, ok := in["assign_public_ip"]; ok {
-		obj.AssignPublicIP = v.(bool)
+		if vv, ok := v.(bool); ok {
+			obj.AssignPublicIP = vv
+		}
 	}
 
 	if v, ok := in["ami"]; ok {
-		obj.AMI = v.(string)
+		if vv, ok := v.(string); ok && vv != "" {
+			obj.AMI = vv
+		}
 	}
 
 	if v, ok := in["tags"]; ok {
 		obj.Tags = make(map[string]string)
-		for key, val := range v.(map[string]interface{}) {
-			obj.Tags[key] = val.(string)
+		if vv, ok := v.(map[string]interface{}); ok {
+			for key, val := range vv {
+				if s, ok := val.(string); ok && s != "" {
+					obj.Tags[key] = s
+				}
+			}
 		}
 	}
 
@@ -561,29 +665,43 @@ func expandOpenstackNodeSpec(p []interface{}) *models.OpenstackNodeSpec {
 	if p[0] == nil {
 		return obj
 	}
-	in := p[0].(map[string]interface{})
+
+	in, ok := p[0].(map[string]interface{})
+	if !ok {
+		return obj
+	}
 
 	if v, ok := in["flavor"]; ok {
-		obj.Flavor = strToPtr(v.(string))
+		if vv, ok := v.(string); ok && vv != "" {
+			obj.Flavor = strToPtr(vv)
+		}
 	}
 
 	if v, ok := in["image"]; ok {
-		obj.Image = strToPtr(v.(string))
+		if vv, ok := v.(string); ok && vv != "" {
+			obj.Image = strToPtr(vv)
+		}
 	}
 
 	if v, ok := in["use_floating_ip"]; ok {
-		obj.UseFloatingIP = v.(bool)
+		if vv, ok := v.(bool); ok {
+			obj.UseFloatingIP = vv
+		}
 	}
 
 	if v, ok := in["tags"]; ok {
 		obj.Tags = make(map[string]string)
 		for key, val := range v.(map[string]interface{}) {
-			obj.Tags[key] = val.(string)
+			if s, ok := val.(string); ok && s != "" {
+				obj.Tags[key] = s
+			}
 		}
 	}
 
 	if v, ok := in["disk_size"]; ok {
-		obj.RootDiskSizeGB = int64(v.(int))
+		if vv, ok := v.(int); ok {
+			obj.RootDiskSizeGB = int64(vv)
+		}
 	}
 
 	return obj
@@ -600,41 +718,59 @@ func expandAzureNodeSpec(p []interface{}) *models.AzureNodeSpec {
 		return obj
 	}
 
-	in := p[0].(map[string]interface{})
+	in, ok := p[0].(map[string]interface{})
+	if !ok {
+		return obj
+	}
 
 	if v, ok := in["image_id"]; ok {
-		obj.ImageID = v.(string)
+		if vv, ok := v.(string); ok && vv != "" {
+			obj.ImageID = vv
+		}
 	}
 
 	if v, ok := in["size"]; ok {
-		obj.Size = strToPtr(v.(string))
+		if vv, ok := v.(string); ok && vv != "" {
+			obj.Size = strToPtr(vv)
+		}
 	}
 
 	if v, ok := in["assign_public_ip"]; ok {
-		obj.AssignPublicIP = v.(bool)
+		if vv, ok := v.(bool); ok {
+			obj.AssignPublicIP = vv
+		}
 	}
 
 	if v, ok := in["disk_size_gb"]; ok {
-		obj.DataDiskSize = int32(v.(int))
+		if vv, ok := v.(int); ok {
+			obj.DataDiskSize = int32(vv)
+		}
 	}
 
 	if v, ok := in["os_disk_size_gb"]; ok {
-		obj.OSDiskSize = int32(v.(int))
+		if vv, ok := v.(int); ok {
+			obj.OSDiskSize = int32(vv)
+		}
 	}
 
 	if v, ok := in["tags"]; ok {
 		obj.Tags = make(map[string]string)
-		for key, val := range v.(map[string]interface{}) {
-			obj.Tags[key] = val.(string)
+		if vv, ok := v.(map[string]interface{}); ok {
+			for key, val := range vv {
+				if s, ok := val.(string); ok && s != "" {
+					obj.Tags[key] = s
+				}
+			}
 		}
 	}
 
 	if v, ok := in["zones"]; ok {
-		v := v.([]interface{})
-		if len(v) > 0 {
-			obj.Zones = make([]string, len(v))
-			for i, z := range v {
-				obj.Zones[i] = z.(string)
+		if vv, ok := v.([]interface{}); ok && len(vv) > 0 {
+			obj.Zones = make([]string, len(vv))
+			for i, z := range vv {
+				if s, ok := z.(string); ok && s != "" {
+					obj.Zones[i] = s
+				}
 			}
 		}
 	}

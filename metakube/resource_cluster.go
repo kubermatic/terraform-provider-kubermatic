@@ -3,10 +3,11 @@ package metakube
 import (
 	"context"
 	"fmt"
-	"github.com/hashicorp/go-cty/cty"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"net/http"
 	"strings"
+
+	"github.com/hashicorp/go-cty/cty"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 
 	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
@@ -81,12 +82,6 @@ func resourceCluster() *schema.Resource {
 				},
 			},
 
-			"credential": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "Cluster access credential",
-			},
-
 			"type": {
 				Type:        schema.TypeString,
 				Optional:    true,
@@ -152,11 +147,10 @@ func resourceClusterCreate(ctx context.Context, d *schema.ResourceData, m interf
 	clusterSpec := expandClusterSpec(d.Get("spec").([]interface{}), d.Get("dc_name").(string))
 	createClusterSpec := &models.CreateClusterSpec{
 		Cluster: &models.Cluster{
-			Name:       d.Get("name").(string),
-			Spec:       clusterSpec,
-			Type:       d.Get("type").(string),
-			Labels:     getLabels(d),
-			Credential: d.Get("credential").(string),
+			Name:   d.Get("name").(string),
+			Spec:   clusterSpec,
+			Type:   d.Get("type").(string),
+			Labels: getLabels(d),
 		},
 	}
 	if n := clusterSpec.ClusterNetwork; n != nil {
@@ -340,12 +334,6 @@ func resourceClusterRead(ctx context.Context, d *schema.ResourceData, m interfac
 	}
 
 	_ = d.Set("name", r.Payload.Name)
-
-	// TODO: check why API returns an empty credential field even if it is set
-	//err = d.Set("credential", r.Payload.Credential)
-	//if err != nil {
-	//	return err
-	//}
 
 	_ = d.Set("type", r.Payload.Type)
 

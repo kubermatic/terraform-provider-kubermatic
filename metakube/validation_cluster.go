@@ -13,14 +13,13 @@ import (
 )
 
 type openstackValidationData struct {
-	dcName      *string
-	credentials *string
-	domain      *string
-	username    *string
-	password    *string
-	tenant      *string
-	network     *string
-	subnetID    *string
+	dcName   *string
+	domain   *string
+	username *string
+	password *string
+	tenant   *string
+	network  *string
+	subnetID *string
 }
 
 type generalOpenstackReqParams interface {
@@ -35,7 +34,6 @@ type generalOpenstackReqParams interface {
 
 func (data *openstackValidationData) setParams(ctx context.Context, p generalOpenstackReqParams) {
 	p.SetDatacenterName(data.dcName)
-	p.SetCredential(data.credentials)
 	p.SetDomain(data.domain)
 	p.SetUsername(data.username)
 	p.SetPassword(data.password)
@@ -45,14 +43,13 @@ func (data *openstackValidationData) setParams(ctx context.Context, p generalOpe
 
 func newOpenstackValidationData(d *schema.ResourceData) openstackValidationData {
 	return openstackValidationData{
-		dcName:      toStrPtrOrNil(d.Get("dc_name")),
-		credentials: toStrPtrOrNil(d.Get("credential")),
-		domain:      strToPtr("Default"),
-		username:    toStrPtrOrNil(d.Get("spec.0.cloud.0.openstack.0.username")),
-		password:    toStrPtrOrNil(d.Get("spec.0.cloud.0.openstack.0.password")),
-		tenant:      toStrPtrOrNil(d.Get("spec.0.cloud.0.openstack.0.tenant")),
-		network:     toStrPtrOrNil(d.Get("spec.0.cloud.0.openstack.0.network")),
-		subnetID:    toStrPtrOrNil(d.Get("spec.0.cloud.0.openstack.0.subnet_id")),
+		dcName:   toStrPtrOrNil(d.Get("dc_name")),
+		domain:   strToPtr("Default"),
+		username: toStrPtrOrNil(d.Get("spec.0.cloud.0.openstack.0.username")),
+		password: toStrPtrOrNil(d.Get("spec.0.cloud.0.openstack.0.password")),
+		tenant:   toStrPtrOrNil(d.Get("spec.0.cloud.0.openstack.0.tenant")),
+		network:  toStrPtrOrNil(d.Get("spec.0.cloud.0.openstack.0.network")),
+		subnetID: toStrPtrOrNil(d.Get("spec.0.cloud.0.openstack.0.subnet_id")),
 	}
 }
 

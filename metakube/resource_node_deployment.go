@@ -3,10 +3,11 @@ package metakube
 import (
 	"context"
 	"fmt"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -76,12 +77,14 @@ type nodeSpecPreservedValues struct {
 }
 
 func readNodeDeploymentPreservedValues(d *schema.ResourceData) *nodeSpecPreservedValues {
-	if _, ok := d.GetOk("spec.0.template.0.cloud.0.azure.0"); !ok {
-		return &nodeSpecPreservedValues{}
+	if v, ok := d.GetOk("spec.0.template.0.cloud.0.azure"); ok {
+		if vv, ok := v.([]interface{}); ok && len(vv) == 1 {
+			return &nodeSpecPreservedValues{
+				azure: expandAzureNodeSpec(vv),
+			}
+		}
 	}
-	return &nodeSpecPreservedValues{
-		azure: expandAzureNodeSpec(d.Get("spec.0.template.0.cloud.0.azure").([]interface{})),
-	}
+	return &nodeSpecPreservedValues{}
 }
 
 func resourceNodeDeploymentCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
