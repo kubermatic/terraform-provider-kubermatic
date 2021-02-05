@@ -108,6 +108,28 @@ func resourceNodeDeploymentCreate(ctx context.Context, d *schema.ResourceData, m
 		return diag.Errorf("cluster is not ready: %v", err)
 	}
 
+	// Some cloud providers, like AWS, take some time to finish initializing.
+	err = resource.RetryContext(ctx, d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
+		p := project.NewListNodeDeploymentsParams()
+		p.SetContext(ctx)
+		p.SetProjectID(projectID)
+		p.SetClusterID(clusterID)
+		p.SetDC(seedDC)
+
+		_, err := k.client.Project.ListNodeDeployments(p, k.auth)
+		if err != nil {
+			if e, ok := err.(*project.ListNodeDeploymentsDefault); ok && e.Code() != http.StatusOK {
+				return resource.RetryableError(fmt.Errorf("unable to list node deployments %v", err))
+			}
+			return resource.NonRetryableError(err)
+		}
+
+		return nil
+	})
+	if err != nil {
+		return diag.Errorf("nodedeployments API is not ready: %v", err)
+	}
+
 	r, err := k.client.Project.CreateNodeDeployment(p, k.auth)
 	if err != nil {
 		return diag.Errorf("unable to create a node deployment: %v", getErrorResponse(err))

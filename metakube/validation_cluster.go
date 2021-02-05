@@ -62,6 +62,9 @@ func toStrPtrOrNil(v interface{}) *string {
 
 func validateClusterFields(ctx context.Context, d *schema.ResourceData, k *metakubeProviderMeta) diag.Diagnostics {
 	ret := validateVersionExists(ctx, d, k)
+	if _, ok := d.GetOk("spec.0.cloud.0.openstack.0"); !ok {
+		return ret
+	}
 	ret = append(ret, diagnoseOpenstackFloatingIPPoolIfSet(ctx, d, k)...)
 	ret = append(ret, diagnoseOpenstackNetworkExistsIfSet(ctx, d, k)...)
 	return append(ret, diagnoseOpenstackSubnetWithIDExistsIfSet(ctx, d, k)...)
@@ -93,17 +96,17 @@ func validateVersionExists(ctx context.Context, d *schema.ResourceData, k *metak
 
 func diagnoseOpenstackFloatingIPPoolIfSet(ctx context.Context, d *schema.ResourceData, k *metakubeProviderMeta) diag.Diagnostics {
 	nets, err := validateOpenstackNetworkExistsIfSet(ctx, d, k, "spec.0.cloud.0.openstack.0.floating_ip_pool", true)
-	names := make([]string, 0)
-	for _, n := range nets {
-		if n.External {
-			names = append(names, n.Name)
-		}
-	}
-	var diagnoseDetail string
-	if len(names) > 0 {
-		diagnoseDetail = fmt.Sprintf("We found following floating IP pools: %v", names)
-	}
 	if err != nil {
+		var diagnoseDetail string
+		if len(nets) > 0 {
+			names := make([]string, 0)
+			for _, n := range nets {
+				if n.External {
+					names = append(names, n.Name)
+				}
+			}
+			diagnoseDetail = fmt.Sprintf("We found following floating IP pools: %v", names)
+		}
 		return diag.Diagnostics{{
 			Severity:      diag.Error,
 			Summary:       err.Error(),
