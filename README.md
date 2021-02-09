@@ -2,10 +2,8 @@ This is fork of https://github.com/kubermatic/terraform-provider-kubermatic whic
 
 # Terraform Provider for MetaKube
 
-- Website: https://www.terraform.io
+- Documentation: https://registry.terraform.io/providers/syseleven/metakube/latest/docs
 <!-- TODO - Mailing list: [Google Groups](https://groups.google.com/forum/#!forum/syseleven-dev) -->
-
-<img src="https://cdn.rawgit.com/hashicorp/terraform-website/master/content/source/assets/images/logo-hashicorp.svg" width="600px">
 
 ## Overview
 
