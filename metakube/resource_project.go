@@ -131,12 +131,14 @@ func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, m interf
 
 	ret := resourceProjectRead(ctx, d, m)
 
-	if err := metakubeProjectUpdateUsers(ctx, k, d); err != nil {
-		return append(ret, diag.Diagnostic{
-			Severity:      diag.Warning,
-			Summary:       "Currently MetaKube API Account can't manage users. We are working on fixing this.",
-			AttributePath: cty.GetAttrPath(projectSchemaUsers),
-		})
+	if v, ok := d.GetOk(projectSchemaUsers); ok {
+		if vv, ok := v.(*schema.Set); ok && vv.Len() > 0 {
+			return append(ret, diag.Diagnostic{
+				Severity:      diag.Error,
+				Summary:       "MetaKube API Tokens ability to manage users is not available. We are working on fixing this.",
+				AttributePath: cty.GetAttrPath(projectSchemaUsers),
+			})
+		}
 	}
 	return ret
 }
@@ -225,8 +227,7 @@ func resourceProjectRead(ctx context.Context, d *schema.ResourceData, m interfac
 	if err != nil {
 		ret = append(ret, diag.Diagnostic{
 			Severity:      diag.Warning,
-			Summary:       "Currently MetaKube API Tokens can't be used to manage users. We are working on fixing this.",
-			Detail:        fmt.Sprintf("error updating project's users: %v", err),
+			Summary:       "MetaKube API Tokens ability to manage users is not available. We are working on fixing this.",
 			AttributePath: cty.GetAttrPath(projectSchemaUsers),
 		})
 	}
@@ -279,13 +280,11 @@ func resourceProjectUpdate(ctx context.Context, d *schema.ResourceData, m interf
 
 	ret := resourceProjectRead(ctx, d, m)
 	if d.HasChange(projectSchemaUsers) {
-		if err := metakubeProjectUpdateUsers(ctx, k, d); err != nil {
-			return append(ret, diag.Diagnostic{
-				Severity:      diag.Warning,
-				Summary:       "Currently MetaKube API Tokens can't be used to manage users. We are working on fixing this.",
-				AttributePath: cty.GetAttrPath(projectSchemaUsers),
-			})
-		}
+		return append(ret, diag.Diagnostic{
+			Severity:      diag.Error,
+			Summary:       "MetaKube API Tokens ability to manage users is not available. We are working on fixing this.",
+			AttributePath: cty.GetAttrPath(projectSchemaUsers),
+		})
 	}
 	return ret
 }
