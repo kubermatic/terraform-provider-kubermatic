@@ -15,19 +15,13 @@ data openstack_images_image_v2 "image" {
   visibility = "public"
   properties = {
     os_distro  = "ubuntu"
-    os_version = "18.04"
+    os_version = "20.04"
   }
 }
 
 provider metakube {}
 resource metakube_project "project" {
   name = var.project_name
-
-// You can add as many collaborators as you want.
-//  user {
-//    email = "FILL_IN"
-//    group = "owners" // editors, viewers
-//  }
 }
 
 data "local_file" "public_sshkey" {

@@ -24,7 +24,7 @@ The following arguments are supported:
 
 * `name` - (Required) Project name.
 * `labels` - (Optional) Project labels.
-* `user` - (Optional) Set of users assigned to the project.
+* ~~`user` - (Optional) Set of users assigned to the project.~~ Currently MetaKube API Accounts can't be used to manage users. Once it is fixed on API side we will update the provider.
 
 ## Attributes
 

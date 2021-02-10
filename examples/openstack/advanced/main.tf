@@ -109,12 +109,6 @@ resource "metakube_project" "project" {
   labels = {
     "foo" = "bar"
   }
-
-# You can add your collaborators here.
-#    user {
-#      email = "FILL_IN"
-#      group = "owners" # editors, viewers
-#    }
 }
 
 # Read local sshkey's public part and publish it to MetaKube.

@@ -129,15 +129,16 @@ func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, m interf
 		return diag.FromErr(err)
 	}
 
-	if err := metakubeProjectUpdateUsers(ctx, k, d); err != nil {
-		return diag.Diagnostics{{
-			Severity:      diag.Error,
-			Summary:       fmt.Sprintf("error updating project's users: %v", err),
-			AttributePath: cty.GetAttrPath(projectSchemaUsers),
-		}}
-	}
+	ret := resourceProjectRead(ctx, d, m)
 
-	return resourceProjectRead(ctx, d, m)
+	if err := metakubeProjectUpdateUsers(ctx, k, d); err != nil {
+		return append(ret, diag.Diagnostic{
+			Severity:      diag.Warning,
+			Summary:       "Currently MetaKube API Account can't manage users. We are working on fixing this.",
+			AttributePath: cty.GetAttrPath(projectSchemaUsers),
+		})
+	}
+	return ret
 }
 
 func metakubeProjectWaitForActiveStatus(ctx context.Context, d *schema.ResourceData, projectID string, k *metakubeProviderMeta) error {
@@ -218,31 +219,34 @@ func resourceProjectRead(ctx context.Context, d *schema.ResourceData, m interfac
 	_ = d.Set(projectSchemaCreationTimestamp, r.Payload.CreationTimestamp.String())
 	_ = d.Set(projectSchemaDeletionTimestamp, r.Payload.DeletionTimestamp.String())
 
+	var ret diag.Diagnostics
+
 	projectUsers, err := metakubeProjectUsers(ctx, k, d.Id())
 	if err != nil {
-		return diag.Diagnostics{{
-			Severity:      diag.Error,
-			Summary:       fmt.Sprintf("could not get project users: %v", err),
+		ret = append(ret, diag.Diagnostic{
+			Severity:      diag.Warning,
+			Summary:       "Currently MetaKube API Tokens can't be used to manage users. We are working on fixing this.",
+			Detail:        fmt.Sprintf("error updating project's users: %v", err),
 			AttributePath: cty.GetAttrPath(projectSchemaUsers),
-		}}
+		})
 	}
 
 	curUser, err := metakubeProjectCurrentUser(ctx, k)
 	if err != nil {
-		return diag.Diagnostics{{
+		return append(ret, diag.Diagnostic{
 			Severity:      diag.Error,
 			Summary:       err.Error(),
 			AttributePath: cty.GetAttrPath(projectSchemaUsers),
-		}}
+		})
 	}
 	if err := d.Set(projectSchemaUsers, flattenedProjectUsers(curUser, projectUsers)); err != nil {
-		return diag.Diagnostics{{
+		return append(ret, diag.Diagnostic{
 			Severity:      diag.Error,
 			Summary:       fmt.Sprintf("Can't set value: %v", err),
 			AttributePath: cty.GetAttrPath(projectSchemaUsers),
-		}}
+		})
 	}
-	return nil
+	return ret
 }
 
 func flattenedProjectUsers(cur *models.User, u map[string]models.User) *schema.Set {
@@ -273,17 +277,17 @@ func resourceProjectUpdate(ctx context.Context, d *schema.ResourceData, m interf
 		return diag.Errorf("unable to update project '%s': %s", d.Id(), getErrorResponse(err))
 	}
 
+	ret := resourceProjectRead(ctx, d, m)
 	if d.HasChange(projectSchemaUsers) {
 		if err := metakubeProjectUpdateUsers(ctx, k, d); err != nil {
-			return diag.Diagnostics{{
-				Severity:      diag.Error,
-				Summary:       fmt.Sprintf("error updating project's users: %v", err),
+			return append(ret, diag.Diagnostic{
+				Severity:      diag.Warning,
+				Summary:       "Currently MetaKube API Tokens can't be used to manage users. We are working on fixing this.",
 				AttributePath: cty.GetAttrPath(projectSchemaUsers),
-			}}
+			})
 		}
 	}
-
-	return resourceProjectRead(ctx, d, m)
+	return ret
 }
 
 func metakubeProjectUpdateUsers(ctx context.Context, k *metakubeProviderMeta, d *schema.ResourceData) error {
@@ -292,9 +296,9 @@ func metakubeProjectUpdateUsers(ctx context.Context, k *metakubeProviderMeta, d 
 		return err
 	}
 
-	persistedUsers, diags := metakubeProjectUsers(ctx, k, d.Id())
-	if diags != nil {
-		return diags
+	persistedUsers, err := metakubeProjectUsers(ctx, k, d.Id())
+	if err != nil {
+		return err
 	}
 
 	configuredUsers := metakubeProjectConfiguredUsers(d)
