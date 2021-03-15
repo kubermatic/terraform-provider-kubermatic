@@ -29,9 +29,23 @@ type ClientService interface {
 
 	ListAzureAvailabilityZonesNoCredentials(params *ListAzureAvailabilityZonesNoCredentialsParams, authInfo runtime.ClientAuthInfoWriter) (*ListAzureAvailabilityZonesNoCredentialsOK, error)
 
+	ListAzureAvailabilityZonesNoCredentialsV2(params *ListAzureAvailabilityZonesNoCredentialsV2Params, authInfo runtime.ClientAuthInfoWriter) (*ListAzureAvailabilityZonesNoCredentialsV2OK, error)
+
+	ListAzureResourceGroups(params *ListAzureResourceGroupsParams, authInfo runtime.ClientAuthInfoWriter) (*ListAzureResourceGroupsOK, error)
+
+	ListAzureRouteTables(params *ListAzureRouteTablesParams, authInfo runtime.ClientAuthInfoWriter) (*ListAzureRouteTablesOK, error)
+
+	ListAzureSecurityGroups(params *ListAzureSecurityGroupsParams, authInfo runtime.ClientAuthInfoWriter) (*ListAzureSecurityGroupsOK, error)
+
 	ListAzureSizes(params *ListAzureSizesParams, authInfo runtime.ClientAuthInfoWriter) (*ListAzureSizesOK, error)
 
 	ListAzureSizesNoCredentials(params *ListAzureSizesNoCredentialsParams, authInfo runtime.ClientAuthInfoWriter) (*ListAzureSizesNoCredentialsOK, error)
+
+	ListAzureSizesNoCredentialsV2(params *ListAzureSizesNoCredentialsV2Params, authInfo runtime.ClientAuthInfoWriter) (*ListAzureSizesNoCredentialsV2OK, error)
+
+	ListAzureSubnets(params *ListAzureSubnetsParams, authInfo runtime.ClientAuthInfoWriter) (*ListAzureSubnetsOK, error)
+
+	ListAzureVnets(params *ListAzureVnetsParams, authInfo runtime.ClientAuthInfoWriter) (*ListAzureVnetsOK, error)
 
 	SetTransport(transport runtime.ClientTransport)
 }
@@ -105,6 +119,142 @@ func (a *Client) ListAzureAvailabilityZonesNoCredentials(params *ListAzureAvaila
 }
 
 /*
+  ListAzureAvailabilityZonesNoCredentialsV2 Lists available VM availability zones in an Azure region
+*/
+func (a *Client) ListAzureAvailabilityZonesNoCredentialsV2(params *ListAzureAvailabilityZonesNoCredentialsV2Params, authInfo runtime.ClientAuthInfoWriter) (*ListAzureAvailabilityZonesNoCredentialsV2OK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewListAzureAvailabilityZonesNoCredentialsV2Params()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "listAzureAvailabilityZonesNoCredentialsV2",
+		Method:             "GET",
+		PathPattern:        "/api/v2/projects/{project_id}/clusters/{cluster_id}/providers/azure/availabilityzones",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"https"},
+		Params:             params,
+		Reader:             &ListAzureAvailabilityZonesNoCredentialsV2Reader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*ListAzureAvailabilityZonesNoCredentialsV2OK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*ListAzureAvailabilityZonesNoCredentialsV2Default)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
+  ListAzureResourceGroups Lists available VM resource groups
+*/
+func (a *Client) ListAzureResourceGroups(params *ListAzureResourceGroupsParams, authInfo runtime.ClientAuthInfoWriter) (*ListAzureResourceGroupsOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewListAzureResourceGroupsParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "listAzureResourceGroups",
+		Method:             "GET",
+		PathPattern:        "/api/v2/providers/azure/resourcegroups",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"https"},
+		Params:             params,
+		Reader:             &ListAzureResourceGroupsReader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*ListAzureResourceGroupsOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*ListAzureResourceGroupsDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
+  ListAzureRouteTables Lists available VM route tables
+*/
+func (a *Client) ListAzureRouteTables(params *ListAzureRouteTablesParams, authInfo runtime.ClientAuthInfoWriter) (*ListAzureRouteTablesOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewListAzureRouteTablesParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "listAzureRouteTables",
+		Method:             "GET",
+		PathPattern:        "/api/v2/providers/azure/routetables",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"https"},
+		Params:             params,
+		Reader:             &ListAzureRouteTablesReader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*ListAzureRouteTablesOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*ListAzureRouteTablesDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
+  ListAzureSecurityGroups Lists available VM security groups
+*/
+func (a *Client) ListAzureSecurityGroups(params *ListAzureSecurityGroupsParams, authInfo runtime.ClientAuthInfoWriter) (*ListAzureSecurityGroupsOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewListAzureSecurityGroupsParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "listAzureSecurityGroups",
+		Method:             "GET",
+		PathPattern:        "/api/v2/providers/azure/securitygroups",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"https"},
+		Params:             params,
+		Reader:             &ListAzureSecurityGroupsReader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*ListAzureSecurityGroupsOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*ListAzureSecurityGroupsDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
   ListAzureSizes Lists available VM sizes in an Azure region
 */
 func (a *Client) ListAzureSizes(params *ListAzureSizesParams, authInfo runtime.ClientAuthInfoWriter) (*ListAzureSizesOK, error) {
@@ -169,6 +319,108 @@ func (a *Client) ListAzureSizesNoCredentials(params *ListAzureSizesNoCredentials
 	}
 	// unexpected success response
 	unexpectedSuccess := result.(*ListAzureSizesNoCredentialsDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
+  ListAzureSizesNoCredentialsV2 Lists available VM sizes in an Azure region
+*/
+func (a *Client) ListAzureSizesNoCredentialsV2(params *ListAzureSizesNoCredentialsV2Params, authInfo runtime.ClientAuthInfoWriter) (*ListAzureSizesNoCredentialsV2OK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewListAzureSizesNoCredentialsV2Params()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "listAzureSizesNoCredentialsV2",
+		Method:             "GET",
+		PathPattern:        "/api/v2/projects/{project_id}/clusters/{cluster_id}/providers/azure/sizes",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"https"},
+		Params:             params,
+		Reader:             &ListAzureSizesNoCredentialsV2Reader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*ListAzureSizesNoCredentialsV2OK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*ListAzureSizesNoCredentialsV2Default)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
+  ListAzureSubnets Lists available VM subnets
+*/
+func (a *Client) ListAzureSubnets(params *ListAzureSubnetsParams, authInfo runtime.ClientAuthInfoWriter) (*ListAzureSubnetsOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewListAzureSubnetsParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "listAzureSubnets",
+		Method:             "GET",
+		PathPattern:        "/api/v2/providers/azure/subnets",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"https"},
+		Params:             params,
+		Reader:             &ListAzureSubnetsReader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*ListAzureSubnetsOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*ListAzureSubnetsDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
+  ListAzureVnets Lists available VM virtual networks
+*/
+func (a *Client) ListAzureVnets(params *ListAzureVnetsParams, authInfo runtime.ClientAuthInfoWriter) (*ListAzureVnetsOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewListAzureVnetsParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "listAzureVnets",
+		Method:             "GET",
+		PathPattern:        "/api/v2/providers/azure/vnets",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"https"},
+		Params:             params,
+		Reader:             &ListAzureVnetsReader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*ListAzureVnetsOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*ListAzureVnetsDefault)
 	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 

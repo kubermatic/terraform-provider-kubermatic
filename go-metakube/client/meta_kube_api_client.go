@@ -15,6 +15,7 @@ import (
 	"github.com/syseleven/terraform-provider-metakube/go-metakube/client/alibaba"
 	"github.com/syseleven/terraform-provider-metakube/go-metakube/client/aws"
 	"github.com/syseleven/terraform-provider-metakube/go-metakube/client/azure"
+	"github.com/syseleven/terraform-provider-metakube/go-metakube/client/constrainttemplates"
 	"github.com/syseleven/terraform-provider-metakube/go-metakube/client/credentials"
 	"github.com/syseleven/terraform-provider-metakube/go-metakube/client/datacenter"
 	"github.com/syseleven/terraform-provider-metakube/go-metakube/client/digitalocean"
@@ -24,6 +25,7 @@ import (
 	"github.com/syseleven/terraform-provider-metakube/go-metakube/client/openstack"
 	"github.com/syseleven/terraform-provider-metakube/go-metakube/client/operations"
 	"github.com/syseleven/terraform-provider-metakube/go-metakube/client/packet"
+	"github.com/syseleven/terraform-provider-metakube/go-metakube/client/preset"
 	"github.com/syseleven/terraform-provider-metakube/go-metakube/client/project"
 	"github.com/syseleven/terraform-provider-metakube/go-metakube/client/seed"
 	"github.com/syseleven/terraform-provider-metakube/go-metakube/client/serviceaccounts"
@@ -81,6 +83,7 @@ func New(transport runtime.ClientTransport, formats strfmt.Registry) *MetaKubeAP
 	cli.Alibaba = alibaba.New(transport, formats)
 	cli.Aws = aws.New(transport, formats)
 	cli.Azure = azure.New(transport, formats)
+	cli.Constrainttemplates = constrainttemplates.New(transport, formats)
 	cli.Credentials = credentials.New(transport, formats)
 	cli.Datacenter = datacenter.New(transport, formats)
 	cli.Digitalocean = digitalocean.New(transport, formats)
@@ -90,6 +93,7 @@ func New(transport runtime.ClientTransport, formats strfmt.Registry) *MetaKubeAP
 	cli.Openstack = openstack.New(transport, formats)
 	cli.Operations = operations.New(transport, formats)
 	cli.Packet = packet.New(transport, formats)
+	cli.Preset = preset.New(transport, formats)
 	cli.Project = project.New(transport, formats)
 	cli.Seed = seed.New(transport, formats)
 	cli.Serviceaccounts = serviceaccounts.New(transport, formats)
@@ -152,6 +156,8 @@ type MetaKubeAPI struct {
 
 	Azure azure.ClientService
 
+	Constrainttemplates constrainttemplates.ClientService
+
 	Credentials credentials.ClientService
 
 	Datacenter datacenter.ClientService
@@ -169,6 +175,8 @@ type MetaKubeAPI struct {
 	Operations operations.ClientService
 
 	Packet packet.ClientService
+
+	Preset preset.ClientService
 
 	Project project.ClientService
 
@@ -197,6 +205,7 @@ func (c *MetaKubeAPI) SetTransport(transport runtime.ClientTransport) {
 	c.Alibaba.SetTransport(transport)
 	c.Aws.SetTransport(transport)
 	c.Azure.SetTransport(transport)
+	c.Constrainttemplates.SetTransport(transport)
 	c.Credentials.SetTransport(transport)
 	c.Datacenter.SetTransport(transport)
 	c.Digitalocean.SetTransport(transport)
@@ -206,6 +215,7 @@ func (c *MetaKubeAPI) SetTransport(transport runtime.ClientTransport) {
 	c.Openstack.SetTransport(transport)
 	c.Operations.SetTransport(transport)
 	c.Packet.SetTransport(transport)
+	c.Preset.SetTransport(transport)
 	c.Project.SetTransport(transport)
 	c.Seed.SetTransport(transport)
 	c.Serviceaccounts.SetTransport(transport)

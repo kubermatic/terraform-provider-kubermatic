@@ -27,9 +27,15 @@ type Client struct {
 type ClientService interface {
 	AssignSSHKeyToCluster(params *AssignSSHKeyToClusterParams, authInfo runtime.ClientAuthInfoWriter) (*AssignSSHKeyToClusterCreated, error)
 
+	AssignSSHKeyToClusterV2(params *AssignSSHKeyToClusterV2Params, authInfo runtime.ClientAuthInfoWriter) (*AssignSSHKeyToClusterV2Created, error)
+
 	BindUserToClusterRole(params *BindUserToClusterRoleParams, authInfo runtime.ClientAuthInfoWriter) (*BindUserToClusterRoleOK, error)
 
+	BindUserToClusterRoleV2(params *BindUserToClusterRoleV2Params, authInfo runtime.ClientAuthInfoWriter) (*BindUserToClusterRoleV2OK, error)
+
 	BindUserToRole(params *BindUserToRoleParams, authInfo runtime.ClientAuthInfoWriter) (*BindUserToRoleOK, error)
+
+	BindUserToRoleV2(params *BindUserToRoleV2Params, authInfo runtime.ClientAuthInfoWriter) (*BindUserToRoleV2OK, error)
 
 	CreateCluster(params *CreateClusterParams, authInfo runtime.ClientAuthInfoWriter) (*CreateClusterCreated, error)
 
@@ -37,13 +43,17 @@ type ClientService interface {
 
 	CreateClusterV2(params *CreateClusterV2Params, authInfo runtime.ClientAuthInfoWriter) (*CreateClusterV2Created, error)
 
+	CreateConstraint(params *CreateConstraintParams, authInfo runtime.ClientAuthInfoWriter) (*CreateConstraintOK, error)
+
 	CreateExternalCluster(params *CreateExternalClusterParams, authInfo runtime.ClientAuthInfoWriter) (*CreateExternalClusterCreated, error)
+
+	CreateGatekeeperConfig(params *CreateGatekeeperConfigParams, authInfo runtime.ClientAuthInfoWriter) (*CreateGatekeeperConfigCreated, error)
+
+	CreateMachineDeployment(params *CreateMachineDeploymentParams, authInfo runtime.ClientAuthInfoWriter) (*CreateMachineDeploymentCreated, error)
 
 	CreateNodeDeployment(params *CreateNodeDeploymentParams, authInfo runtime.ClientAuthInfoWriter) (*CreateNodeDeploymentCreated, error)
 
 	CreateNodeDeploymentRequest(params *CreateNodeDeploymentRequestParams, authInfo runtime.ClientAuthInfoWriter) (*CreateNodeDeploymentRequestCreated, error)
-
-	CreateNodeForClusterLegacy(params *CreateNodeForClusterLegacyParams, authInfo runtime.ClientAuthInfoWriter) (*CreateNodeForClusterLegacyCreated, error)
 
 	CreateProject(params *CreateProjectParams, authInfo runtime.ClientAuthInfoWriter) (*CreateProjectCreated, error)
 
@@ -57,7 +67,15 @@ type ClientService interface {
 
 	DeleteClusterV2(params *DeleteClusterV2Params, authInfo runtime.ClientAuthInfoWriter) (*DeleteClusterV2OK, error)
 
+	DeleteConstraint(params *DeleteConstraintParams, authInfo runtime.ClientAuthInfoWriter) (*DeleteConstraintOK, error)
+
 	DeleteExternalCluster(params *DeleteExternalClusterParams, authInfo runtime.ClientAuthInfoWriter) (*DeleteExternalClusterOK, error)
+
+	DeleteGatekeeperConfig(params *DeleteGatekeeperConfigParams, authInfo runtime.ClientAuthInfoWriter) (*DeleteGatekeeperConfigOK, error)
+
+	DeleteMachineDeployment(params *DeleteMachineDeploymentParams, authInfo runtime.ClientAuthInfoWriter) (*DeleteMachineDeploymentOK, error)
+
+	DeleteMachineDeploymentNode(params *DeleteMachineDeploymentNodeParams, authInfo runtime.ClientAuthInfoWriter) (*DeleteMachineDeploymentNodeOK, error)
 
 	DeleteNodeDeployment(params *DeleteNodeDeploymentParams, authInfo runtime.ClientAuthInfoWriter) (*DeleteNodeDeploymentOK, error)
 
@@ -73,6 +91,8 @@ type ClientService interface {
 
 	DetachSSHKeyFromCluster(params *DetachSSHKeyFromClusterParams, authInfo runtime.ClientAuthInfoWriter) (*DetachSSHKeyFromClusterOK, error)
 
+	DetachSSHKeyFromClusterV2(params *DetachSSHKeyFromClusterV2Params, authInfo runtime.ClientAuthInfoWriter) (*DetachSSHKeyFromClusterV2OK, error)
+
 	GetCluster(params *GetClusterParams, authInfo runtime.ClientAuthInfoWriter) (*GetClusterOK, error)
 
 	GetClusterEvents(params *GetClusterEventsParams, authInfo runtime.ClientAuthInfoWriter) (*GetClusterEventsOK, error)
@@ -81,15 +101,25 @@ type ClientService interface {
 
 	GetClusterHealth(params *GetClusterHealthParams, authInfo runtime.ClientAuthInfoWriter) (*GetClusterHealthOK, error)
 
+	GetClusterHealthV2(params *GetClusterHealthV2Params, authInfo runtime.ClientAuthInfoWriter) (*GetClusterHealthV2OK, error)
+
 	GetClusterKubeconfig(params *GetClusterKubeconfigParams, authInfo runtime.ClientAuthInfoWriter) (*GetClusterKubeconfigOK, error)
 
+	GetClusterKubeconfigV2(params *GetClusterKubeconfigV2Params, authInfo runtime.ClientAuthInfoWriter) (*GetClusterKubeconfigV2OK, error)
+
 	GetClusterMetrics(params *GetClusterMetricsParams, authInfo runtime.ClientAuthInfoWriter) (*GetClusterMetricsOK, error)
+
+	GetClusterMetricsV2(params *GetClusterMetricsV2Params, authInfo runtime.ClientAuthInfoWriter) (*GetClusterMetricsV2OK, error)
 
 	GetClusterRole(params *GetClusterRoleParams, authInfo runtime.ClientAuthInfoWriter) (*GetClusterRoleOK, error)
 
 	GetClusterUpgrades(params *GetClusterUpgradesParams, authInfo runtime.ClientAuthInfoWriter) (*GetClusterUpgradesOK, error)
 
+	GetClusterUpgradesV2(params *GetClusterUpgradesV2Params, authInfo runtime.ClientAuthInfoWriter) (*GetClusterUpgradesV2OK, error)
+
 	GetClusterV2(params *GetClusterV2Params, authInfo runtime.ClientAuthInfoWriter) (*GetClusterV2OK, error)
+
+	GetConstraint(params *GetConstraintParams, authInfo runtime.ClientAuthInfoWriter) (*GetConstraintOK, error)
 
 	GetExternalCluster(params *GetExternalClusterParams, authInfo runtime.ClientAuthInfoWriter) (*GetExternalClusterOK, error)
 
@@ -97,15 +127,19 @@ type ClientService interface {
 
 	GetExternalClusterNode(params *GetExternalClusterNodeParams, authInfo runtime.ClientAuthInfoWriter) (*GetExternalClusterNodeOK, error)
 
+	GetGatekeeperConfig(params *GetGatekeeperConfigParams, authInfo runtime.ClientAuthInfoWriter) (*GetGatekeeperConfigOK, error)
+
 	GetKubeLoginClusterKubeconfig(params *GetKubeLoginClusterKubeconfigParams, authInfo runtime.ClientAuthInfoWriter) (*GetKubeLoginClusterKubeconfigOK, error)
+
+	GetMachineDeployment(params *GetMachineDeploymentParams, authInfo runtime.ClientAuthInfoWriter) (*GetMachineDeploymentOK, error)
 
 	GetNodeDeployment(params *GetNodeDeploymentParams, authInfo runtime.ClientAuthInfoWriter) (*GetNodeDeploymentOK, error)
 
 	GetNodeDeploymentRequest(params *GetNodeDeploymentRequestParams, authInfo runtime.ClientAuthInfoWriter) (*GetNodeDeploymentRequestOK, error)
 
-	GetNodeForClusterLegacy(params *GetNodeForClusterLegacyParams, authInfo runtime.ClientAuthInfoWriter) (*GetNodeForClusterLegacyOK, error)
-
 	GetOidcClusterKubeconfig(params *GetOidcClusterKubeconfigParams, authInfo runtime.ClientAuthInfoWriter) (*GetOidcClusterKubeconfigOK, error)
+
+	GetOidcClusterKubeconfigV2(params *GetOidcClusterKubeconfigV2Params, authInfo runtime.ClientAuthInfoWriter) (*GetOidcClusterKubeconfigV2OK, error)
 
 	GetProject(params *GetProjectParams, authInfo runtime.ClientAuthInfoWriter) (*GetProjectOK, error)
 
@@ -115,13 +149,21 @@ type ClientService interface {
 
 	ListClusterRoleBinding(params *ListClusterRoleBindingParams, authInfo runtime.ClientAuthInfoWriter) (*ListClusterRoleBindingOK, error)
 
+	ListClusterRoleBindingV2(params *ListClusterRoleBindingV2Params, authInfo runtime.ClientAuthInfoWriter) (*ListClusterRoleBindingV2OK, error)
+
 	ListClusterRoleNames(params *ListClusterRoleNamesParams, authInfo runtime.ClientAuthInfoWriter) (*ListClusterRoleNamesOK, error)
+
+	ListClusterRoleNamesV2(params *ListClusterRoleNamesV2Params, authInfo runtime.ClientAuthInfoWriter) (*ListClusterRoleNamesV2OK, error)
+
+	ListClusterRoleV2(params *ListClusterRoleV2Params, authInfo runtime.ClientAuthInfoWriter) (*ListClusterRoleV2OK, error)
 
 	ListClusters(params *ListClustersParams, authInfo runtime.ClientAuthInfoWriter) (*ListClustersOK, error)
 
 	ListClustersForProject(params *ListClustersForProjectParams, authInfo runtime.ClientAuthInfoWriter) (*ListClustersForProjectOK, error)
 
 	ListClustersV2(params *ListClustersV2Params, authInfo runtime.ClientAuthInfoWriter) (*ListClustersV2OK, error)
+
+	ListConstraints(params *ListConstraintsParams, authInfo runtime.ClientAuthInfoWriter) (*ListConstraintsOK, error)
 
 	ListExternalClusterEvents(params *ListExternalClusterEventsParams, authInfo runtime.ClientAuthInfoWriter) (*ListExternalClusterEventsOK, error)
 
@@ -131,7 +173,15 @@ type ClientService interface {
 
 	ListExternalClusters(params *ListExternalClustersParams, authInfo runtime.ClientAuthInfoWriter) (*ListExternalClustersOK, error)
 
+	ListMachineDeploymentNodes(params *ListMachineDeploymentNodesParams, authInfo runtime.ClientAuthInfoWriter) (*ListMachineDeploymentNodesOK, error)
+
+	ListMachineDeploymentNodesEvents(params *ListMachineDeploymentNodesEventsParams, authInfo runtime.ClientAuthInfoWriter) (*ListMachineDeploymentNodesEventsOK, error)
+
+	ListMachineDeployments(params *ListMachineDeploymentsParams, authInfo runtime.ClientAuthInfoWriter) (*ListMachineDeploymentsOK, error)
+
 	ListNamespace(params *ListNamespaceParams, authInfo runtime.ClientAuthInfoWriter) (*ListNamespaceOK, error)
+
+	ListNamespaceV2(params *ListNamespaceV2Params, authInfo runtime.ClientAuthInfoWriter) (*ListNamespaceV2OK, error)
 
 	ListNodeDeploymentNodes(params *ListNodeDeploymentNodesParams, authInfo runtime.ClientAuthInfoWriter) (*ListNodeDeploymentNodesOK, error)
 
@@ -141,7 +191,7 @@ type ClientService interface {
 
 	ListNodeDeployments(params *ListNodeDeploymentsParams, authInfo runtime.ClientAuthInfoWriter) (*ListNodeDeploymentsOK, error)
 
-	ListNodesForClusterLegacy(params *ListNodesForClusterLegacyParams, authInfo runtime.ClientAuthInfoWriter) (*ListNodesForClusterLegacyOK, error)
+	ListNodesForCluster(params *ListNodesForClusterParams, authInfo runtime.ClientAuthInfoWriter) (*ListNodesForClusterOK, error)
 
 	ListProjects(params *ListProjectsParams, authInfo runtime.ClientAuthInfoWriter) (*ListProjectsOK, error)
 
@@ -149,17 +199,31 @@ type ClientService interface {
 
 	ListRoleBinding(params *ListRoleBindingParams, authInfo runtime.ClientAuthInfoWriter) (*ListRoleBindingOK, error)
 
+	ListRoleBindingV2(params *ListRoleBindingV2Params, authInfo runtime.ClientAuthInfoWriter) (*ListRoleBindingV2OK, error)
+
 	ListRoleNames(params *ListRoleNamesParams, authInfo runtime.ClientAuthInfoWriter) (*ListRoleNamesOK, error)
+
+	ListRoleNamesV2(params *ListRoleNamesV2Params, authInfo runtime.ClientAuthInfoWriter) (*ListRoleNamesV2OK, error)
+
+	ListRoleV2(params *ListRoleV2Params, authInfo runtime.ClientAuthInfoWriter) (*ListRoleV2OK, error)
 
 	ListSSHKeys(params *ListSSHKeysParams, authInfo runtime.ClientAuthInfoWriter) (*ListSSHKeysOK, error)
 
 	ListSSHKeysAssignedToCluster(params *ListSSHKeysAssignedToClusterParams, authInfo runtime.ClientAuthInfoWriter) (*ListSSHKeysAssignedToClusterOK, error)
+
+	ListSSHKeysAssignedToClusterV2(params *ListSSHKeysAssignedToClusterV2Params, authInfo runtime.ClientAuthInfoWriter) (*ListSSHKeysAssignedToClusterV2OK, error)
 
 	PatchCluster(params *PatchClusterParams, authInfo runtime.ClientAuthInfoWriter) (*PatchClusterOK, error)
 
 	PatchClusterRole(params *PatchClusterRoleParams, authInfo runtime.ClientAuthInfoWriter) (*PatchClusterRoleOK, error)
 
 	PatchClusterV2(params *PatchClusterV2Params, authInfo runtime.ClientAuthInfoWriter) (*PatchClusterV2OK, error)
+
+	PatchConstraint(params *PatchConstraintParams, authInfo runtime.ClientAuthInfoWriter) (*PatchConstraintOK, error)
+
+	PatchGatekeeperConfig(params *PatchGatekeeperConfigParams, authInfo runtime.ClientAuthInfoWriter) (*PatchGatekeeperConfigOK, error)
+
+	PatchMachineDeployment(params *PatchMachineDeploymentParams, authInfo runtime.ClientAuthInfoWriter) (*PatchMachineDeploymentOK, error)
 
 	PatchNodeDeployment(params *PatchNodeDeploymentParams, authInfo runtime.ClientAuthInfoWriter) (*PatchNodeDeploymentOK, error)
 
@@ -169,17 +233,27 @@ type ClientService interface {
 
 	RevokeClusterAdminToken(params *RevokeClusterAdminTokenParams, authInfo runtime.ClientAuthInfoWriter) (*RevokeClusterAdminTokenOK, error)
 
+	RevokeClusterAdminTokenV2(params *RevokeClusterAdminTokenV2Params, authInfo runtime.ClientAuthInfoWriter) (*RevokeClusterAdminTokenV2OK, error)
+
 	RevokeClusterViewerToken(params *RevokeClusterViewerTokenParams, authInfo runtime.ClientAuthInfoWriter) (*RevokeClusterViewerTokenOK, error)
+
+	RevokeClusterViewerTokenV2(params *RevokeClusterViewerTokenV2Params, authInfo runtime.ClientAuthInfoWriter) (*RevokeClusterViewerTokenV2OK, error)
 
 	UnbindUserFromClusterRoleBinding(params *UnbindUserFromClusterRoleBindingParams, authInfo runtime.ClientAuthInfoWriter) (*UnbindUserFromClusterRoleBindingOK, error)
 
+	UnbindUserFromClusterRoleBindingV2(params *UnbindUserFromClusterRoleBindingV2Params, authInfo runtime.ClientAuthInfoWriter) (*UnbindUserFromClusterRoleBindingV2OK, error)
+
 	UnbindUserFromRoleBinding(params *UnbindUserFromRoleBindingParams, authInfo runtime.ClientAuthInfoWriter) (*UnbindUserFromRoleBindingOK, error)
+
+	UnbindUserFromRoleBindingV2(params *UnbindUserFromRoleBindingV2Params, authInfo runtime.ClientAuthInfoWriter) (*UnbindUserFromRoleBindingV2OK, error)
 
 	UpdateExternalCluster(params *UpdateExternalClusterParams, authInfo runtime.ClientAuthInfoWriter) (*UpdateExternalClusterOK, error)
 
 	UpdateProject(params *UpdateProjectParams, authInfo runtime.ClientAuthInfoWriter) (*UpdateProjectOK, error)
 
 	UpgradeClusterNodeDeployments(params *UpgradeClusterNodeDeploymentsParams, authInfo runtime.ClientAuthInfoWriter) (*UpgradeClusterNodeDeploymentsOK, error)
+
+	UpgradeClusterNodeDeploymentsV2(params *UpgradeClusterNodeDeploymentsV2Params, authInfo runtime.ClientAuthInfoWriter) (*UpgradeClusterNodeDeploymentsV2OK, error)
 
 	SetTransport(transport runtime.ClientTransport)
 }
@@ -219,6 +293,40 @@ func (a *Client) AssignSSHKeyToCluster(params *AssignSSHKeyToClusterParams, auth
 }
 
 /*
+  AssignSSHKeyToClusterV2 Assigns an existing ssh key to the given cluster
+*/
+func (a *Client) AssignSSHKeyToClusterV2(params *AssignSSHKeyToClusterV2Params, authInfo runtime.ClientAuthInfoWriter) (*AssignSSHKeyToClusterV2Created, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewAssignSSHKeyToClusterV2Params()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "assignSSHKeyToClusterV2",
+		Method:             "PUT",
+		PathPattern:        "/api/v2/projects/{project_id}/clusters/{cluster_id}/sshkeys/{key_id}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"https"},
+		Params:             params,
+		Reader:             &AssignSSHKeyToClusterV2Reader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*AssignSSHKeyToClusterV2Created)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*AssignSSHKeyToClusterV2Default)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
   BindUserToClusterRole Binds user to cluster role
 */
 func (a *Client) BindUserToClusterRole(params *BindUserToClusterRoleParams, authInfo runtime.ClientAuthInfoWriter) (*BindUserToClusterRoleOK, error) {
@@ -253,6 +361,40 @@ func (a *Client) BindUserToClusterRole(params *BindUserToClusterRoleParams, auth
 }
 
 /*
+  BindUserToClusterRoleV2 Binds user to cluster role
+*/
+func (a *Client) BindUserToClusterRoleV2(params *BindUserToClusterRoleV2Params, authInfo runtime.ClientAuthInfoWriter) (*BindUserToClusterRoleV2OK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewBindUserToClusterRoleV2Params()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "bindUserToClusterRoleV2",
+		Method:             "POST",
+		PathPattern:        "/api/v2/projects/{project_id}/clusters/{cluster_id}/clusterroles/{role_id}/clusterbindings",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"https"},
+		Params:             params,
+		Reader:             &BindUserToClusterRoleV2Reader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*BindUserToClusterRoleV2OK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*BindUserToClusterRoleV2Default)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
   BindUserToRole Binds user to the role
 */
 func (a *Client) BindUserToRole(params *BindUserToRoleParams, authInfo runtime.ClientAuthInfoWriter) (*BindUserToRoleOK, error) {
@@ -283,6 +425,40 @@ func (a *Client) BindUserToRole(params *BindUserToRoleParams, authInfo runtime.C
 	}
 	// unexpected success response
 	unexpectedSuccess := result.(*BindUserToRoleDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
+  BindUserToRoleV2 Binds user to the role
+*/
+func (a *Client) BindUserToRoleV2(params *BindUserToRoleV2Params, authInfo runtime.ClientAuthInfoWriter) (*BindUserToRoleV2OK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewBindUserToRoleV2Params()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "bindUserToRoleV2",
+		Method:             "POST",
+		PathPattern:        "/api/v2/projects/{project_id}/clusters/{cluster_id}/roles/{namespace}/{role_id}/bindings",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"https"},
+		Params:             params,
+		Reader:             &BindUserToRoleV2Reader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*BindUserToRoleV2OK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*BindUserToRoleV2Default)
 	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
@@ -389,6 +565,40 @@ func (a *Client) CreateClusterV2(params *CreateClusterV2Params, authInfo runtime
 }
 
 /*
+  CreateConstraint creates a given constraint for the specified cluster
+*/
+func (a *Client) CreateConstraint(params *CreateConstraintParams, authInfo runtime.ClientAuthInfoWriter) (*CreateConstraintOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewCreateConstraintParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "createConstraint",
+		Method:             "POST",
+		PathPattern:        "/api/v2/projects/{project_id}/clusters/{cluster_id}/constraints",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"https"},
+		Params:             params,
+		Reader:             &CreateConstraintReader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*CreateConstraintOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*CreateConstraintDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
   CreateExternalCluster creates an external cluster for the given project
 */
 func (a *Client) CreateExternalCluster(params *CreateExternalClusterParams, authInfo runtime.ClientAuthInfoWriter) (*CreateExternalClusterCreated, error) {
@@ -419,6 +629,74 @@ func (a *Client) CreateExternalCluster(params *CreateExternalClusterParams, auth
 	}
 	// unexpected success response
 	unexpectedSuccess := result.(*CreateExternalClusterDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
+  CreateGatekeeperConfig Creates a gatekeeper config for the given cluster
+*/
+func (a *Client) CreateGatekeeperConfig(params *CreateGatekeeperConfigParams, authInfo runtime.ClientAuthInfoWriter) (*CreateGatekeeperConfigCreated, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewCreateGatekeeperConfigParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "createGatekeeperConfig",
+		Method:             "POST",
+		PathPattern:        "/api/v2/projects/{project_id}/clusters/{cluster_id}/gatekeeper/config",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"https"},
+		Params:             params,
+		Reader:             &CreateGatekeeperConfigReader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*CreateGatekeeperConfigCreated)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*CreateGatekeeperConfigDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
+  CreateMachineDeployment Creates a machine deployment that will belong to the given cluster
+*/
+func (a *Client) CreateMachineDeployment(params *CreateMachineDeploymentParams, authInfo runtime.ClientAuthInfoWriter) (*CreateMachineDeploymentCreated, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewCreateMachineDeploymentParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "createMachineDeployment",
+		Method:             "POST",
+		PathPattern:        "/api/v2/projects/{project_id}/clusters/{cluster_id}/machinedeployments",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"https"},
+		Params:             params,
+		Reader:             &CreateMachineDeploymentReader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*CreateMachineDeploymentCreated)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*CreateMachineDeploymentDefault)
 	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
@@ -487,43 +765,6 @@ func (a *Client) CreateNodeDeploymentRequest(params *CreateNodeDeploymentRequest
 	}
 	// unexpected success response
 	unexpectedSuccess := result.(*CreateNodeDeploymentRequestDefault)
-	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
-}
-
-/*
-  CreateNodeForClusterLegacy deprecateds creates a node that will belong to the given cluster
-
-  This endpoint is deprecated, please create a Node Deployment instead.
-Use POST /api/v1/projects/{project_id}/dc/{dc}/clusters/{cluster_id}/nodedeployments
-*/
-func (a *Client) CreateNodeForClusterLegacy(params *CreateNodeForClusterLegacyParams, authInfo runtime.ClientAuthInfoWriter) (*CreateNodeForClusterLegacyCreated, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewCreateNodeForClusterLegacyParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "createNodeForClusterLegacy",
-		Method:             "POST",
-		PathPattern:        "/api/v1/projects/{project_id}/dc/{dc}/clusters/{cluster_id}/nodes",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"https"},
-		Params:             params,
-		Reader:             &CreateNodeForClusterLegacyReader{formats: a.formats},
-		AuthInfo:           authInfo,
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	success, ok := result.(*CreateNodeForClusterLegacyCreated)
-	if ok {
-		return success, nil
-	}
-	// unexpected success response
-	unexpectedSuccess := result.(*CreateNodeForClusterLegacyDefault)
 	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
@@ -734,6 +975,40 @@ func (a *Client) DeleteClusterV2(params *DeleteClusterV2Params, authInfo runtime
 }
 
 /*
+  DeleteConstraint deletes a specified constraint for the given cluster
+*/
+func (a *Client) DeleteConstraint(params *DeleteConstraintParams, authInfo runtime.ClientAuthInfoWriter) (*DeleteConstraintOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewDeleteConstraintParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "deleteConstraint",
+		Method:             "DELETE",
+		PathPattern:        "/api/v2/projects/{project_id}/clusters/{cluster_id}/constraints/{constraint_name}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"https"},
+		Params:             params,
+		Reader:             &DeleteConstraintReader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*DeleteConstraintOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*DeleteConstraintDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
   DeleteExternalCluster Deletes the specified external cluster
 */
 func (a *Client) DeleteExternalCluster(params *DeleteExternalClusterParams, authInfo runtime.ClientAuthInfoWriter) (*DeleteExternalClusterOK, error) {
@@ -764,6 +1039,108 @@ func (a *Client) DeleteExternalCluster(params *DeleteExternalClusterParams, auth
 	}
 	// unexpected success response
 	unexpectedSuccess := result.(*DeleteExternalClusterDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
+  DeleteGatekeeperConfig deletes the gatekeeper sync config for the specified cluster
+*/
+func (a *Client) DeleteGatekeeperConfig(params *DeleteGatekeeperConfigParams, authInfo runtime.ClientAuthInfoWriter) (*DeleteGatekeeperConfigOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewDeleteGatekeeperConfigParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "deleteGatekeeperConfig",
+		Method:             "DELETE",
+		PathPattern:        "/api/v2/projects/{project_id}/clusters/{cluster_id}/gatekeeper/config",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"https"},
+		Params:             params,
+		Reader:             &DeleteGatekeeperConfigReader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*DeleteGatekeeperConfigOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*DeleteGatekeeperConfigDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
+  DeleteMachineDeployment deletes the given machine deployment that belongs to the cluster
+*/
+func (a *Client) DeleteMachineDeployment(params *DeleteMachineDeploymentParams, authInfo runtime.ClientAuthInfoWriter) (*DeleteMachineDeploymentOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewDeleteMachineDeploymentParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "deleteMachineDeployment",
+		Method:             "DELETE",
+		PathPattern:        "/api/v2/projects/{project_id}/clusters/{cluster_id}/machinedeployments/{machinedeployment_id}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"https"},
+		Params:             params,
+		Reader:             &DeleteMachineDeploymentReader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*DeleteMachineDeploymentOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*DeleteMachineDeploymentDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
+  DeleteMachineDeploymentNode deletes the given node that belongs to the machine deployment
+*/
+func (a *Client) DeleteMachineDeploymentNode(params *DeleteMachineDeploymentNodeParams, authInfo runtime.ClientAuthInfoWriter) (*DeleteMachineDeploymentNodeOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewDeleteMachineDeploymentNodeParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "deleteMachineDeploymentNode",
+		Method:             "DELETE",
+		PathPattern:        "/api/v2/projects/{project_id}/clusters/{cluster_id}/machinedeployments/nodes/{node_id}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"https"},
+		Params:             params,
+		Reader:             &DeleteMachineDeploymentNodeReader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*DeleteMachineDeploymentNodeOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*DeleteMachineDeploymentNodeDefault)
 	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
@@ -1008,6 +1385,40 @@ func (a *Client) DetachSSHKeyFromCluster(params *DetachSSHKeyFromClusterParams, 
 }
 
 /*
+  DetachSSHKeyFromClusterV2 Unassignes an ssh key from the given cluster
+*/
+func (a *Client) DetachSSHKeyFromClusterV2(params *DetachSSHKeyFromClusterV2Params, authInfo runtime.ClientAuthInfoWriter) (*DetachSSHKeyFromClusterV2OK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewDetachSSHKeyFromClusterV2Params()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "detachSSHKeyFromClusterV2",
+		Method:             "DELETE",
+		PathPattern:        "/api/projects/{project_id}/clusters/{cluster_id}/sshkeys/{key_id}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"https"},
+		Params:             params,
+		Reader:             &DetachSSHKeyFromClusterV2Reader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*DetachSSHKeyFromClusterV2OK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*DetachSSHKeyFromClusterV2Default)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
   GetCluster Gets the cluster with the given name
 */
 func (a *Client) GetCluster(params *GetClusterParams, authInfo runtime.ClientAuthInfoWriter) (*GetClusterOK, error) {
@@ -1144,6 +1555,40 @@ func (a *Client) GetClusterHealth(params *GetClusterHealthParams, authInfo runti
 }
 
 /*
+  GetClusterHealthV2 Returns the cluster's component health status
+*/
+func (a *Client) GetClusterHealthV2(params *GetClusterHealthV2Params, authInfo runtime.ClientAuthInfoWriter) (*GetClusterHealthV2OK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewGetClusterHealthV2Params()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "getClusterHealthV2",
+		Method:             "GET",
+		PathPattern:        "/api/v2/projects/{project_id}/clusters/{cluster_id}/health",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"https"},
+		Params:             params,
+		Reader:             &GetClusterHealthV2Reader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*GetClusterHealthV2OK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*GetClusterHealthV2Default)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
   GetClusterKubeconfig gets the kubeconfig for the specified cluster
 */
 func (a *Client) GetClusterKubeconfig(params *GetClusterKubeconfigParams, authInfo runtime.ClientAuthInfoWriter) (*GetClusterKubeconfigOK, error) {
@@ -1178,6 +1623,40 @@ func (a *Client) GetClusterKubeconfig(params *GetClusterKubeconfigParams, authIn
 }
 
 /*
+  GetClusterKubeconfigV2 gets the kubeconfig for the specified cluster
+*/
+func (a *Client) GetClusterKubeconfigV2(params *GetClusterKubeconfigV2Params, authInfo runtime.ClientAuthInfoWriter) (*GetClusterKubeconfigV2OK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewGetClusterKubeconfigV2Params()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "getClusterKubeconfigV2",
+		Method:             "GET",
+		PathPattern:        "/api/v2/projects/{project_id}/clusters/{cluster_id}/kubeconfig",
+		ProducesMediaTypes: []string{"application/octet-stream"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"https"},
+		Params:             params,
+		Reader:             &GetClusterKubeconfigV2Reader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*GetClusterKubeconfigV2OK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*GetClusterKubeconfigV2Default)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
   GetClusterMetrics Gets cluster metrics
 */
 func (a *Client) GetClusterMetrics(params *GetClusterMetricsParams, authInfo runtime.ClientAuthInfoWriter) (*GetClusterMetricsOK, error) {
@@ -1208,6 +1687,40 @@ func (a *Client) GetClusterMetrics(params *GetClusterMetricsParams, authInfo run
 	}
 	// unexpected success response
 	unexpectedSuccess := result.(*GetClusterMetricsDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
+  GetClusterMetricsV2 Gets cluster metrics
+*/
+func (a *Client) GetClusterMetricsV2(params *GetClusterMetricsV2Params, authInfo runtime.ClientAuthInfoWriter) (*GetClusterMetricsV2OK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewGetClusterMetricsV2Params()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "getClusterMetricsV2",
+		Method:             "GET",
+		PathPattern:        "/api/v2/projects/{project_id}/clusters/{cluster_id}/metrics",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"https"},
+		Params:             params,
+		Reader:             &GetClusterMetricsV2Reader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*GetClusterMetricsV2OK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*GetClusterMetricsV2Default)
 	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
@@ -1280,6 +1793,40 @@ func (a *Client) GetClusterUpgrades(params *GetClusterUpgradesParams, authInfo r
 }
 
 /*
+  GetClusterUpgradesV2 Gets possible cluster upgrades
+*/
+func (a *Client) GetClusterUpgradesV2(params *GetClusterUpgradesV2Params, authInfo runtime.ClientAuthInfoWriter) (*GetClusterUpgradesV2OK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewGetClusterUpgradesV2Params()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "getClusterUpgradesV2",
+		Method:             "GET",
+		PathPattern:        "/api/v2/projects/{project_id}/clusters/{cluster_id}/upgrades",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"https"},
+		Params:             params,
+		Reader:             &GetClusterUpgradesV2Reader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*GetClusterUpgradesV2OK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*GetClusterUpgradesV2Default)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
   GetClusterV2 Gets the cluster with the given name
 */
 func (a *Client) GetClusterV2(params *GetClusterV2Params, authInfo runtime.ClientAuthInfoWriter) (*GetClusterV2OK, error) {
@@ -1310,6 +1857,40 @@ func (a *Client) GetClusterV2(params *GetClusterV2Params, authInfo runtime.Clien
 	}
 	// unexpected success response
 	unexpectedSuccess := result.(*GetClusterV2Default)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
+  GetConstraint gets an specified constraint for the given cluster
+*/
+func (a *Client) GetConstraint(params *GetConstraintParams, authInfo runtime.ClientAuthInfoWriter) (*GetConstraintOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewGetConstraintParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "getConstraint",
+		Method:             "GET",
+		PathPattern:        "/api/v2/projects/{project_id}/clusters/{cluster_id}/constraints/{constraint_name}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"https"},
+		Params:             params,
+		Reader:             &GetConstraintReader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*GetConstraintOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*GetConstraintDefault)
 	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
@@ -1416,6 +1997,40 @@ func (a *Client) GetExternalClusterNode(params *GetExternalClusterNodeParams, au
 }
 
 /*
+  GetGatekeeperConfig gets the gatekeeper sync config for the specified cluster
+*/
+func (a *Client) GetGatekeeperConfig(params *GetGatekeeperConfigParams, authInfo runtime.ClientAuthInfoWriter) (*GetGatekeeperConfigOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewGetGatekeeperConfigParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "getGatekeeperConfig",
+		Method:             "GET",
+		PathPattern:        "/api/v2/projects/{project_id}/clusters/{cluster_id}/gatekeeper/config",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"https"},
+		Params:             params,
+		Reader:             &GetGatekeeperConfigReader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*GetGatekeeperConfigOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*GetGatekeeperConfigDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
   GetKubeLoginClusterKubeconfig gets the kubeconfig for the specified cluster with oidc authentication that works nicely with kube login
 */
 func (a *Client) GetKubeLoginClusterKubeconfig(params *GetKubeLoginClusterKubeconfigParams, authInfo runtime.ClientAuthInfoWriter) (*GetKubeLoginClusterKubeconfigOK, error) {
@@ -1446,6 +2061,40 @@ func (a *Client) GetKubeLoginClusterKubeconfig(params *GetKubeLoginClusterKubeco
 	}
 	// unexpected success response
 	unexpectedSuccess := result.(*GetKubeLoginClusterKubeconfigDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
+  GetMachineDeployment gets a machine deployment that is assigned to the given cluster
+*/
+func (a *Client) GetMachineDeployment(params *GetMachineDeploymentParams, authInfo runtime.ClientAuthInfoWriter) (*GetMachineDeploymentOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewGetMachineDeploymentParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "getMachineDeployment",
+		Method:             "GET",
+		PathPattern:        "/api/v2/projects/{project_id}/clusters/{cluster_id}/machinedeployments/{machinedeployment_id}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"https"},
+		Params:             params,
+		Reader:             &GetMachineDeploymentReader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*GetMachineDeploymentOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*GetMachineDeploymentDefault)
 	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
@@ -1518,42 +2167,6 @@ func (a *Client) GetNodeDeploymentRequest(params *GetNodeDeploymentRequestParams
 }
 
 /*
-  GetNodeForClusterLegacy deprecateds gets a node that is assigned to the given cluster
-
-  This endpoint is deprecated, please create a Node Deployment instead.
-*/
-func (a *Client) GetNodeForClusterLegacy(params *GetNodeForClusterLegacyParams, authInfo runtime.ClientAuthInfoWriter) (*GetNodeForClusterLegacyOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetNodeForClusterLegacyParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "getNodeForClusterLegacy",
-		Method:             "GET",
-		PathPattern:        "/api/v1/projects/{project_id}/dc/{dc}/clusters/{cluster_id}/nodes/{node_id}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"https"},
-		Params:             params,
-		Reader:             &GetNodeForClusterLegacyReader{formats: a.formats},
-		AuthInfo:           authInfo,
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	success, ok := result.(*GetNodeForClusterLegacyOK)
-	if ok {
-		return success, nil
-	}
-	// unexpected success response
-	unexpectedSuccess := result.(*GetNodeForClusterLegacyDefault)
-	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
-}
-
-/*
   GetOidcClusterKubeconfig gets the kubeconfig for the specified cluster with oidc authentication
 */
 func (a *Client) GetOidcClusterKubeconfig(params *GetOidcClusterKubeconfigParams, authInfo runtime.ClientAuthInfoWriter) (*GetOidcClusterKubeconfigOK, error) {
@@ -1584,6 +2197,40 @@ func (a *Client) GetOidcClusterKubeconfig(params *GetOidcClusterKubeconfigParams
 	}
 	// unexpected success response
 	unexpectedSuccess := result.(*GetOidcClusterKubeconfigDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
+  GetOidcClusterKubeconfigV2 gets the kubeconfig for the specified cluster with oidc authentication
+*/
+func (a *Client) GetOidcClusterKubeconfigV2(params *GetOidcClusterKubeconfigV2Params, authInfo runtime.ClientAuthInfoWriter) (*GetOidcClusterKubeconfigV2OK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewGetOidcClusterKubeconfigV2Params()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "getOidcClusterKubeconfigV2",
+		Method:             "GET",
+		PathPattern:        "/api/v2/projects/{project_id}/clusters/{cluster_id}/oidckubeconfig",
+		ProducesMediaTypes: []string{"application/octet-stream"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"https"},
+		Params:             params,
+		Reader:             &GetOidcClusterKubeconfigV2Reader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*GetOidcClusterKubeconfigV2OK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*GetOidcClusterKubeconfigV2Default)
 	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
@@ -1724,6 +2371,40 @@ func (a *Client) ListClusterRoleBinding(params *ListClusterRoleBindingParams, au
 }
 
 /*
+  ListClusterRoleBindingV2 List cluster role binding
+*/
+func (a *Client) ListClusterRoleBindingV2(params *ListClusterRoleBindingV2Params, authInfo runtime.ClientAuthInfoWriter) (*ListClusterRoleBindingV2OK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewListClusterRoleBindingV2Params()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "listClusterRoleBindingV2",
+		Method:             "GET",
+		PathPattern:        "/api/v2/projects/{project_id}/clusters/{cluster_id}/clusterbindings",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"https"},
+		Params:             params,
+		Reader:             &ListClusterRoleBindingV2Reader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*ListClusterRoleBindingV2OK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*ListClusterRoleBindingV2Default)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
   ListClusterRoleNames Lists all ClusterRoles
 */
 func (a *Client) ListClusterRoleNames(params *ListClusterRoleNamesParams, authInfo runtime.ClientAuthInfoWriter) (*ListClusterRoleNamesOK, error) {
@@ -1754,6 +2435,74 @@ func (a *Client) ListClusterRoleNames(params *ListClusterRoleNamesParams, authIn
 	}
 	// unexpected success response
 	unexpectedSuccess := result.(*ListClusterRoleNamesDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
+  ListClusterRoleNamesV2 Lists all ClusterRoles
+*/
+func (a *Client) ListClusterRoleNamesV2(params *ListClusterRoleNamesV2Params, authInfo runtime.ClientAuthInfoWriter) (*ListClusterRoleNamesV2OK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewListClusterRoleNamesV2Params()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "listClusterRoleNamesV2",
+		Method:             "GET",
+		PathPattern:        "/api/v2/projects/{project_id}/clusters/{cluster_id}/clusterrolenames",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"https"},
+		Params:             params,
+		Reader:             &ListClusterRoleNamesV2Reader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*ListClusterRoleNamesV2OK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*ListClusterRoleNamesV2Default)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
+  ListClusterRoleV2 Lists all ClusterRoles
+*/
+func (a *Client) ListClusterRoleV2(params *ListClusterRoleV2Params, authInfo runtime.ClientAuthInfoWriter) (*ListClusterRoleV2OK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewListClusterRoleV2Params()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "listClusterRoleV2",
+		Method:             "GET",
+		PathPattern:        "/api/v2/projects/{project_id}/clusters/{cluster_id}/clusterroles",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"https"},
+		Params:             params,
+		Reader:             &ListClusterRoleV2Reader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*ListClusterRoleV2OK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*ListClusterRoleV2Default)
 	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
@@ -1856,6 +2605,40 @@ func (a *Client) ListClustersV2(params *ListClustersV2Params, authInfo runtime.C
 	}
 	// unexpected success response
 	unexpectedSuccess := result.(*ListClustersV2Default)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
+  ListConstraints lists constraints for the specified cluster
+*/
+func (a *Client) ListConstraints(params *ListConstraintsParams, authInfo runtime.ClientAuthInfoWriter) (*ListConstraintsOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewListConstraintsParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "listConstraints",
+		Method:             "GET",
+		PathPattern:        "/api/v2/projects/{project_id}/clusters/{cluster_id}/constraints",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"https"},
+		Params:             params,
+		Reader:             &ListConstraintsReader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*ListConstraintsOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*ListConstraintsDefault)
 	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
@@ -1996,6 +2779,110 @@ func (a *Client) ListExternalClusters(params *ListExternalClustersParams, authIn
 }
 
 /*
+  ListMachineDeploymentNodes lists nodes that belong to the given machine deployment
+*/
+func (a *Client) ListMachineDeploymentNodes(params *ListMachineDeploymentNodesParams, authInfo runtime.ClientAuthInfoWriter) (*ListMachineDeploymentNodesOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewListMachineDeploymentNodesParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "listMachineDeploymentNodes",
+		Method:             "GET",
+		PathPattern:        "/api/v2/projects/{project_id}/clusters/{cluster_id}/machinedeployments/{machinedeployment_id}/nodes",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"https"},
+		Params:             params,
+		Reader:             &ListMachineDeploymentNodesReader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*ListMachineDeploymentNodesOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*ListMachineDeploymentNodesDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
+  ListMachineDeploymentNodesEvents lists machine deployment events if query parameter type is set to warning then only warning events are retrieved
+
+  If the value is 'normal' then normal events are returned. If the query parameter is missing method returns all events.
+*/
+func (a *Client) ListMachineDeploymentNodesEvents(params *ListMachineDeploymentNodesEventsParams, authInfo runtime.ClientAuthInfoWriter) (*ListMachineDeploymentNodesEventsOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewListMachineDeploymentNodesEventsParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "listMachineDeploymentNodesEvents",
+		Method:             "GET",
+		PathPattern:        "/api/v2/projects/{project_id}/clusters/{cluster_id}/machinedeployments/{machinedeployment_id}/nodes/events",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"https"},
+		Params:             params,
+		Reader:             &ListMachineDeploymentNodesEventsReader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*ListMachineDeploymentNodesEventsOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*ListMachineDeploymentNodesEventsDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
+  ListMachineDeployments Lists machine deployments that belong to the given cluster
+*/
+func (a *Client) ListMachineDeployments(params *ListMachineDeploymentsParams, authInfo runtime.ClientAuthInfoWriter) (*ListMachineDeploymentsOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewListMachineDeploymentsParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "listMachineDeployments",
+		Method:             "GET",
+		PathPattern:        "/api/v2/projects/{project_id}/clusters/{cluster_id}/machinedeployments",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"https"},
+		Params:             params,
+		Reader:             &ListMachineDeploymentsReader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*ListMachineDeploymentsOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*ListMachineDeploymentsDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
   ListNamespace Lists all namespaces in the cluster
 */
 func (a *Client) ListNamespace(params *ListNamespaceParams, authInfo runtime.ClientAuthInfoWriter) (*ListNamespaceOK, error) {
@@ -2026,6 +2913,40 @@ func (a *Client) ListNamespace(params *ListNamespaceParams, authInfo runtime.Cli
 	}
 	// unexpected success response
 	unexpectedSuccess := result.(*ListNamespaceDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
+  ListNamespaceV2 Lists all namespaces in the cluster
+*/
+func (a *Client) ListNamespaceV2(params *ListNamespaceV2Params, authInfo runtime.ClientAuthInfoWriter) (*ListNamespaceV2OK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewListNamespaceV2Params()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "listNamespaceV2",
+		Method:             "GET",
+		PathPattern:        "/api/v2/projects/{project_id}/clusters/{cluster_id}/namespaces",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"https"},
+		Params:             params,
+		Reader:             &ListNamespaceV2Reader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*ListNamespaceV2OK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*ListNamespaceV2Default)
 	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
@@ -2168,25 +3089,23 @@ func (a *Client) ListNodeDeployments(params *ListNodeDeploymentsParams, authInfo
 }
 
 /*
-  ListNodesForClusterLegacy deprecateds lists nodes that belong to the given cluster
-
-  This endpoint is deprecated, please create a Node Deployment instead.
+  ListNodesForCluster this endpoint is used for kubeadm cluster
 */
-func (a *Client) ListNodesForClusterLegacy(params *ListNodesForClusterLegacyParams, authInfo runtime.ClientAuthInfoWriter) (*ListNodesForClusterLegacyOK, error) {
+func (a *Client) ListNodesForCluster(params *ListNodesForClusterParams, authInfo runtime.ClientAuthInfoWriter) (*ListNodesForClusterOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewListNodesForClusterLegacyParams()
+		params = NewListNodesForClusterParams()
 	}
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "listNodesForClusterLegacy",
+		ID:                 "listNodesForCluster",
 		Method:             "GET",
-		PathPattern:        "/api/v1/projects/{project_id}/dc/{dc}/clusters/{cluster_id}/nodes",
+		PathPattern:        "/api/v2/projects/{project_id}/clusters/{cluster_id}/nodes",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"https"},
 		Params:             params,
-		Reader:             &ListNodesForClusterLegacyReader{formats: a.formats},
+		Reader:             &ListNodesForClusterReader{formats: a.formats},
 		AuthInfo:           authInfo,
 		Context:            params.Context,
 		Client:             params.HTTPClient,
@@ -2194,12 +3113,12 @@ func (a *Client) ListNodesForClusterLegacy(params *ListNodesForClusterLegacyPara
 	if err != nil {
 		return nil, err
 	}
-	success, ok := result.(*ListNodesForClusterLegacyOK)
+	success, ok := result.(*ListNodesForClusterOK)
 	if ok {
 		return success, nil
 	}
 	// unexpected success response
-	unexpectedSuccess := result.(*ListNodesForClusterLegacyDefault)
+	unexpectedSuccess := result.(*ListNodesForClusterDefault)
 	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
@@ -2306,6 +3225,40 @@ func (a *Client) ListRoleBinding(params *ListRoleBindingParams, authInfo runtime
 }
 
 /*
+  ListRoleBindingV2 List role binding
+*/
+func (a *Client) ListRoleBindingV2(params *ListRoleBindingV2Params, authInfo runtime.ClientAuthInfoWriter) (*ListRoleBindingV2OK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewListRoleBindingV2Params()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "listRoleBindingV2",
+		Method:             "GET",
+		PathPattern:        "/api/v2/projects/{project_id}/clusters/{cluster_id}/bindings",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"https"},
+		Params:             params,
+		Reader:             &ListRoleBindingV2Reader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*ListRoleBindingV2OK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*ListRoleBindingV2Default)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
   ListRoleNames Lists all Role names with namespaces
 */
 func (a *Client) ListRoleNames(params *ListRoleNamesParams, authInfo runtime.ClientAuthInfoWriter) (*ListRoleNamesOK, error) {
@@ -2336,6 +3289,74 @@ func (a *Client) ListRoleNames(params *ListRoleNamesParams, authInfo runtime.Cli
 	}
 	// unexpected success response
 	unexpectedSuccess := result.(*ListRoleNamesDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
+  ListRoleNamesV2 Lists all Role names with namespaces
+*/
+func (a *Client) ListRoleNamesV2(params *ListRoleNamesV2Params, authInfo runtime.ClientAuthInfoWriter) (*ListRoleNamesV2OK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewListRoleNamesV2Params()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "listRoleNamesV2",
+		Method:             "GET",
+		PathPattern:        "/api/v2/projects/{project_id}/clusters/{cluster_id}/rolenames",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"https"},
+		Params:             params,
+		Reader:             &ListRoleNamesV2Reader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*ListRoleNamesV2OK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*ListRoleNamesV2Default)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
+  ListRoleV2 Lists all Roles
+*/
+func (a *Client) ListRoleV2(params *ListRoleV2Params, authInfo runtime.ClientAuthInfoWriter) (*ListRoleV2OK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewListRoleV2Params()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "listRoleV2",
+		Method:             "GET",
+		PathPattern:        "/api/v2/projects/{project_id}/clusters/{cluster_id}/roles",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"https"},
+		Params:             params,
+		Reader:             &ListRoleV2Reader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*ListRoleV2OK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*ListRoleV2Default)
 	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
@@ -2407,6 +3428,41 @@ func (a *Client) ListSSHKeysAssignedToCluster(params *ListSSHKeysAssignedToClust
 	}
 	// unexpected success response
 	unexpectedSuccess := result.(*ListSSHKeysAssignedToClusterDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
+  ListSSHKeysAssignedToClusterV2 Lists ssh keys that are assigned to the cluster
+The returned collection is sorted by creation timestamp.
+*/
+func (a *Client) ListSSHKeysAssignedToClusterV2(params *ListSSHKeysAssignedToClusterV2Params, authInfo runtime.ClientAuthInfoWriter) (*ListSSHKeysAssignedToClusterV2OK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewListSSHKeysAssignedToClusterV2Params()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "listSSHKeysAssignedToClusterV2",
+		Method:             "GET",
+		PathPattern:        "/api/v2/projects/{project_id}/clusters/{cluster_id}/sshkeys",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"https"},
+		Params:             params,
+		Reader:             &ListSSHKeysAssignedToClusterV2Reader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*ListSSHKeysAssignedToClusterV2OK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*ListSSHKeysAssignedToClusterV2Default)
 	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
@@ -2509,6 +3565,109 @@ func (a *Client) PatchClusterV2(params *PatchClusterV2Params, authInfo runtime.C
 	}
 	// unexpected success response
 	unexpectedSuccess := result.(*PatchClusterV2Default)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
+  PatchConstraint patches a given constraint for the specified cluster
+*/
+func (a *Client) PatchConstraint(params *PatchConstraintParams, authInfo runtime.ClientAuthInfoWriter) (*PatchConstraintOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewPatchConstraintParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "patchConstraint",
+		Method:             "PATCH",
+		PathPattern:        "/api/v2/projects/{project_id}/clusters/{cluster_id}/constraints/{constraint_name}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"https"},
+		Params:             params,
+		Reader:             &PatchConstraintReader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*PatchConstraintOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*PatchConstraintDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
+  PatchGatekeeperConfig patches the gatekeeper config for the specified cluster
+*/
+func (a *Client) PatchGatekeeperConfig(params *PatchGatekeeperConfigParams, authInfo runtime.ClientAuthInfoWriter) (*PatchGatekeeperConfigOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewPatchGatekeeperConfigParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "patchGatekeeperConfig",
+		Method:             "PATCH",
+		PathPattern:        "/api/v2/projects/{project_id}/clusters/{cluster_id}/gatekeeper/config",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"https"},
+		Params:             params,
+		Reader:             &PatchGatekeeperConfigReader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*PatchGatekeeperConfigOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*PatchGatekeeperConfigDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
+  PatchMachineDeployment Patches a machine deployment that is assigned to the given cluster. Please note that at the moment only
+node deployment's spec can be updated by a patch, no other fields can be changed using this endpoint.
+*/
+func (a *Client) PatchMachineDeployment(params *PatchMachineDeploymentParams, authInfo runtime.ClientAuthInfoWriter) (*PatchMachineDeploymentOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewPatchMachineDeploymentParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "patchMachineDeployment",
+		Method:             "PATCH",
+		PathPattern:        "/api/v2/projects/{project_id}/clusters/{cluster_id}/machinedeployments/{machinedeployment_id}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"https"},
+		Params:             params,
+		Reader:             &PatchMachineDeploymentReader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*PatchMachineDeploymentOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*PatchMachineDeploymentDefault)
 	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
@@ -2650,6 +3809,40 @@ func (a *Client) RevokeClusterAdminToken(params *RevokeClusterAdminTokenParams, 
 }
 
 /*
+  RevokeClusterAdminTokenV2 Revokes the current admin token
+*/
+func (a *Client) RevokeClusterAdminTokenV2(params *RevokeClusterAdminTokenV2Params, authInfo runtime.ClientAuthInfoWriter) (*RevokeClusterAdminTokenV2OK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewRevokeClusterAdminTokenV2Params()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "revokeClusterAdminTokenV2",
+		Method:             "PUT",
+		PathPattern:        "/api/v2/projects/{project_id}/clusters/{cluster_id}/token",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"https"},
+		Params:             params,
+		Reader:             &RevokeClusterAdminTokenV2Reader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*RevokeClusterAdminTokenV2OK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*RevokeClusterAdminTokenV2Default)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
   RevokeClusterViewerToken Revokes the current viewer token
 */
 func (a *Client) RevokeClusterViewerToken(params *RevokeClusterViewerTokenParams, authInfo runtime.ClientAuthInfoWriter) (*RevokeClusterViewerTokenOK, error) {
@@ -2680,6 +3873,40 @@ func (a *Client) RevokeClusterViewerToken(params *RevokeClusterViewerTokenParams
 	}
 	// unexpected success response
 	unexpectedSuccess := result.(*RevokeClusterViewerTokenDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
+  RevokeClusterViewerTokenV2 Revokes the current viewer token
+*/
+func (a *Client) RevokeClusterViewerTokenV2(params *RevokeClusterViewerTokenV2Params, authInfo runtime.ClientAuthInfoWriter) (*RevokeClusterViewerTokenV2OK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewRevokeClusterViewerTokenV2Params()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "revokeClusterViewerTokenV2",
+		Method:             "PUT",
+		PathPattern:        "/api/v2/projects/{project_id}/clusters/{cluster_id}/viewertoken",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"https"},
+		Params:             params,
+		Reader:             &RevokeClusterViewerTokenV2Reader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*RevokeClusterViewerTokenV2OK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*RevokeClusterViewerTokenV2Default)
 	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
@@ -2718,6 +3945,40 @@ func (a *Client) UnbindUserFromClusterRoleBinding(params *UnbindUserFromClusterR
 }
 
 /*
+  UnbindUserFromClusterRoleBindingV2 Unbinds user from cluster role binding
+*/
+func (a *Client) UnbindUserFromClusterRoleBindingV2(params *UnbindUserFromClusterRoleBindingV2Params, authInfo runtime.ClientAuthInfoWriter) (*UnbindUserFromClusterRoleBindingV2OK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewUnbindUserFromClusterRoleBindingV2Params()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "unbindUserFromClusterRoleBindingV2",
+		Method:             "DELETE",
+		PathPattern:        "/api/v2/projects/{project_id}/clusters/{cluster_id}/clusterroles/{role_id}/clusterbindings",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"https"},
+		Params:             params,
+		Reader:             &UnbindUserFromClusterRoleBindingV2Reader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*UnbindUserFromClusterRoleBindingV2OK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*UnbindUserFromClusterRoleBindingV2Default)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
   UnbindUserFromRoleBinding Unbinds user from the role binding
 */
 func (a *Client) UnbindUserFromRoleBinding(params *UnbindUserFromRoleBindingParams, authInfo runtime.ClientAuthInfoWriter) (*UnbindUserFromRoleBindingOK, error) {
@@ -2748,6 +4009,40 @@ func (a *Client) UnbindUserFromRoleBinding(params *UnbindUserFromRoleBindingPara
 	}
 	// unexpected success response
 	unexpectedSuccess := result.(*UnbindUserFromRoleBindingDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
+  UnbindUserFromRoleBindingV2 Unbinds user from the role binding
+*/
+func (a *Client) UnbindUserFromRoleBindingV2(params *UnbindUserFromRoleBindingV2Params, authInfo runtime.ClientAuthInfoWriter) (*UnbindUserFromRoleBindingV2OK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewUnbindUserFromRoleBindingV2Params()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "unbindUserFromRoleBindingV2",
+		Method:             "DELETE",
+		PathPattern:        "/api/v2/projects/{project_id}/clusters/{cluster_id}/roles/{namespace}/{role_id}/bindings",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"https"},
+		Params:             params,
+		Reader:             &UnbindUserFromRoleBindingV2Reader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*UnbindUserFromRoleBindingV2OK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*UnbindUserFromRoleBindingV2Default)
 	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
@@ -2850,6 +4145,40 @@ func (a *Client) UpgradeClusterNodeDeployments(params *UpgradeClusterNodeDeploym
 	}
 	// unexpected success response
 	unexpectedSuccess := result.(*UpgradeClusterNodeDeploymentsDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
+  UpgradeClusterNodeDeploymentsV2 Upgrades node deployments in a cluster
+*/
+func (a *Client) UpgradeClusterNodeDeploymentsV2(params *UpgradeClusterNodeDeploymentsV2Params, authInfo runtime.ClientAuthInfoWriter) (*UpgradeClusterNodeDeploymentsV2OK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewUpgradeClusterNodeDeploymentsV2Params()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "upgradeClusterNodeDeploymentsV2",
+		Method:             "PUT",
+		PathPattern:        "/api/v2/projects/{project_id}/clusters/{cluster_id}/nodes/upgrades",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"https"},
+		Params:             params,
+		Reader:             &UpgradeClusterNodeDeploymentsV2Reader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*UpgradeClusterNodeDeploymentsV2OK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*UpgradeClusterNodeDeploymentsV2Default)
 	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 

@@ -21,6 +21,13 @@ type ClusterSpec struct {
 	// Additional Admission Controller plugins
 	AdmissionPlugins []string `json:"admissionPlugins"`
 
+	// EnableUserSSHKeyAgent control whether the UserSSHKeyAgent will be deployed in the user cluster or not.
+	// If it was enabled, the agent will be deployed and used to sync the user ssh keys, that the user attach
+	// to the created cluster. If the agent was disabled, it won't be deployed in the user cluster, thus after
+	// the cluster creation any attached ssh keys won't be synced to the worker nodes. Once the agent is enabled/disabled
+	// it cannot be changed after the cluster is being created.
+	EnableUserSSHKeyAgent bool `json:"enableUserSSHKeyAgent,omitempty"`
+
 	// MachineNetworks optionally specifies the parameters for IPAM.
 	MachineNetworks []*MachineNetworkingConfig `json:"machineNetworks"`
 
@@ -52,8 +59,14 @@ type ClusterSpec struct {
 	// oidc
 	Oidc *OIDCSettings `json:"oidc,omitempty"`
 
+	// opa integration
+	OpaIntegration *OPAIntegrationSettings `json:"opaIntegration,omitempty"`
+
 	// openshift
 	Openshift *Openshift `json:"openshift,omitempty"`
+
+	// service account
+	ServiceAccount *ServiceAccountSettings `json:"serviceAccount,omitempty"`
 
 	// sys11auth
 	Sys11auth *Sys11AuthSettings `json:"sys11auth,omitempty"`
@@ -89,7 +102,15 @@ func (m *ClusterSpec) Validate(formats strfmt.Registry) error {
 		res = append(res, err)
 	}
 
+	if err := m.validateOpaIntegration(formats); err != nil {
+		res = append(res, err)
+	}
+
 	if err := m.validateOpenshift(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateServiceAccount(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -204,6 +225,24 @@ func (m *ClusterSpec) validateOidc(formats strfmt.Registry) error {
 	return nil
 }
 
+func (m *ClusterSpec) validateOpaIntegration(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.OpaIntegration) { // not required
+		return nil
+	}
+
+	if m.OpaIntegration != nil {
+		if err := m.OpaIntegration.Validate(formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("opaIntegration")
+			}
+			return err
+		}
+	}
+
+	return nil
+}
+
 func (m *ClusterSpec) validateOpenshift(formats strfmt.Registry) error {
 
 	if swag.IsZero(m.Openshift) { // not required
@@ -214,6 +253,24 @@ func (m *ClusterSpec) validateOpenshift(formats strfmt.Registry) error {
 		if err := m.Openshift.Validate(formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("openshift")
+			}
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (m *ClusterSpec) validateServiceAccount(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.ServiceAccount) { // not required
+		return nil
+	}
+
+	if m.ServiceAccount != nil {
+		if err := m.ServiceAccount.Validate(formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("serviceAccount")
 			}
 			return err
 		}

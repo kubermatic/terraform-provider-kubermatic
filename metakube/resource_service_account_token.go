@@ -3,9 +3,10 @@ package metakube
 import (
 	"context"
 	"fmt"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"strings"
 	"time"
+
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -163,9 +164,9 @@ func resourceServiceAccountTokenUpdate(ctx context.Context, d *schema.ResourceDa
 	p.SetServiceAccountID(serviceAccountID)
 	p.SetTokenID(tokenID)
 	// Only name is editable
-	p.SetBody(&models.PublicServiceAccountToken{
-		Name: d.Get("name").(string),
-	})
+	name := d.Get("name").(string)
+	bodyStr := fmt.Sprintf("{\"name\":\"%s\"}", name)
+	p.SetBody([]byte(bodyStr))
 	_, err = k.client.Tokens.PatchServiceAccountToken(p, k.auth)
 	if err != nil {
 		return diag.Errorf("failed to update token: %s", getErrorResponse(err))

@@ -7,7 +7,6 @@ package tokens
 
 import (
 	"context"
-	"github.com/syseleven/terraform-provider-metakube/go-metakube/models"
 	"net/http"
 	"time"
 
@@ -62,7 +61,7 @@ for the patch service account token operation typically these are written to a h
 type PatchServiceAccountTokenParams struct {
 
 	/*Body*/
-	Body *models.PublicServiceAccountToken
+	Body []uint8
 	/*ProjectID*/
 	ProjectID string
 	/*ServiceaccountID*/
@@ -109,13 +108,13 @@ func (o *PatchServiceAccountTokenParams) SetHTTPClient(client *http.Client) {
 }
 
 // WithBody adds the body to the patch service account token params
-func (o *PatchServiceAccountTokenParams) WithBody(body *models.PublicServiceAccountToken) *PatchServiceAccountTokenParams {
+func (o *PatchServiceAccountTokenParams) WithBody(body []uint8) *PatchServiceAccountTokenParams {
 	o.SetBody(body)
 	return o
 }
 
 // SetBody adds the body to the patch service account token params
-func (o *PatchServiceAccountTokenParams) SetBody(body *models.PublicServiceAccountToken) {
+func (o *PatchServiceAccountTokenParams) SetBody(body []uint8) {
 	o.Body = body
 }
 
