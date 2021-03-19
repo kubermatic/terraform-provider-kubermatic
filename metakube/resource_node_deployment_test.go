@@ -109,6 +109,8 @@ func testAccCheckMetaKubeNodeDeploymentBasic(testName, nodeDC, username, passwor
 						flavor = "%s"
 						image = "%s"
 						use_floating_ip = false
+						instance_ready_check_period = "10s"
+						instance_ready_check_timeout = "2m"
 					}
 				}
 				operating_system {
@@ -167,6 +169,8 @@ func testAccCheckMetaKubeNodeDeploymentBasic2(testName, nodeDC, username, passwo
 						image = "%s"
 						disk_size = 123
 						use_floating_ip = true
+						instance_ready_check_period = "10s"
+						instance_ready_check_timeout = "2m"
 					}
 				}
 				operating_system {

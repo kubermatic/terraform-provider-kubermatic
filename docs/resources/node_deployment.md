@@ -104,6 +104,8 @@ One of the following must be selected.
 * `disk_size` - (Optional) Set disk size when network storage flavors is used.
 * `tags` - (Optional) Additional instance tags.
 * `use_floating_ip` - (Optional) Indicate use of floating ip in case of floating_ip_pool presense. Defaults to true.
+* `instance_ready_check_period` - (Optional) Specify custom value for how often to check if instance is ready before timing out.
+* `instance_ready_check_timeout` - (Optional) Specifies custom value for how long to check if instance is ready before timing out.
 
 ### `aws`
 

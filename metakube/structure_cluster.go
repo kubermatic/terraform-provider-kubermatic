@@ -17,6 +17,8 @@ func flattenClusterSpec(values clusterPreserveValues, in *models.ClusterSpec) []
 		att["version"] = in.Version
 	}
 
+	att["enable_ssh_agent"] = in.EnableUserSSHKeyAgent
+
 	if len(in.MachineNetworks) > 0 {
 		att["machine_networks"] = flattenMachineNetworks(in.MachineNetworks)
 	}
@@ -249,6 +251,12 @@ func expandClusterSpec(p []interface{}, dcName string) *models.ClusterSpec {
 	if v, ok := in["version"]; ok {
 		if vv, ok := v.(string); ok {
 			obj.Version = vv
+		}
+	}
+
+	if v, ok := in["enable_ssh_agent"]; ok {
+		if vv, ok := v.(bool); ok {
+			obj.EnableUserSSHKeyAgent = vv
 		}
 	}
 

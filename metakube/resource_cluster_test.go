@@ -264,6 +264,7 @@ func testAccCheckMetaKubeClusterOpenstackBasic(testName, username, password, ten
 			}
 		}
 	}
+
 	resource "metakube_project" "acctest_project" {
 		name = "%s"
 	}
@@ -282,8 +283,8 @@ func testAccCheckMetaKubeClusterOpenstackBasic(testName, username, password, ten
 					password = "%s"
 					floating_ip_pool = "ext-net"
 					security_group = openstack_networking_secgroup_v2.cluster-net.name
-					network = openstack_networking_network_v2.network_1.name
-					subnet_id = openstack_networking_subnet_v2.subnet_1.id
+					network = openstack_networking_network_v2.network_tf_test.name
+					subnet_id = openstack_networking_subnet_v2.subnet_tf_test.id
 					subnet_cidr = "192.168.2.0/24"
 				}
 			}
@@ -297,13 +298,13 @@ func testAccCheckMetaKubeClusterOpenstackBasic(testName, username, password, ten
 	  name = "tf-test"
 	}
 	
-	resource "openstack_networking_network_v2" "network_1" {
-	  name = "network_1"
+	resource "openstack_networking_network_v2" "network_tf_test" {
+	  name = "network_tf_test"
 	}
 	
-	resource "openstack_networking_subnet_v2" "subnet_1" {
-	  name = "subnet_1"
-	  network_id = openstack_networking_network_v2.network_1.id
+	resource "openstack_networking_subnet_v2" "subnet_tf_test" {
+	  name = "subnet_tf_test"
+	  network_id = openstack_networking_network_v2.network_tf_test.id
 	  cidr = "192.168.0.0/16"
 	  ip_version = 4
 	}
@@ -349,8 +350,8 @@ func testAccCheckMetaKubeClusterOpenstackBasic2(testName, username, password, te
 					password = "%s"
 					floating_ip_pool = "ext-net"
 					security_group = openstack_networking_secgroup_v2.cluster-net.name
-					network = openstack_networking_network_v2.network_1.name
-					subnet_id = openstack_networking_subnet_v2.subnet_1.id
+					network = openstack_networking_network_v2.network_tf_test.name
+					subnet_id = openstack_networking_subnet_v2.subnet_tf_test.id
 					subnet_cidr = "192.168.2.0/24"
 				}
 			}
@@ -370,13 +371,13 @@ func testAccCheckMetaKubeClusterOpenstackBasic2(testName, username, password, te
 	  name = "tf-test"
 	}
 	
-	resource "openstack_networking_network_v2" "network_1" {
-	  name = "network_1"
+	resource "openstack_networking_network_v2" "network_tf_test" {
+	  name = "network_tf_test"
 	}
 	
-	resource "openstack_networking_subnet_v2" "subnet_1" {
-	  name = "subnet_1"
-	  network_id = openstack_networking_network_v2.network_1.id
+	resource "openstack_networking_subnet_v2" "subnet_tf_test" {
+	  name = "subnet_tf_test"
+	  network_id = openstack_networking_network_v2.network_tf_test.id
 	  cidr = "192.168.0.0/16"
 	  ip_version = 4
 	}`
@@ -490,6 +491,7 @@ func testAccCheckMetaKubeClusterOpenstackBasicWithSSHKey1(testName, username, pa
 
 		spec {
 			version = "%s"
+			enable_ssh_agent = true
 			cloud {
 				openstack {
 					tenant = "%s"
@@ -526,6 +528,7 @@ func testAccCheckMetaKubeClusterOpenstackBasicWithSSHKey2(testName, username, pa
 
 		spec {
 			version = "%s"
+			enable_ssh_agent = true
 			cloud {
 				openstack {
 					tenant = "%s"

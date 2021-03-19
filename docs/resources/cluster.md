@@ -55,6 +55,7 @@ The following arguments are supported:
 #### Arguments
 
 * `version` - (Required) Cloud orchestrator version, either Kubernetes or OpenShift.
+* `enable_ssh_agent` - (Optional) User SSH Agent runs on each node and manages ssh keys. You can disable it if you prefer to manage ssh keys manually.
 * `cloud` - (Required) Cloud provider specification.
 * `machine_networks` - (Optional) Machine networks, optionally specifies the parameters for IPAM.
 * `audit_logging` - (Optional) Audit logging settings.

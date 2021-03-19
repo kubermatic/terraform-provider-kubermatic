@@ -252,6 +252,10 @@ func flattenOpenstackNodeSpec(in *models.OpenstackNodeSpec) []interface{} {
 
 	att["use_floating_ip"] = in.UseFloatingIP
 
+	att["instance_ready_check_period"] = in.InstanceReadyCheckPeriod
+
+	att["instance_ready_check_timeout"] = in.InstanceReadyCheckTimeout
+
 	if in.Tags != nil {
 		att["tags"] = in.Tags
 	}
@@ -686,6 +690,18 @@ func expandOpenstackNodeSpec(p []interface{}) *models.OpenstackNodeSpec {
 	if v, ok := in["use_floating_ip"]; ok {
 		if vv, ok := v.(bool); ok {
 			obj.UseFloatingIP = vv
+		}
+	}
+
+	if v, ok := in["instance_ready_check_period"]; ok {
+		if vv, ok := v.(string); ok {
+			obj.InstanceReadyCheckPeriod = vv
+		}
+	}
+
+	if v, ok := in["instance_ready_check_timeout"]; ok {
+		if vv, ok := v.(string); ok {
+			obj.InstanceReadyCheckTimeout = vv
 		}
 	}
 

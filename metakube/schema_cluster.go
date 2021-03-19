@@ -12,6 +12,12 @@ func clusterSpecFields() map[string]*schema.Schema {
 			Required:    true,
 			Description: "Cloud orchestrator version, either Kubernetes or OpenShift",
 		},
+		"enable_ssh_agent": {
+			Type:        schema.TypeBool,
+			Computed:    true,
+			Optional:    true,
+			Description: "SSH Agent as a daemon running on each node that can manage ssh keys. Disable it if you want to manage keys manually",
+		},
 		"cloud": {
 			Type:        schema.TypeList,
 			Required:    true,

@@ -191,6 +191,8 @@ resource "metakube_node_deployment" "acctest_nd" {
           disk_size = var.node_disk_size
           image           = var.node_image != null ? var.node_image : data.openstack_images_image_v2.image.name
           use_floating_ip = var.use_floating_ip
+          instance_ready_check_period = "5s"
+          instance_ready_check_timeout = "100s"
           tags = {
             foo = "bar"
           }

@@ -3,7 +3,10 @@ package metakube
 import (
 	"fmt"
 	"regexp"
+	"time"
 
+	"github.com/hashicorp/go-cty/cty"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -289,6 +292,43 @@ func openstackNodeFields() map[string]*schema.Schema {
 			Optional:    true,
 			Default:     true,
 			Description: "Indicate use of floating ip in case of floating_ip_pool presense",
+		},
+		"instance_ready_check_period": {
+			Type:             schema.TypeString,
+			Optional:         true,
+			Default:          "5s",
+			Description:      "Specifies how often should the controller check if instance is ready before timing out",
+			ValidateDiagFunc: isNonEmptyDurationString,
+		},
+		"instance_ready_check_timeout": {
+			Type:             schema.TypeString,
+			Optional:         true,
+			Default:          "100s",
+			Description:      "Specifies how long should the controller check if instance is ready before timing out",
+			ValidateDiagFunc: isNonEmptyDurationString,
+		},
+	}
+}
+
+func isNonEmptyDurationString(v interface{}, p cty.Path) diag.Diagnostics {
+	if vv, ok := v.(string); ok {
+		_, err := time.ParseDuration(vv)
+		if err != nil {
+			return diag.Diagnostics{
+				diag.Diagnostic{
+					Severity:      diag.Error,
+					Summary:       fmt.Sprintf("could not parse '%s': %v", vv, err),
+					AttributePath: p,
+				},
+			}
+		}
+		return nil
+	}
+	return diag.Diagnostics{
+		diag.Diagnostic{
+			Severity:      diag.Error,
+			Summary:       fmt.Sprintf("Should be a duration string"),
+			AttributePath: p,
 		},
 	}
 }
