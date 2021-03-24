@@ -52,8 +52,10 @@ The following arguments are supported:
 * `replicas` - (Optional) Number of replicas, default = 1.
 * `template` - (Required) Template specification.
 * `dynamic_config` - (Optional) Enable metakube dynamic kubelet config.
-* `min_replicas` - (Optional) Minimum number of replicas to downscale.
-* `max_replicas` - (Optional) Maximum number of replicas to scale up.
+* `min_replicas` - (Optional) Minimum number of replicas to downscale node deployment to. Be aware that:
+  * downscaling is not supported for kubernetes versions below `1.18.0`.
+  * downscaling to `0` is not supported.
+* `max_replicas` - (Optional) Maximum number of replicas to upscale node deployment to.
 
 ### `template`
 
