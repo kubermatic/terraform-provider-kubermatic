@@ -17,8 +17,6 @@ resource "metakube_cluster" "example" {
       aws {
         instance_profile_name = "example-profile-name"
       }
-
-      dc = "aws-eu-central-1a"
     }
   }
 }
