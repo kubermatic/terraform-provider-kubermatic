@@ -20,6 +20,12 @@ install: build
 	mkdir -p ~/.terraform.d/plugins/${DOMAIN}/${NAMESPACE}/${PKG_NAME}/${VERSION}/${PLATFORM}
 	mv ${BINARY} ~/.terraform.d/plugins/${DOMAIN}/${NAMESPACE}/${PKG_NAME}/${VERSION}/${PLATFORM}
 
+reset:
+	rm -rf terraform*
+	rm -rf .terraform*
+	make install
+	terraform init .
+
 test: fmtcheck
 	go test ./$(PKG_NAME)
 
