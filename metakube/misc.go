@@ -1,9 +1,29 @@
 package metakube
 
 import (
+	"encoding/json"
 	"fmt"
+
 	"github.com/syseleven/terraform-provider-metakube/go-metakube/models"
 )
+
+func stringifyResponseError(resErr error) string {
+	if resErr == nil {
+		return ""
+	}
+
+	rawData, err := json.Marshal(resErr)
+	if err != nil {
+		return err.Error()
+	}
+	v := &struct {
+		Payload *models.ErrorResponse
+	}{}
+	if err = json.Unmarshal(rawData, &v); err == nil && errorMessage(v.Payload) != "" {
+		return errorMessage(v.Payload)
+	}
+	return resErr.Error()
+}
 
 func errorMessage(e *models.ErrorResponse) string {
 	if e != nil && e.Error != nil && e.Error.Message != nil {
@@ -13,4 +33,17 @@ func errorMessage(e *models.ErrorResponse) string {
 		return *e.Error.Message
 	}
 	return ""
+}
+
+func strToPtr(s string) *string {
+	return &s
+}
+
+func int32ToPtr(v int32) *int32 {
+	return &v
+}
+
+func int64ToPtr(v int) *int64 {
+	vv := int64(v)
+	return &vv
 }

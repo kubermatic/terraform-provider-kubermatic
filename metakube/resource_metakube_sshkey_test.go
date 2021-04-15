@@ -3,6 +3,7 @@ package metakube
 import (
 	"fmt"
 	"net/http"
+	"regexp"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -11,9 +12,10 @@ import (
 	"github.com/syseleven/terraform-provider-metakube/go-metakube/models"
 )
 
-func TestAccMetaKubeSSHKey_Basic(t *testing.T) {
+func TestAccMetakubeSSHKey_Basic(t *testing.T) {
 	var sshkey models.SSHKey
-	testName := randomTestName()
+	testName := makeRandomString()
+	resourceName := "metakube_sshkey.acctest_sshkey"
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -22,11 +24,24 @@ func TestAccMetaKubeSSHKey_Basic(t *testing.T) {
 			{
 				Config: fmt.Sprintf(testAccCheckMetaKubeSSHKeyConfigBasic, testName, testName),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					testAccCheckMetaKubeSSHKeyExists("metakube_sshkey.acctest_sshkey", "metakube_project.acctest_project", &sshkey),
+					testAccCheckMetaKubeSSHKeyExists(resourceName, "metakube_project.acctest_project", &sshkey),
 					testAccCheckMetaKubeSSHKeyAttributes(&sshkey, testName),
-					resource.TestCheckResourceAttr("metakube_sshkey.acctest_sshkey", "name", testName),
-					resource.TestCheckResourceAttr("metakube_sshkey.acctest_sshkey", "public_key", testSSHPubKey),
+					resource.TestCheckResourceAttr(resourceName, "name", testName),
+					resource.TestCheckResourceAttr(resourceName, "public_key", testSSHPubKey),
 				),
+			},
+			{
+				ResourceName:      resourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+			// Test importing non-existent resource provides expected error.
+			{
+				ResourceName:      resourceName,
+				ImportState:       true,
+				ImportStateVerify: false,
+				ImportStateId:     "123abc",
+				ExpectError:       regexp.MustCompile(`(Please verify the ID is correct|Cannot import non-existent remote object)`),
 			},
 		},
 	})

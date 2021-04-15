@@ -9,8 +9,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
-func TestAccMetaKubeNodeDeployment_ValidationAgainstCluster(t *testing.T) {
-	testName := randomTestName()
+func TestAccMetakubeNodeDeployment_ValidationAgainstCluster(t *testing.T) {
+	testName := makeRandomString()
 
 	accessKeyID := os.Getenv(testEnvAWSAccessKeyID)
 	accessKeySecret := os.Getenv(testAWSSecretAccessKey)

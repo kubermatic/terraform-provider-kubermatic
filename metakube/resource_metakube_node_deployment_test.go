@@ -3,6 +3,7 @@ package metakube
 import (
 	"fmt"
 	"os"
+	"regexp"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -11,16 +12,17 @@ import (
 	"github.com/syseleven/terraform-provider-metakube/go-metakube/models"
 )
 
-func TestAccMetaKubeNodeDeployment_Openstack_Basic(t *testing.T) {
+func TestAccMetakubeNodeDeployment_Openstack_Basic(t *testing.T) {
 	var ndepl models.NodeDeployment
-	testName := randomTestName()
+	testName := makeRandomString()
+	resourceName := "metakube_node_deployment.acctest_nd"
 
 	username := os.Getenv(testEnvOpenstackUsername)
 	password := os.Getenv(testEnvOpenstackPassword)
 	tenant := os.Getenv(testEnvOpenstackTenant)
 	nodeDC := os.Getenv(testEnvOpenstackNodeDC)
 	image := os.Getenv(testEnvOpenstackImage)
-	image2 := os.Getenv(testEnvOpenstackImage2)
+	// image2 := os.Getenv(testEnvOpenstackImage2)
 	flavor := os.Getenv(testEnvOpenstackFlavor)
 	k8sVersion17 := os.Getenv(testEnvK8sVersion)
 	kubeletVersion16 := os.Getenv(testEnvK8sOlderVersion)
@@ -33,43 +35,62 @@ func TestAccMetaKubeNodeDeployment_Openstack_Basic(t *testing.T) {
 			{
 				Config: testAccCheckMetaKubeNodeDeploymentBasic(testName, nodeDC, username, password, tenant, k8sVersion17, kubeletVersion16, image, flavor),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					testAccCheckMetaKubeNodeDeploymentExists("metakube_node_deployment.acctest_nd", &ndepl),
+					testAccCheckMetaKubeNodeDeploymentExists(resourceName, &ndepl),
 					testAccCheckMetaKubeNodeDeploymentFields(&ndepl, flavor, image, kubeletVersion16, 1, 0, false),
-					resource.TestCheckResourceAttr("metakube_node_deployment.acctest_nd", "name", testName),
-					resource.TestCheckResourceAttrPtr("metakube_node_deployment.acctest_nd", "name", &ndepl.Name),
-					resource.TestCheckResourceAttr("metakube_node_deployment.acctest_nd", "spec.0.replicas", "1"),
-					resource.TestCheckResourceAttr("metakube_node_deployment.acctest_nd", "spec.0.template.0.cloud.0.openstack.0.flavor", flavor),
-					resource.TestCheckResourceAttr("metakube_node_deployment.acctest_nd", "spec.0.template.0.cloud.0.openstack.0.image", image),
-					resource.TestCheckResourceAttr("metakube_node_deployment.acctest_nd", "spec.0.template.0.operating_system.0.ubuntu.#", "1"),
-					resource.TestCheckResourceAttr("metakube_node_deployment.acctest_nd", "spec.0.template.0.versions.0.kubelet", kubeletVersion16),
-					resource.TestCheckResourceAttr("metakube_node_deployment.acctest_nd", "spec.0.dynamic_config", "false"),
+					resource.TestCheckResourceAttr(resourceName, "name", testName),
+					resource.TestCheckResourceAttrPtr(resourceName, "name", &ndepl.Name),
+					resource.TestCheckResourceAttr(resourceName, "spec.0.replicas", "1"),
+					resource.TestCheckResourceAttr(resourceName, "spec.0.template.0.cloud.0.openstack.0.flavor", flavor),
+					resource.TestCheckResourceAttr(resourceName, "spec.0.template.0.cloud.0.openstack.0.image", image),
+					resource.TestCheckResourceAttr(resourceName, "spec.0.template.0.operating_system.0.ubuntu.#", "1"),
+					resource.TestCheckResourceAttr(resourceName, "spec.0.template.0.versions.0.kubelet", kubeletVersion16),
+					resource.TestCheckResourceAttr(resourceName, "spec.0.dynamic_config", "false"),
 				),
 			},
+			// {
+			// 	Config: testAccCheckMetaKubeNodeDeploymentBasic2(testName, nodeDC, username, password, tenant, k8sVersion17, kubeletVersion16, image2, flavor),
+			// 	Check: resource.ComposeAggregateTestCheckFunc(
+			// 		testResourceInstanceState(resourceName, func(is *terraform.InstanceState) error {
+			// 			// Record IDs to test import
+			// 			if is.ID != ndepl.ID {
+			// 				return fmt.Errorf("node deployment not updated. Want ID=%v, got %v", ndepl.ID, is.ID)
+			// 			}
+			// 			return nil
+			// 		}),
+			// 		testAccCheckMetaKubeNodeDeploymentExists(resourceName, &ndepl),
+			// 		testAccCheckMetaKubeNodeDeploymentFields(&ndepl, flavor, image2, kubeletVersion16, 1, 123, true),
+			// 		resource.TestCheckResourceAttr(resourceName, "name", testName),
+			// 		resource.TestCheckResourceAttr(resourceName, "spec.0.replicas", "1"),
+			// 		resource.TestCheckResourceAttr(resourceName, "spec.0.template.0.cloud.0.openstack.0.flavor", flavor),
+			// 		resource.TestCheckResourceAttr(resourceName, "spec.0.template.0.cloud.0.openstack.0.image", image2),
+			// 		resource.TestCheckResourceAttr(resourceName, "spec.0.template.0.cloud.0.openstack.0.use_floating_ip", "true"),
+			// 		resource.TestCheckResourceAttr(resourceName, "spec.0.template.0.cloud.0.openstack.0.disk_size", "123"),
+			// 		resource.TestCheckResourceAttr(resourceName, "spec.0.template.0.operating_system.0.ubuntu.0.dist_upgrade_on_boot", "true"),
+			// 		resource.TestCheckResourceAttr(resourceName, "spec.0.template.0.versions.0.kubelet", kubeletVersion16),
+			// 		resource.TestCheckResourceAttr(resourceName, "spec.0.dynamic_config", "true"),
+			// 	),
+			// },
 			{
-				Config: testAccCheckMetaKubeNodeDeploymentBasic2(testName, nodeDC, username, password, tenant, k8sVersion17, kubeletVersion16, image2, flavor),
-				Check: resource.ComposeAggregateTestCheckFunc(
-					testResourceInstanceState("metakube_node_deployment.acctest_nd", func(is *terraform.InstanceState) error {
-						_, _, _, id, err := metakubeNodeDeploymentParseID(is.ID)
-						if err != nil {
-							return err
+				ResourceName:      resourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateIdFunc: func(s *terraform.State) (string, error) {
+					for _, rs := range s.RootModule().Resources {
+						if rs.Type == "metakube_node_deployment" {
+							return fmt.Sprintf("%s:%s:%s", rs.Primary.Attributes["project_id"], rs.Primary.Attributes["cluster_id"], rs.Primary.ID), nil
 						}
-						if id != ndepl.ID {
-							return fmt.Errorf("node deployment not updated. Want ID=%v, got %v", ndepl.ID, id)
-						}
-						return nil
-					}),
-					testAccCheckMetaKubeNodeDeploymentExists("metakube_node_deployment.acctest_nd", &ndepl),
-					testAccCheckMetaKubeNodeDeploymentFields(&ndepl, flavor, image2, kubeletVersion16, 1, 123, true),
-					resource.TestCheckResourceAttr("metakube_node_deployment.acctest_nd", "name", testName),
-					resource.TestCheckResourceAttr("metakube_node_deployment.acctest_nd", "spec.0.replicas", "1"),
-					resource.TestCheckResourceAttr("metakube_node_deployment.acctest_nd", "spec.0.template.0.cloud.0.openstack.0.flavor", flavor),
-					resource.TestCheckResourceAttr("metakube_node_deployment.acctest_nd", "spec.0.template.0.cloud.0.openstack.0.image", image2),
-					resource.TestCheckResourceAttr("metakube_node_deployment.acctest_nd", "spec.0.template.0.cloud.0.openstack.0.use_floating_ip", "true"),
-					resource.TestCheckResourceAttr("metakube_node_deployment.acctest_nd", "spec.0.template.0.cloud.0.openstack.0.disk_size", "123"),
-					resource.TestCheckResourceAttr("metakube_node_deployment.acctest_nd", "spec.0.template.0.operating_system.0.ubuntu.0.dist_upgrade_on_boot", "true"),
-					resource.TestCheckResourceAttr("metakube_node_deployment.acctest_nd", "spec.0.template.0.versions.0.kubelet", kubeletVersion16),
-					resource.TestCheckResourceAttr("metakube_node_deployment.acctest_nd", "spec.0.dynamic_config", "true"),
-				),
+					}
+
+					return "", fmt.Errorf("not found")
+				},
+			},
+			// Test importing non-existent resource provides expected error.
+			{
+				ResourceName:      resourceName,
+				ImportState:       true,
+				ImportStateVerify: false,
+				ImportStateId:     "a:b:123abc",
+				ExpectError:       regexp.MustCompile(`(Please verify the ID is correct|Cannot import non-existent remote object)`),
 			},
 		},
 	})
@@ -252,9 +273,9 @@ func testAccCheckMetaKubeNodeDeploymentFields(rec *models.NodeDeployment, flavor
 	}
 }
 
-func TestAccMetaKubeNodeDeployment_Azure_Basic(t *testing.T) {
+func TestAccMetakubeNodeDeployment_Azure_Basic(t *testing.T) {
 	var nodedepl models.NodeDeployment
-	testName := randomTestName()
+	testName := makeRandomString()
 
 	clientID := os.Getenv(testEnvAzureClientID)
 	clientSecret := os.Getenv(testEnvAzureClientSecret)
@@ -328,9 +349,9 @@ func testAccCheckMetaKubeNodeDeploymentAzureBasic(n, clientID, clientSecret, ten
 	}`, n, n, nodeDC, k8sVersion, clientID, clientSecret, tenantID, subscID, n, nodeSize, k8sVersion)
 }
 
-func TestAccMetaKubeNodeDeployment_AWS_Basic(t *testing.T) {
+func TestAccMetakubeNodeDeployment_AWS_Basic(t *testing.T) {
 	var nodedepl models.NodeDeployment
-	testName := randomTestName()
+	testName := makeRandomString()
 
 	accessKeyID := os.Getenv(testEnvAWSAccessKeyID)
 	accessKeySecret := os.Getenv(testAWSSecretAccessKey)
@@ -429,17 +450,11 @@ func testAccCheckMetaKubeNodeDeploymentExists(n string, rec *models.NodeDeployme
 
 		k := testAccProvider.Meta().(*metakubeProviderMeta)
 
-		projectID, seedDC, clusterID, nodeDeplID, err := metakubeNodeDeploymentParseID(rs.Primary.ID)
-		if err != nil {
-			return err
-		}
-
-		p := project.NewGetNodeDeploymentParams()
-		p.SetProjectID(projectID)
-		p.SetClusterID(clusterID)
-		p.SetDC(seedDC)
-		p.SetNodeDeploymentID(nodeDeplID)
-		r, err := k.client.Project.GetNodeDeployment(p, k.auth)
+		p := project.NewGetMachineDeploymentParams().
+			WithProjectID(rs.Primary.Attributes["project_id"]).
+			WithClusterID(rs.Primary.Attributes["cluster_id"]).
+			WithMachineDeploymentID(rs.Primary.ID)
+		r, err := k.client.Project.GetMachineDeployment(p, k.auth)
 		if err != nil {
 			return fmt.Errorf("GetNodeDeployment: %v", err)
 		}

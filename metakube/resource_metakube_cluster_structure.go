@@ -6,7 +6,7 @@ import (
 
 // flatteners
 
-func flattenClusterSpec(values clusterPreserveValues, in *models.ClusterSpec) []interface{} {
+func metakubeResourceClusterFlattenSpec(values clusterPreserveValues, in *models.ClusterSpec) []interface{} {
 	if in == nil {
 		return []interface{}{}
 	}
@@ -171,14 +171,16 @@ func flattenOpenstackSpec(values *clusterOpenstackPreservedValues, in *models.Op
 		att["subnet_cidr"] = in.SubnetCIDR
 	}
 
-	if values.openstackTenant != nil {
-		att["tenant"] = values.openstackTenant
-	}
-	if values.openstackUsername != nil {
-		att["username"] = values.openstackUsername
-	}
-	if values.openstackPassword != nil {
-		att["password"] = values.openstackPassword
+	if values != nil {
+		if values.openstackTenant != nil {
+			att["tenant"] = values.openstackTenant
+		}
+		if values.openstackUsername != nil {
+			att["username"] = values.openstackUsername
+		}
+		if values.openstackPassword != nil {
+			att["password"] = values.openstackPassword
+		}
 	}
 
 	return []interface{}{att}
@@ -238,7 +240,7 @@ func flattenAzureSpec(in *models.AzureCloudSpec) []interface{} {
 
 // expanders
 
-func expandClusterSpec(p []interface{}, dcName string) *models.ClusterSpec {
+func metakubeResourceClusterExpandSpec(p []interface{}, dcName string) *models.ClusterSpec {
 	if len(p) < 1 {
 		return nil
 	}

@@ -7,7 +7,7 @@ import (
 	"github.com/syseleven/terraform-provider-metakube/go-metakube/models"
 )
 
-func TestFlattenNodeDeploymentSpec(t *testing.T) {
+func TestMetakubeNodeDeploymentFlatten(t *testing.T) {
 	cases := []struct {
 		Input          *models.NodeDeploymentSpec
 		ExpectedOutput []interface{}
@@ -39,14 +39,14 @@ func TestFlattenNodeDeploymentSpec(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		output := flattenNodeDeploymentSpec(nil, tc.Input)
+		output := metakubeNodeDeploymentFlattenSpec(nil, tc.Input)
 		if diff := cmp.Diff(tc.ExpectedOutput, output); diff != "" {
 			t.Fatalf("Unexpected output from expander: mismatch (-want +got):\n%s", diff)
 		}
 	}
 }
 
-func TestFlattenNodeSpec(t *testing.T) {
+func TestMetakubeNodeDeploymentSpecFlatten(t *testing.T) {
 	cases := []struct {
 		Input          *models.NodeSpec
 		ExpectedOutput []interface{}
@@ -134,34 +134,18 @@ func TestFlattenNodeSpec(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		output := flattenNodeSpec(nil, tc.Input)
+		output := metakubeNodeDeploymentFlattenNodeSpec(nil, tc.Input)
 		if diff := cmp.Diff(tc.ExpectedOutput, output); diff != "" {
 			t.Fatalf("Unexpected output from expander: mismatch (-want +got):\n%s", diff)
 		}
 	}
 }
 
-func TestFlattenOperatingSystem(t *testing.T) {
+func TestMetakubeNodeDeploymentFlattenOperatingSystem(t *testing.T) {
 	cases := []struct {
 		Input          *models.OperatingSystemSpec
 		ExpectedOutput []interface{}
 	}{
-		{
-			&models.OperatingSystemSpec{
-				Centos: &models.CentOSSpec{
-					DistUpgradeOnBoot: true,
-				},
-			},
-			[]interface{}{
-				map[string]interface{}{
-					"centos": []interface{}{
-						map[string]interface{}{
-							"dist_upgrade_on_boot": true,
-						},
-					},
-				},
-			},
-		},
 		{
 			&models.OperatingSystemSpec{
 				Ubuntu: &models.UbuntuSpec{
@@ -180,13 +164,13 @@ func TestFlattenOperatingSystem(t *testing.T) {
 		},
 		{
 			&models.OperatingSystemSpec{
-				ContainerLinux: &models.ContainerLinuxSpec{
+				Flatcar: &models.FlatcarSpec{
 					DisableAutoUpdate: true,
 				},
 			},
 			[]interface{}{
 				map[string]interface{}{
-					"container_linux": []interface{}{
+					"flatcar": []interface{}{
 						map[string]interface{}{
 							"disable_auto_update": true,
 						},
@@ -207,14 +191,14 @@ func TestFlattenOperatingSystem(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		output := flattenOperatingSystem(tc.Input)
+		output := metakubeNodeDeploymentFlattenOperatingSystem(tc.Input)
 		if diff := cmp.Diff(tc.ExpectedOutput, output); diff != "" {
 			t.Fatalf("Unexpected output from expander: mismatch (-want +got):\n%s", diff)
 		}
 	}
 }
 
-func TestFlattenAWSNodeSpec(t *testing.T) {
+func TestMetakubeNodeDeploymentFlattenAWSSpec(t *testing.T) {
 	cases := []struct {
 		Input          *models.AWSNodeSpec
 		ExpectedOutput []interface{}
@@ -262,7 +246,7 @@ func TestFlattenAWSNodeSpec(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		output := flattenAWSNodeSpec(tc.Input)
+		output := metakubeNodeDeploymentFlattenAWSSpec(tc.Input)
 		if diff := cmp.Diff(tc.ExpectedOutput, output); diff != "" {
 			t.Fatalf("Unexpected output from expander: mismatch (-want +got):\n%s", diff)
 		}
@@ -276,9 +260,11 @@ func TestFlattenOpenstackNodeSpec(t *testing.T) {
 	}{
 		{
 			&models.OpenstackNodeSpec{
-				Flavor:        strToPtr("big"),
-				Image:         strToPtr("Ubuntu"),
-				UseFloatingIP: true,
+				Flavor:                    strToPtr("big"),
+				Image:                     strToPtr("Ubuntu"),
+				UseFloatingIP:             true,
+				InstanceReadyCheckPeriod:  "10s",
+				InstanceReadyCheckTimeout: "120s",
 				Tags: map[string]string{
 					"foo": "bar",
 				},
@@ -286,9 +272,11 @@ func TestFlattenOpenstackNodeSpec(t *testing.T) {
 			},
 			[]interface{}{
 				map[string]interface{}{
-					"flavor":          "big",
-					"image":           "Ubuntu",
-					"use_floating_ip": true,
+					"flavor":                       "big",
+					"image":                        "Ubuntu",
+					"instance_ready_check_period":  "10s",
+					"instance_ready_check_timeout": "120s",
+					"use_floating_ip":              true,
 					"tags": map[string]string{
 						"foo": "bar",
 					},
@@ -311,7 +299,7 @@ func TestFlattenOpenstackNodeSpec(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		output := flattenOpenstackNodeSpec(tc.Input)
+		output := metakubeNodeDeploymentFlattenOpenstackSpec(tc.Input)
 		if diff := cmp.Diff(tc.ExpectedOutput, output); diff != "" {
 			t.Fatalf("Unexpected output from expander: mismatch (-want +got):\n%s", diff)
 		}
@@ -351,7 +339,7 @@ func TestExpandNodeDeploymentSpec(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		output := expandNodeDeploymentSpec(tc.Input)
+		output := metakubeNodeDeploymentExpandSpec(tc.Input)
 		if diff := cmp.Diff(tc.ExpectedOutput, output); diff != "" {
 			t.Fatalf("Unexpected output from expander: mismatch (-want +got):\n%s", diff)
 		}
@@ -447,7 +435,7 @@ func TestExpandNodeSpec(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		output := expandNodeSpec(tc.Input)
+		output := metakubeNodeDeploymentExpandNodeSpec(tc.Input)
 		if diff := cmp.Diff(tc.ExpectedOutput, output); diff != "" {
 			t.Fatalf("Unexpected output from expander: mismatch (-want +got):\n%s", diff)
 		}
@@ -459,22 +447,6 @@ func TestExpandOperatingSystem(t *testing.T) {
 		Input          []interface{}
 		ExpectedOutput *models.OperatingSystemSpec
 	}{
-		{
-			[]interface{}{
-				map[string]interface{}{
-					"centos": []interface{}{
-						map[string]interface{}{
-							"dist_upgrade_on_boot": true,
-						},
-					},
-				},
-			},
-			&models.OperatingSystemSpec{
-				Centos: &models.CentOSSpec{
-					DistUpgradeOnBoot: true,
-				},
-			},
-		},
 		{
 			[]interface{}{
 				map[string]interface{}{
@@ -494,7 +466,7 @@ func TestExpandOperatingSystem(t *testing.T) {
 		{
 			[]interface{}{
 				map[string]interface{}{
-					"container_linux": []interface{}{
+					"flatcar": []interface{}{
 						map[string]interface{}{
 							"disable_auto_update": true,
 						},
@@ -502,13 +474,12 @@ func TestExpandOperatingSystem(t *testing.T) {
 				},
 			},
 			&models.OperatingSystemSpec{
-				ContainerLinux: &models.ContainerLinuxSpec{
+				Flatcar: &models.FlatcarSpec{
 					DisableAutoUpdate: true,
 				},
 			},
 		},
 		{
-
 			[]interface{}{
 				map[string]interface{}{},
 			},
@@ -521,7 +492,7 @@ func TestExpandOperatingSystem(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		output := expandOperatingSystem(tc.Input)
+		output := metakubeNodeDeploymentExpandOS(tc.Input)
 		if diff := cmp.Diff(tc.ExpectedOutput, output); diff != "" {
 			t.Fatalf("Unexpected output from expander: mismatch (-want +got):\n%s", diff)
 		}
@@ -575,7 +546,7 @@ func TestExpandAWSNodeSpec(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		output := expandAWSNodeSpec(tc.Input)
+		output := metakubeNodeDeploymentExpandAWSSpec(tc.Input)
 		if diff := cmp.Diff(tc.ExpectedOutput, output); diff != "" {
 			t.Fatalf("Unexpected output from expander: mismatch (-want +got):\n%s", diff)
 		}
@@ -623,7 +594,7 @@ func TestExpandOpenstackNodeSpec(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		output := expandOpenstackNodeSpec(tc.Input)
+		output := metakubeNodeDeploymentExpandOpenstackSpec(tc.Input)
 		if diff := cmp.Diff(tc.ExpectedOutput, output); diff != "" {
 			t.Fatalf("Unexpected output from expander: mismatch (-want +got):\n%s", diff)
 		}
@@ -675,7 +646,7 @@ func TestExpandAzureNodeSpec(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		output := expandAzureNodeSpec(tc.Input)
+		output := metakubeNodeDeploymentExpandAzureSpec(tc.Input)
 		if diff := cmp.Diff(tc.ExpectedOutput, output); diff != "" {
 			t.Fatalf("Unexpected output from expander: mismatch (-want +got):\n%s", diff)
 		}

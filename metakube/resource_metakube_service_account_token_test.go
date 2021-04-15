@@ -7,13 +7,15 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+
 	"github.com/syseleven/terraform-provider-metakube/go-metakube/client/tokens"
 	"github.com/syseleven/terraform-provider-metakube/go-metakube/models"
 )
 
-func TestAccMetaKubeToken_Basic(t *testing.T) {
+func TestAccMetakubeServiceAccountToken_Basic(t *testing.T) {
 	var token models.PublicServiceAccountToken
-	testName := randomTestName()
+	testName := makeRandomString()
+	resourceName := "metakube_service_account_token.acctest_sa_token"
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -24,20 +26,20 @@ func TestAccMetaKubeToken_Basic(t *testing.T) {
 				Config: fmt.Sprintf(testAccMetaKubeServiceAccountTokenBasic, testName, testName, testName),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccMetaKubeServiceAccountTokenExists(&token),
-					resource.TestCheckResourceAttrSet("metakube_service_account_token.acctest_sa_token", "token"),
-					resource.TestCheckResourceAttr("metakube_service_account_token.acctest_sa_token", "name", testName),
-					resource.TestCheckResourceAttrPtr("metakube_service_account_token.acctest_sa_token", "name", &token.Name),
-					resource.TestCheckResourceAttrSet("metakube_service_account_token.acctest_sa_token", "creation_timestamp"),
-					resource.TestCheckResourceAttrSet("metakube_service_account_token.acctest_sa_token", "expiry"),
+					resource.TestCheckResourceAttrSet(resourceName, "token"),
+					resource.TestCheckResourceAttr(resourceName, "name", testName),
+					resource.TestCheckResourceAttrPtr(resourceName, "name", &token.Name),
+					resource.TestCheckResourceAttrSet(resourceName, "creation_timestamp"),
+					resource.TestCheckResourceAttrSet(resourceName, "expiry"),
 				),
 			},
 			{
 				Config: fmt.Sprintf(testAccMetaKubeServiceAccountTokenBasic, testName, testName, testName+"edit"),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccMetaKubeServiceAccountTokenExists(&token),
-					resource.TestCheckResourceAttrSet("metakube_service_account_token.acctest_sa_token", "token"),
-					resource.TestCheckResourceAttr("metakube_service_account_token.acctest_sa_token", "name", testName+"edit"),
-					resource.TestCheckResourceAttrPtr("metakube_service_account_token.acctest_sa_token", "name", &token.Name),
+					resource.TestCheckResourceAttrSet(resourceName, "token"),
+					resource.TestCheckResourceAttr(resourceName, "name", testName+"edit"),
+					resource.TestCheckResourceAttrPtr(resourceName, "name", &token.Name),
 				),
 			},
 		},
@@ -82,16 +84,11 @@ func testAccMetaKubeServiceAccountFetchToken(s *terraform.State) (*models.Public
 		return nil, fmt.Errorf("record id is not set")
 	}
 
-	projectID, serviceAccountID, tokenID, err := metakubeServiceAccountTokenParseID(rs.Primary.ID)
-	if err != nil {
-		return nil, err
-	}
-
 	k := testAccProvider.Meta().(*metakubeProviderMeta)
 
 	p := tokens.NewListServiceAccountTokensParams()
-	p.SetProjectID(projectID)
-	p.SetServiceAccountID(serviceAccountID)
+	p.SetProjectID(rs.Primary.Attributes["project_id"])
+	p.SetServiceAccountID(rs.Primary.Attributes["service_account_id"])
 	r, err := k.client.Tokens.ListServiceAccountTokens(p, k.auth)
 	if err != nil {
 		if _, ok := err.(*tokens.ListServiceAccountTokensForbidden); ok {
@@ -100,7 +97,7 @@ func testAccMetaKubeServiceAccountFetchToken(s *terraform.State) (*models.Public
 		return nil, err
 	}
 	for _, v := range r.Payload {
-		if v.ID == tokenID {
+		if v.ID == rs.Primary.ID {
 			return v, nil
 		}
 	}

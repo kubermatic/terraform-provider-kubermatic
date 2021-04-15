@@ -3,17 +3,14 @@ package metakube
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/url"
 	"os"
 	"time"
 
-	"github.com/go-openapi/strfmt"
-	"github.com/syseleven/terraform-provider-metakube/go-metakube/models"
-
 	"github.com/go-openapi/runtime"
+	"github.com/go-openapi/strfmt"
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -83,12 +80,12 @@ func Provider() *schema.Provider {
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
-			"metakube_project":               resourceProject(),
-			"metakube_cluster":               resourceCluster(),
-			"metakube_node_deployment":       resourceNodeDeployment(),
-			"metakube_sshkey":                resourceSSHKey(),
-			"metakube_service_account":       resourceServiceAccount(),
-			"metakube_service_account_token": resourceServiceAccountToken(),
+			"metakube_project":               metakubeResourceProject(),
+			"metakube_cluster":               metakubeResourceCluster(),
+			"metakube_node_deployment":       metakubeResourceNodeDeployment(),
+			"metakube_sshkey":                metakubeResourceSSHKey(),
+			"metakube_service_account":       metakubeResourceServiceAccount(),
+			"metakube_service_account_token": metakubeResourceServiceAccountToken(),
 		},
 	}
 
@@ -224,22 +221,4 @@ func newAuth(token, tokenPath, terraformVersion string) (runtime.ClientAuthInfoW
 		return r.SetHeaderParam("User-Agent", fmt.Sprintf("Terraform/%s", terraformVersion))
 	})
 	return auth, nil
-}
-
-type apiDefaultError struct {
-	Payload *models.ErrorResponse
-}
-
-// getErrorResponse converts the client error response to string
-func getErrorResponse(err error) string {
-	rawData, newErr := json.Marshal(err)
-	if newErr != nil {
-		return err.Error()
-	}
-
-	v := &apiDefaultError{}
-	if err := json.Unmarshal(rawData, &v); err == nil && errorMessage(v.Payload) != "" {
-		return errorMessage(v.Payload)
-	}
-	return err.Error()
 }

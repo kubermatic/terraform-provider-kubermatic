@@ -3,6 +3,7 @@ package metakube
 import (
 	"fmt"
 	"os"
+	"regexp"
 	"strconv"
 	"testing"
 
@@ -13,10 +14,11 @@ import (
 	"github.com/syseleven/terraform-provider-metakube/go-metakube/models"
 )
 
-func TestAccMetaKubeCluster_Openstack_Basic(t *testing.T) {
+func TestAccMetakubeCluster_Openstack_Basic(t *testing.T) {
 	var cluster models.Cluster
-	testName := randomTestName()
 
+	clusterName := makeRandomString()
+	resourceName := "metakube_cluster.acctest_cluster"
 	username := os.Getenv(testEnvOpenstackUsername)
 	password := os.Getenv(testEnvOpenstackPassword)
 	tenant := os.Getenv(testEnvOpenstackTenant)
@@ -38,31 +40,31 @@ func TestAccMetaKubeCluster_Openstack_Basic(t *testing.T) {
 		CheckDestroy: testAccCheckMetaKubeClusterDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCheckMetaKubeClusterOpenstackBasic(testName, username, password, tenant, nodeDC, versionK8s17),
+				Config: testAccCheckMetaKubeClusterOpenstackBasic(clusterName, username, password, tenant, nodeDC, versionK8s17),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccCheckMetaKubeClusterExists(&cluster),
-					testAccCheckMetaKubeClusterOpenstackAttributes(&cluster, testName, username, password, tenant, nodeDC, versionK8s17, nil, false),
-					resource.TestCheckResourceAttr("metakube_cluster.acctest_cluster", "dc_name", nodeDC),
-					resource.TestCheckResourceAttr("metakube_cluster.acctest_cluster", "name", testName),
-					resource.TestCheckResourceAttr("metakube_cluster.acctest_cluster", "labels.%", "0"),
-					resource.TestCheckResourceAttr("metakube_cluster.acctest_cluster", "spec.#", "1"),
-					resource.TestCheckResourceAttr("metakube_cluster.acctest_cluster", "spec.0.version", versionK8s17),
-					resource.TestCheckResourceAttr("metakube_cluster.acctest_cluster", "spec.0.domain_name", "foodomain.local"),
-					resource.TestCheckResourceAttr("metakube_cluster.acctest_cluster", "spec.0.services_cidr", "10.240.16.0/18"),
-					resource.TestCheckResourceAttr("metakube_cluster.acctest_cluster", "spec.0.pods_cidr", "172.25.0.0/18"),
-					resource.TestCheckResourceAttr("metakube_cluster.acctest_cluster", "spec.0.cloud.#", "1"),
-					resource.TestCheckResourceAttr("metakube_cluster.acctest_cluster", "spec.0.cloud.0.bringyourown.#", "0"),
-					resource.TestCheckResourceAttr("metakube_cluster.acctest_cluster", "spec.0.cloud.0.aws.#", "0"),
-					resource.TestCheckResourceAttr("metakube_cluster.acctest_cluster", "spec.0.cloud.0.openstack.#", "1"),
-					resource.TestCheckResourceAttr("metakube_cluster.acctest_cluster", "spec.0.cloud.0.openstack.0.tenant", tenant),
-					resource.TestCheckResourceAttr("metakube_cluster.acctest_cluster", "spec.0.cloud.0.openstack.0.username", username),
-					resource.TestCheckResourceAttr("metakube_cluster.acctest_cluster", "spec.0.cloud.0.openstack.0.password", password),
-					resource.TestCheckResourceAttrSet("metakube_cluster.acctest_cluster", "spec.0.cloud.0.openstack.0.security_group"),
-					resource.TestCheckResourceAttrSet("metakube_cluster.acctest_cluster", "spec.0.cloud.0.openstack.0.network"),
-					resource.TestCheckResourceAttrSet("metakube_cluster.acctest_cluster", "spec.0.cloud.0.openstack.0.subnet_id"),
-					resource.TestCheckResourceAttr("metakube_cluster.acctest_cluster", "spec.0.cloud.0.openstack.0.subnet_cidr", "192.168.2.0/24"),
+					testAccCheckMetaKubeClusterOpenstackAttributes(&cluster, clusterName, username, password, tenant, nodeDC, versionK8s17, nil, false),
+					resource.TestCheckResourceAttr(resourceName, "dc_name", nodeDC),
+					resource.TestCheckResourceAttr(resourceName, "name", clusterName),
+					resource.TestCheckResourceAttr(resourceName, "labels.%", "0"),
+					resource.TestCheckResourceAttr(resourceName, "spec.#", "1"),
+					resource.TestCheckResourceAttr(resourceName, "spec.0.version", versionK8s17),
+					resource.TestCheckResourceAttr(resourceName, "spec.0.domain_name", "foodomain.local"),
+					resource.TestCheckResourceAttr(resourceName, "spec.0.services_cidr", "10.240.16.0/18"),
+					resource.TestCheckResourceAttr(resourceName, "spec.0.pods_cidr", "172.25.0.0/18"),
+					resource.TestCheckResourceAttr(resourceName, "spec.0.cloud.#", "1"),
+					resource.TestCheckResourceAttr(resourceName, "spec.0.cloud.0.bringyourown.#", "0"),
+					resource.TestCheckResourceAttr(resourceName, "spec.0.cloud.0.aws.#", "0"),
+					resource.TestCheckResourceAttr(resourceName, "spec.0.cloud.0.openstack.#", "1"),
+					resource.TestCheckResourceAttr(resourceName, "spec.0.cloud.0.openstack.0.tenant", tenant),
+					resource.TestCheckResourceAttr(resourceName, "spec.0.cloud.0.openstack.0.username", username),
+					resource.TestCheckResourceAttr(resourceName, "spec.0.cloud.0.openstack.0.password", password),
+					resource.TestCheckResourceAttrSet(resourceName, "spec.0.cloud.0.openstack.0.security_group"),
+					resource.TestCheckResourceAttrSet(resourceName, "spec.0.cloud.0.openstack.0.network"),
+					resource.TestCheckResourceAttrSet(resourceName, "spec.0.cloud.0.openstack.0.subnet_id"),
+					resource.TestCheckResourceAttr(resourceName, "spec.0.cloud.0.openstack.0.subnet_cidr", "192.168.2.0/24"),
 					// Test spec.0.machine_networks value
-					testResourceInstanceState("metakube_cluster.acctest_cluster", func(is *terraform.InstanceState) error {
+					testResourceInstanceState(resourceName, func(is *terraform.InstanceState) error {
 						n, err := strconv.Atoi(is.Attributes["spec.0.machine_networks.#"])
 						if err != nil {
 							return err
@@ -105,54 +107,44 @@ func TestAccMetaKubeCluster_Openstack_Basic(t *testing.T) {
 
 						return nil
 					}),
-					resource.TestCheckResourceAttr("metakube_cluster.acctest_cluster", "spec.0.audit_logging", "false"),
-					resource.TestCheckResourceAttr("metakube_cluster.acctest_cluster", "type", "kubernetes"),
-					resource.TestCheckResourceAttrSet("metakube_cluster.acctest_cluster", "creation_timestamp"),
-					resource.TestCheckResourceAttrSet("metakube_cluster.acctest_cluster", "deletion_timestamp"),
+					resource.TestCheckResourceAttr(resourceName, "spec.0.audit_logging", "false"),
+					resource.TestCheckResourceAttr(resourceName, "type", "kubernetes"),
+					resource.TestCheckResourceAttrSet(resourceName, "creation_timestamp"),
+					resource.TestCheckResourceAttrSet(resourceName, "deletion_timestamp"),
 				),
 			},
 			{
-				Config: testAccCheckMetaKubeClusterOpenstackBasic2(testName+"-changed", username, password, tenant, nodeDC, versionK8s17),
+				Config: testAccCheckMetaKubeClusterOpenstackBasic2(clusterName+"-changed", username, password, tenant, nodeDC, versionK8s17),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					testResourceInstanceState("metakube_cluster.acctest_cluster", func(is *terraform.InstanceState) error {
-						_, _, id, err := metakubeClusterParseID(is.ID)
-						if err != nil {
-							return err
-						}
-						if id != cluster.ID {
-							return fmt.Errorf("cluster not updated: wrong ID")
-						}
-						return nil
-					}),
 					testAccCheckMetaKubeClusterExists(&cluster),
-					testAccCheckMetaKubeClusterOpenstackAttributes(&cluster, testName+"-changed", username, password, tenant, nodeDC, versionK8s17, map[string]string{
+					testAccCheckMetaKubeClusterOpenstackAttributes(&cluster, clusterName+"-changed", username, password, tenant, nodeDC, versionK8s17, map[string]string{
 						"foo":      "bar", // label propagated from project
 						"test-key": "test-value",
 					}, true),
-					resource.TestCheckResourceAttr("metakube_cluster.acctest_cluster", "name", testName+"-changed"),
-					resource.TestCheckResourceAttr("metakube_cluster.acctest_cluster", "labels.%", "1"),
-					resource.TestCheckResourceAttr("metakube_cluster.acctest_cluster", "labels.test-key", "test-value"),
-					resource.TestCheckResourceAttr("metakube_cluster.acctest_cluster", "spec.#", "1"),
-					resource.TestCheckResourceAttr("metakube_cluster.acctest_cluster", "spec.0.version", versionK8s17),
-					resource.TestCheckResourceAttr("metakube_cluster.acctest_cluster", "spec.0.domain_name", "foodomain.local"),
-					resource.TestCheckResourceAttr("metakube_cluster.acctest_cluster", "spec.0.services_cidr", "10.240.16.0/18"),
-					resource.TestCheckResourceAttr("metakube_cluster.acctest_cluster", "spec.0.pods_cidr", "172.25.0.0/18"),
-					resource.TestCheckResourceAttr("metakube_cluster.acctest_cluster", "spec.0.pod_node_selector", "true"),
-					resource.TestCheckResourceAttr("metakube_cluster.acctest_cluster", "spec.0.pod_security_policy", "true"),
-					resource.TestCheckResourceAttr("metakube_cluster.acctest_cluster", "spec.0.cloud.#", "1"),
-					resource.TestCheckResourceAttr("metakube_cluster.acctest_cluster", "spec.0.cloud.0.bringyourown.#", "0"),
-					resource.TestCheckResourceAttr("metakube_cluster.acctest_cluster", "spec.0.cloud.0.aws.#", "0"),
-					resource.TestCheckResourceAttr("metakube_cluster.acctest_cluster", "spec.0.cloud.0.openstack.#", "1"),
-					resource.TestCheckResourceAttr("metakube_cluster.acctest_cluster", "spec.0.cloud.0.openstack.0.tenant", tenant),
-					resource.TestCheckResourceAttr("metakube_cluster.acctest_cluster", "spec.0.cloud.0.openstack.0.username", username),
-					resource.TestCheckResourceAttr("metakube_cluster.acctest_cluster", "spec.0.cloud.0.openstack.0.password", password),
-					resource.TestCheckResourceAttr("metakube_cluster.acctest_cluster", "spec.0.cloud.0.openstack.0.floating_ip_pool", "ext-net"),
-					resource.TestCheckResourceAttrSet("metakube_cluster.acctest_cluster", "spec.0.cloud.0.openstack.0.security_group"),
-					resource.TestCheckResourceAttrSet("metakube_cluster.acctest_cluster", "spec.0.cloud.0.openstack.0.network"),
-					resource.TestCheckResourceAttrSet("metakube_cluster.acctest_cluster", "spec.0.cloud.0.openstack.0.subnet_id"),
-					resource.TestCheckResourceAttr("metakube_cluster.acctest_cluster", "spec.0.cloud.0.openstack.0.subnet_cidr", "192.168.2.0/24"),
+					resource.TestCheckResourceAttr(resourceName, "name", clusterName+"-changed"),
+					resource.TestCheckResourceAttr(resourceName, "labels.%", "1"),
+					resource.TestCheckResourceAttr(resourceName, "labels.test-key", "test-value"),
+					resource.TestCheckResourceAttr(resourceName, "spec.#", "1"),
+					resource.TestCheckResourceAttr(resourceName, "spec.0.version", versionK8s17),
+					resource.TestCheckResourceAttr(resourceName, "spec.0.domain_name", "foodomain.local"),
+					resource.TestCheckResourceAttr(resourceName, "spec.0.services_cidr", "10.240.16.0/18"),
+					resource.TestCheckResourceAttr(resourceName, "spec.0.pods_cidr", "172.25.0.0/18"),
+					resource.TestCheckResourceAttr(resourceName, "spec.0.pod_node_selector", "true"),
+					resource.TestCheckResourceAttr(resourceName, "spec.0.pod_security_policy", "true"),
+					resource.TestCheckResourceAttr(resourceName, "spec.0.cloud.#", "1"),
+					resource.TestCheckResourceAttr(resourceName, "spec.0.cloud.0.bringyourown.#", "0"),
+					resource.TestCheckResourceAttr(resourceName, "spec.0.cloud.0.aws.#", "0"),
+					resource.TestCheckResourceAttr(resourceName, "spec.0.cloud.0.openstack.#", "1"),
+					resource.TestCheckResourceAttr(resourceName, "spec.0.cloud.0.openstack.0.tenant", tenant),
+					resource.TestCheckResourceAttr(resourceName, "spec.0.cloud.0.openstack.0.username", username),
+					resource.TestCheckResourceAttr(resourceName, "spec.0.cloud.0.openstack.0.password", password),
+					resource.TestCheckResourceAttr(resourceName, "spec.0.cloud.0.openstack.0.floating_ip_pool", "ext-net"),
+					resource.TestCheckResourceAttrSet(resourceName, "spec.0.cloud.0.openstack.0.security_group"),
+					resource.TestCheckResourceAttrSet(resourceName, "spec.0.cloud.0.openstack.0.network"),
+					resource.TestCheckResourceAttrSet(resourceName, "spec.0.cloud.0.openstack.0.subnet_id"),
+					resource.TestCheckResourceAttr(resourceName, "spec.0.cloud.0.openstack.0.subnet_cidr", "192.168.2.0/24"),
 					// Test spec.0.machine_networks value
-					testResourceInstanceState("metakube_cluster.acctest_cluster", func(is *terraform.InstanceState) error {
+					testResourceInstanceState(resourceName, func(is *terraform.InstanceState) error {
 						n, err := strconv.Atoi(is.Attributes["spec.0.machine_networks.#"])
 						if err != nil {
 							return err
@@ -195,25 +187,39 @@ func TestAccMetaKubeCluster_Openstack_Basic(t *testing.T) {
 
 						return nil
 					}),
-					resource.TestCheckResourceAttr("metakube_cluster.acctest_cluster", "spec.0.audit_logging", "true"),
-					resource.TestCheckResourceAttr("metakube_cluster.acctest_cluster", "type", "kubernetes"),
-					resource.TestCheckResourceAttrSet("metakube_cluster.acctest_cluster", "creation_timestamp"),
-					resource.TestCheckResourceAttrSet("metakube_cluster.acctest_cluster", "deletion_timestamp"),
+					resource.TestCheckResourceAttr(resourceName, "spec.0.audit_logging", "true"),
+					resource.TestCheckResourceAttr(resourceName, "type", "kubernetes"),
+					resource.TestCheckResourceAttrSet(resourceName, "creation_timestamp"),
+					resource.TestCheckResourceAttrSet(resourceName, "deletion_timestamp"),
 				),
+			},
+			{
+				ResourceName:      resourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+			// Test importing non-existent resource provides expected error.
+			{
+				ResourceName:      resourceName,
+				ImportState:       true,
+				ImportStateVerify: false,
+				ImportStateId:     "123abc",
+				ExpectError:       regexp.MustCompile(`(Please verify the ID is correct|Cannot import non-existent remote object)`),
 			},
 		},
 	})
 }
 
-func TestAccMetaKubeCluster_Openstack_UpgradeVersion(t *testing.T) {
+func TestAccMetakubeCluster_Openstack_UpgradeVersion(t *testing.T) {
 	var cluster models.Cluster
-	testName := randomTestName()
+	clusterName := makeRandomString()
+	resourceName := "metakube_cluster.acctest_cluster"
 	username := os.Getenv(testEnvOpenstackUsername)
 	password := os.Getenv(testEnvOpenstackPassword)
 	tenant := os.Getenv(testEnvOpenstackTenant)
 	nodeDC := os.Getenv(testEnvOpenstackNodeDC)
 	versionedConfig := func(version string) string {
-		return testAccCheckMetaKubeClusterOpenstackBasic(testName, username, password, tenant, nodeDC, version)
+		return testAccCheckMetaKubeClusterOpenstackBasic(clusterName, username, password, tenant, nodeDC, version)
 	}
 	versionK8s16 := os.Getenv(testEnvK8sOlderVersion)
 	versionK8s17 := os.Getenv(testEnvK8sVersion)
@@ -232,30 +238,20 @@ func TestAccMetaKubeCluster_Openstack_UpgradeVersion(t *testing.T) {
 				Config: versionedConfig(versionK8s16),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccCheckMetaKubeClusterExists(&cluster),
-					resource.TestCheckResourceAttr("metakube_cluster.acctest_cluster", "spec.0.version", versionK8s16),
+					resource.TestCheckResourceAttr(resourceName, "spec.0.version", versionK8s16),
 				),
 			},
 			{
 				Config: versionedConfig(versionK8s17),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					testResourceInstanceState("metakube_cluster.acctest_cluster", func(is *terraform.InstanceState) error {
-						_, _, id, err := metakubeClusterParseID(is.ID)
-						if err != nil {
-							return err
-						}
-						if id != cluster.ID {
-							return fmt.Errorf("cluster not upgraded. Want cluster id=%v, got %v", cluster.ID, id)
-						}
-						return nil
-					}),
 					testAccCheckMetaKubeClusterExists(&cluster),
-					resource.TestCheckResourceAttr("metakube_cluster.acctest_cluster", "spec.0.version", versionK8s17),
+					resource.TestCheckResourceAttr(resourceName, "spec.0.version", versionK8s17),
 				),
 			},
 		},
 	})
 }
-func testAccCheckMetaKubeClusterOpenstackBasic(testName, username, password, tenant, nodeDC, version string) string {
+func testAccCheckMetaKubeClusterOpenstackBasic(clusterName, username, password, tenant, nodeDC, version string) string {
 	config := `
 	terraform {
 		required_providers {
@@ -295,25 +291,25 @@ func testAccCheckMetaKubeClusterOpenstackBasic(testName, username, password, ten
 	}
 
 	resource "openstack_networking_secgroup_v2" "cluster-net" {
-	  name = "tf-test"
+	  name = "%s-tf-test"
 	}
 	
 	resource "openstack_networking_network_v2" "network_tf_test" {
-	  name = "network_tf_test"
+	  name = "%s-network_tf_test"
 	}
 	
 	resource "openstack_networking_subnet_v2" "subnet_tf_test" {
-	  name = "subnet_tf_test"
+	  name = "%s-subnet_tf_test"
 	  network_id = openstack_networking_network_v2.network_tf_test.id
 	  cidr = "192.168.0.0/16"
 	  ip_version = 4
 	}
 `
 
-	return fmt.Sprintf(config, testName, testName, nodeDC, version, tenant, username, password)
+	return fmt.Sprintf(config, clusterName, clusterName, nodeDC, version, tenant, username, password, clusterName, clusterName, clusterName)
 }
 
-func testAccCheckMetaKubeClusterOpenstackBasic2(testName, username, password, tenant, nodeDC, k8sVersion string) string {
+func testAccCheckMetaKubeClusterOpenstackBasic2(clusterName, username, password, tenant, nodeDC, k8sVersion string) string {
 	config := `
 	terraform {
 		required_providers {
@@ -368,20 +364,20 @@ func testAccCheckMetaKubeClusterOpenstackBasic2(testName, username, password, te
 	}
 
 	resource "openstack_networking_secgroup_v2" "cluster-net" {
-	  name = "tf-test"
+	  name = "%s-tf-test"
 	}
 	
 	resource "openstack_networking_network_v2" "network_tf_test" {
-	  name = "network_tf_test"
+	  name = "%s-network_tf_test"
 	}
 	
 	resource "openstack_networking_subnet_v2" "subnet_tf_test" {
-	  name = "subnet_tf_test"
+	  name = "%s-subnet_tf_test"
 	  network_id = openstack_networking_network_v2.network_tf_test.id
 	  cidr = "192.168.0.0/16"
 	  ip_version = 4
 	}`
-	return fmt.Sprintf(config, testName, testName, nodeDC, k8sVersion, tenant, username, password)
+	return fmt.Sprintf(config, clusterName, clusterName, nodeDC, k8sVersion, tenant, username, password, clusterName, clusterName, clusterName)
 }
 
 func testAccCheckMetaKubeClusterOpenstackAttributes(cluster *models.Cluster, name, username, password, tenant, nodeDC, k8sVersion string, labels map[string]string, auditLogging bool) resource.TestCheckFunc {
@@ -435,18 +431,19 @@ func testAccCheckMetaKubeClusterOpenstackAttributes(cluster *models.Cluster, nam
 	}
 }
 
-func TestAccMetaKubeCluster_SSHKeys(t *testing.T) {
+func TestAccMetakubeCluster_SSHKeys(t *testing.T) {
 	var cluster models.Cluster
 	var sshkey models.SSHKey
-	testName := randomTestName()
+	clusterName := makeRandomString()
+	resourceName := "metakube_cluster.acctest_cluster"
 	username := os.Getenv(testEnvOpenstackUsername)
 	password := os.Getenv(testEnvOpenstackPassword)
 	tenant := os.Getenv(testEnvOpenstackTenant)
 	nodeDC := os.Getenv(testEnvOpenstackNodeDC)
 	k8sVersion17 := os.Getenv(testEnvK8sVersion)
 
-	configClusterWithKey1 := testAccCheckMetaKubeClusterOpenstackBasicWithSSHKey1(testName, username, password, tenant, nodeDC, k8sVersion17)
-	configClusterWithKey2 := testAccCheckMetaKubeClusterOpenstackBasicWithSSHKey2(testName, username, password, tenant, nodeDC, k8sVersion17)
+	configClusterWithKey1 := testAccCheckMetaKubeClusterOpenstackBasicWithSSHKey1(clusterName, username, password, tenant, nodeDC, k8sVersion17)
+	configClusterWithKey2 := testAccCheckMetaKubeClusterOpenstackBasicWithSSHKey2(clusterName, username, password, tenant, nodeDC, k8sVersion17)
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheckForOpenstack(t) },
 		Providers:    testAccProviders,
@@ -457,7 +454,7 @@ func TestAccMetaKubeCluster_SSHKeys(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccCheckMetaKubeClusterExists(&cluster),
 					testAccCheckMetaKubeSSHKeyExists("metakube_sshkey.acctest_sshkey1", "metakube_project.acctest_project", &sshkey),
-					resource.TestCheckResourceAttr("metakube_cluster.acctest_cluster", "sshkeys.#", "1"),
+					resource.TestCheckResourceAttr(resourceName, "sshkeys.#", "1"),
 					testAccCheckMetaKubeClusterHasSSHKey(&cluster.ID, &sshkey.ID),
 				),
 			},
@@ -466,7 +463,7 @@ func TestAccMetaKubeCluster_SSHKeys(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccCheckMetaKubeClusterExists(&cluster),
 					testAccCheckMetaKubeSSHKeyExists("metakube_sshkey.acctest_sshkey2", "metakube_project.acctest_project", &sshkey),
-					resource.TestCheckResourceAttr("metakube_cluster.acctest_cluster", "sshkeys.#", "1"),
+					resource.TestCheckResourceAttr(resourceName, "sshkeys.#", "1"),
 					testAccCheckMetaKubeClusterHasSSHKey(&cluster.ID, &sshkey.ID),
 				),
 			},
@@ -474,7 +471,7 @@ func TestAccMetaKubeCluster_SSHKeys(t *testing.T) {
 	})
 }
 
-func testAccCheckMetaKubeClusterOpenstackBasicWithSSHKey1(testName, username, password, tenant, nodeDC, k8sVersion string) string {
+func testAccCheckMetaKubeClusterOpenstackBasicWithSSHKey1(clusterName, username, password, tenant, nodeDC, k8sVersion string) string {
 	config := `
 	resource "metakube_project" "acctest_project" {
 		name = "%s"
@@ -508,10 +505,10 @@ func testAccCheckMetaKubeClusterOpenstackBasicWithSSHKey1(testName, username, pa
 		name = "acctest-sshkey-1"
 		public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCut5oRyqeqYci3E9m6Z6mtxfqkiyb+xNFJM6+/sllhnMDX0vzrNj8PuIFfGkgtowKY//QWLgoB+RpvXqcD4bb4zPkLdXdJPtUf1eAoMh/qgyThUjBs3n7BXvXMDg1Wdj0gq/sTnPLvXsfrSVPjiZvWN4h0JdID2NLnwYuKIiltIn+IbUa6OnyFfOEpqb5XJ7H7LK1mUKTlQ/9CFROxSQf3YQrR9UdtASIeyIZL53WgYgU31Yqy7MQaY1y0fGmHsFwpCK6qFZj1DNruKl/IR1lLx/Bg3z9sDcoBnHKnzSzVels9EVlDOG6bW738ho269QAIrWQYBtznsvWKu5xZPuuj user@machine"
 	}`
-	return fmt.Sprintf(config, testName, testName, nodeDC, k8sVersion, tenant, username, password)
+	return fmt.Sprintf(config, clusterName, clusterName, nodeDC, k8sVersion, tenant, username, password)
 }
 
-func testAccCheckMetaKubeClusterOpenstackBasicWithSSHKey2(testName, username, password, tenant, nodeDC, k8sVersion string) string {
+func testAccCheckMetaKubeClusterOpenstackBasicWithSSHKey2(clusterName, username, password, tenant, nodeDC, k8sVersion string) string {
 	config := `
 	resource "metakube_project" "acctest_project" {
 		name = "%s"
@@ -545,7 +542,7 @@ func testAccCheckMetaKubeClusterOpenstackBasicWithSSHKey2(testName, username, pa
 		name = "acctest-sshkey-2"
 		public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCut5oRyqeqYci3E9m6Z6mtxfqkiyb+xNFJM6+/sllhnMDX0vzrNj8PuIFfGkgtowKY//QWLgoB+RpvXqcD4bb4zPkLdXdJPtUf1eAoMh/qgyThUjBs3n7BXvXMDg1Wdj0gq/sTnPLvXsfrSVPjiZvWN4h0JdID2NLnwYuKIiltIn+IbUa6OnyFfOEpqb5XJ7H7LK1mUKTlQ/9CFROxSQf3YQrR9UdtASIeyIZL53WgYgU31Yqy7MQaY1y0fGmHsFwpCK6qFZj1DNruKl/IR1lLx/Bg3z9sDcoBnHKnzSzVels9EVlDOG6bW738ho269QAIrWQYBtznsvWKu5xZPuuj user@machine"
 	}`
-	return fmt.Sprintf(config, testName, testName, nodeDC, k8sVersion, tenant, username, password)
+	return fmt.Sprintf(config, clusterName, clusterName, nodeDC, k8sVersion, tenant, username, password)
 }
 
 func testAccCheckMetaKubeClusterHasSSHKey(cluster, sshkey *string) resource.TestCheckFunc {
@@ -555,16 +552,10 @@ func testAccCheckMetaKubeClusterHasSSHKey(cluster, sshkey *string) resource.Test
 			return fmt.Errorf("Not found: %s", "metakube_project.acctest_project")
 		}
 
-		projectID, seedDC, _, err := metakubeClusterParseID(rs.Primary.ID)
-		if err != nil {
-			return err
-		}
+		projectID := rs.Primary.Attributes["project_id"]
 		k := testAccProvider.Meta().(*metakubeProviderMeta)
-		p := project.NewListSSHKeysAssignedToClusterParams()
-		p.SetProjectID(projectID)
-		p.SetDC(seedDC)
-		p.SetClusterID(*cluster)
-		ret, err := k.client.Project.ListSSHKeysAssignedToCluster(p, k.auth)
+		p := project.NewListSSHKeysAssignedToClusterV2Params().WithProjectID(projectID).WithClusterID(*cluster)
+		ret, err := k.client.Project.ListSSHKeysAssignedToClusterV2(p, k.auth)
 		if err != nil {
 			return fmt.Errorf("ListSSHKeysAssignedToCluster %v", err)
 		}
@@ -586,10 +577,10 @@ func testAccCheckMetaKubeClusterHasSSHKey(cluster, sshkey *string) resource.Test
 	}
 }
 
-func TestAccMetaKubeCluster_Azure_Basic(t *testing.T) {
+func TestAccMetakubeCluster_Azure_Basic(t *testing.T) {
 	var cluster models.Cluster
-	testName := randomTestName()
-
+	clusterName := makeRandomString()
+	resourceName := "metakube_cluster.acctest_cluster"
 	clientID := os.Getenv(testEnvAzureClientID)
 	clientSecret := os.Getenv(testEnvAzureClientSecret)
 	tenantID := os.Getenv(testEnvAzureTenantID)
@@ -603,13 +594,13 @@ func TestAccMetaKubeCluster_Azure_Basic(t *testing.T) {
 		CheckDestroy: testAccCheckMetaKubeClusterDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCheckMetaKubeClusterAzureBasic(testName, clientID, clientSecret, tenantID, subsID, nodeDC, k8sVersion),
+				Config: testAccCheckMetaKubeClusterAzureBasic(clusterName, clientID, clientSecret, tenantID, subsID, nodeDC, k8sVersion),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccCheckMetaKubeClusterExists(&cluster),
-					resource.TestCheckResourceAttr("metakube_cluster.acctest_cluster", "spec.0.cloud.0.azure.0.client_id", clientID),
-					resource.TestCheckResourceAttr("metakube_cluster.acctest_cluster", "spec.0.cloud.0.azure.0.client_secret", clientSecret),
-					resource.TestCheckResourceAttr("metakube_cluster.acctest_cluster", "spec.0.cloud.0.azure.0.tenant_id", tenantID),
-					resource.TestCheckResourceAttr("metakube_cluster.acctest_cluster", "spec.0.cloud.0.azure.0.subscription_id", subsID),
+					resource.TestCheckResourceAttr(resourceName, "spec.0.cloud.0.azure.0.client_id", clientID),
+					resource.TestCheckResourceAttr(resourceName, "spec.0.cloud.0.azure.0.client_secret", clientSecret),
+					resource.TestCheckResourceAttr(resourceName, "spec.0.cloud.0.azure.0.tenant_id", tenantID),
+					resource.TestCheckResourceAttr(resourceName, "spec.0.cloud.0.azure.0.subscription_id", subsID),
 				),
 			},
 		},
@@ -641,10 +632,10 @@ func testAccCheckMetaKubeClusterAzureBasic(n, clientID, clientSecret, tenantID, 
 	}`, n, n, nodeDC, k8sVersion, clientID, clientSecret, tenantID, subscID)
 }
 
-func TestAccMetaKubeCluster_AWS_Basic(t *testing.T) {
+func TestAccMetakubeCluster_AWS_Basic(t *testing.T) {
 	var cluster models.Cluster
-	testName := randomTestName()
-
+	clusterName := makeRandomString()
+	resourceName := "metakube_cluster.acctest_cluster"
 	awsAccessKeyID := os.Getenv(testEnvAWSAccessKeyID)
 	awsSecretAccessKey := os.Getenv(testAWSSecretAccessKey)
 	vpcID := os.Getenv(testEnvAWSVPCID)
@@ -657,10 +648,10 @@ func TestAccMetaKubeCluster_AWS_Basic(t *testing.T) {
 		CheckDestroy: testAccCheckMetaKubeClusterDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCheckMetaKubeClusterAWSBasic(testName, awsAccessKeyID, awsSecretAccessKey, vpcID, nodeDC, k8sVersion17),
+				Config: testAccCheckMetaKubeClusterAWSBasic(clusterName, awsAccessKeyID, awsSecretAccessKey, vpcID, nodeDC, k8sVersion17),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccCheckMetaKubeClusterExists(&cluster),
-					resource.TestCheckResourceAttr("metakube_cluster.acctest_cluster", "spec.0.cloud.0.aws.#", "1"),
+					resource.TestCheckResourceAttr(resourceName, "spec.0.cloud.0.aws.#", "1"),
 				),
 			},
 		},
@@ -700,15 +691,9 @@ func testAccCheckMetaKubeClusterDestroy(s *terraform.State) error {
 		}
 
 		// Try to find the cluster
-		p := project.NewGetClusterParams()
-		projectID, seedDC, clusterID, err := metakubeClusterParseID(rs.Primary.ID)
-		if err != nil {
-			return err
-		}
-		p.SetProjectID(projectID)
-		p.SetDC(seedDC)
-		p.SetClusterID(clusterID)
-		r, err := k.client.Project.GetCluster(p, k.auth)
+		projectID := rs.Primary.Attributes["project_id"]
+		p := project.NewGetClusterV2Params().WithProjectID(projectID).WithClusterID(rs.Primary.ID)
+		r, err := k.client.Project.GetClusterV2(p, k.auth)
 		if err == nil && r.Payload != nil {
 			return fmt.Errorf("Cluster still exists")
 		}
@@ -719,25 +704,19 @@ func testAccCheckMetaKubeClusterDestroy(s *terraform.State) error {
 
 func testAccCheckMetaKubeClusterExists(cluster *models.Cluster) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		rs, ok := s.RootModule().Resources["metakube_cluster.acctest_cluster"]
+		resourceName := "metakube_cluster.acctest_cluster"
+		rs, ok := s.RootModule().Resources[resourceName]
 		if !ok {
-			return fmt.Errorf("Not found: %s", "metakube_cluster.acctest_cluster")
+			return fmt.Errorf("Not found: %s", resourceName)
 		}
 		if rs.Primary.ID == "" {
 			return fmt.Errorf("No Record ID is set")
 		}
 
-		projectID, seedDC, clusterID, err := metakubeClusterParseID(rs.Primary.ID)
-		if err != nil {
-			return err
-		}
-
 		k := testAccProvider.Meta().(*metakubeProviderMeta)
-		p := project.NewGetClusterParams()
-		p.SetProjectID(projectID)
-		p.SetDC(seedDC)
-		p.SetClusterID(clusterID)
-		ret, err := k.client.Project.GetCluster(p, k.auth)
+		projectID := rs.Primary.Attributes["project_id"]
+		p := project.NewGetClusterV2Params().WithProjectID(projectID).WithClusterID(rs.Primary.ID)
+		ret, err := k.client.Project.GetClusterV2(p, k.auth)
 		if err != nil {
 			return fmt.Errorf("GetCluster %v", err)
 		}

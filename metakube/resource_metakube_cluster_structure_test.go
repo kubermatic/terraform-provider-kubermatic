@@ -8,16 +8,17 @@ import (
 	"github.com/syseleven/terraform-provider-metakube/go-metakube/models"
 )
 
-func TestFlattenClusterSpec(t *testing.T) {
+func TestMetakubeClusterFlattenSpec(t *testing.T) {
 	cases := []struct {
 		Input          *models.ClusterSpec
 		ExpectedOutput []interface{}
 	}{
 		{
 			&models.ClusterSpec{
-				Version:         "1.18.8",
-				MachineNetworks: nil,
-				AuditLogging:    &models.AuditLoggingSettings{},
+				Version:               "1.18.8",
+				MachineNetworks:       nil,
+				EnableUserSSHKeyAgent: true,
+				AuditLogging:          &models.AuditLoggingSettings{},
 				Cloud: &models.CloudSpec{
 					DatacenterName: "eu-west-1",
 					Bringyourown:   map[string]interface{}{},
@@ -41,6 +42,7 @@ func TestFlattenClusterSpec(t *testing.T) {
 					"services_cidr":       "1.1.1.0/20",
 					"pods_cidr":           "2.2.0.0/16",
 					"domain_name":         "foocluster.local",
+					"enable_ssh_agent":    true,
 					"cloud": []interface{}{
 						map[string]interface{}{
 							"bringyourown": []interface{}{map[string]interface{}{}},
@@ -56,6 +58,7 @@ func TestFlattenClusterSpec(t *testing.T) {
 					"audit_logging":       false,
 					"pod_security_policy": false,
 					"pod_node_selector":   false,
+					"enable_ssh_agent":    false,
 				},
 			},
 		},
@@ -66,7 +69,7 @@ func TestFlattenClusterSpec(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		output := flattenClusterSpec(clusterPreserveValues{}, tc.Input)
+		output := metakubeResourceClusterFlattenSpec(clusterPreserveValues{}, tc.Input)
 		if diff := cmp.Diff(tc.ExpectedOutput, output); diff != "" {
 			t.Fatalf("Unexpected output from expander: mismatch (-want +got):\n%s", diff)
 		}
@@ -383,7 +386,7 @@ func TestExpandClusterSpec(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		output := expandClusterSpec(tc.Input, tc.DCName)
+		output := metakubeResourceClusterExpandSpec(tc.Input, tc.DCName)
 		if diff := cmp.Diff(tc.ExpectedOutput, output); diff != "" {
 			t.Fatalf("Unexpected output from expander: mismatch (-want +got):\n%s", diff)
 		}

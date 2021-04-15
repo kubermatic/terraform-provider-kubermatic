@@ -5,7 +5,7 @@ import (
 )
 
 // flatteners
-func flattenNodeDeploymentSpec(values *nodeSpecPreservedValues, in *models.NodeDeploymentSpec) []interface{} {
+func metakubeNodeDeploymentFlattenSpec(values *nodeSpecPreservedValues, in *models.NodeDeploymentSpec) []interface{} {
 	if in == nil {
 		return []interface{}{}
 	}
@@ -25,7 +25,7 @@ func flattenNodeDeploymentSpec(values *nodeSpecPreservedValues, in *models.NodeD
 	}
 
 	if in.Template != nil {
-		att["template"] = flattenNodeSpec(values, in.Template)
+		att["template"] = metakubeNodeDeploymentFlattenNodeSpec(values, in.Template)
 	}
 
 	att["dynamic_config"] = in.DynamicConfig
@@ -33,7 +33,7 @@ func flattenNodeDeploymentSpec(values *nodeSpecPreservedValues, in *models.NodeD
 	return []interface{}{att}
 }
 
-func flattenNodeSpec(values *nodeSpecPreservedValues, in *models.NodeSpec) []interface{} {
+func metakubeNodeDeploymentFlattenNodeSpec(values *nodeSpecPreservedValues, in *models.NodeSpec) []interface{} {
 	if in == nil {
 		return []interface{}{}
 	}
@@ -49,29 +49,29 @@ func flattenNodeSpec(values *nodeSpecPreservedValues, in *models.NodeSpec) []int
 	}
 
 	if in.OperatingSystem != nil {
-		att["operating_system"] = flattenOperatingSystem(in.OperatingSystem)
+		att["operating_system"] = metakubeNodeDeploymentFlattenOperatingSystem(in.OperatingSystem)
 	}
 
 	if in.Versions != nil {
-		att["versions"] = flattenNodeVersion(in.Versions)
+		att["versions"] = metakubeNodeDeploymentFlattenVersion(in.Versions)
 	}
 
 	if l := len(in.Taints); l > 0 {
 		t := make([]interface{}, l)
 		for i, v := range in.Taints {
-			t[i] = flattenTaintSpec(v)
+			t[i] = metakubeNodeDeploymentFlattenTaintSpec(v)
 		}
 		att["taints"] = t
 	}
 
 	if in.Cloud != nil {
-		att["cloud"] = flattenNodeCloudSpec(values, in.Cloud)
+		att["cloud"] = metakubeNodeDeploymentFlattenCloudSpec(values, in.Cloud)
 	}
 
 	return []interface{}{att}
 }
 
-func flattenOperatingSystem(in *models.OperatingSystemSpec) []interface{} {
+func metakubeNodeDeploymentFlattenOperatingSystem(in *models.OperatingSystemSpec) []interface{} {
 	if in == nil {
 		return []interface{}{}
 	}
@@ -79,21 +79,17 @@ func flattenOperatingSystem(in *models.OperatingSystemSpec) []interface{} {
 	att := make(map[string]interface{})
 
 	if in.Ubuntu != nil {
-		att["ubuntu"] = flattenUbuntu(in.Ubuntu)
+		att["ubuntu"] = metakubeNodeDeploymentFlattenUbuntu(in.Ubuntu)
 	}
 
-	if in.Centos != nil {
-		att["centos"] = flattenCentos(in.Centos)
-	}
-
-	if in.ContainerLinux != nil {
-		att["container_linux"] = flattenContainerLinux(in.ContainerLinux)
+	if in.Flatcar != nil {
+		att["flatcar"] = metakubeNodeDeploymentFlattenFlatcar(in.Flatcar)
 	}
 
 	return []interface{}{att}
 }
 
-func flattenUbuntu(in *models.UbuntuSpec) []interface{} {
+func metakubeNodeDeploymentFlattenUbuntu(in *models.UbuntuSpec) []interface{} {
 	if in == nil {
 		return []interface{}{}
 	}
@@ -105,19 +101,7 @@ func flattenUbuntu(in *models.UbuntuSpec) []interface{} {
 	return []interface{}{att}
 }
 
-func flattenCentos(in *models.CentOSSpec) []interface{} {
-	if in == nil {
-		return []interface{}{}
-	}
-
-	att := make(map[string]interface{})
-
-	att["dist_upgrade_on_boot"] = in.DistUpgradeOnBoot
-
-	return []interface{}{att}
-}
-
-func flattenContainerLinux(in *models.ContainerLinuxSpec) []interface{} {
+func metakubeNodeDeploymentFlattenFlatcar(in *models.FlatcarSpec) []interface{} {
 	if in == nil {
 		return []interface{}{}
 	}
@@ -129,7 +113,7 @@ func flattenContainerLinux(in *models.ContainerLinuxSpec) []interface{} {
 	return []interface{}{att}
 }
 
-func flattenNodeVersion(in *models.NodeVersionInfo) []interface{} {
+func metakubeNodeDeploymentFlattenVersion(in *models.NodeVersionInfo) []interface{} {
 	if in == nil {
 		return []interface{}{}
 	}
@@ -143,7 +127,7 @@ func flattenNodeVersion(in *models.NodeVersionInfo) []interface{} {
 	return []interface{}{att}
 }
 
-func flattenTaintSpec(in *models.TaintSpec) map[string]interface{} {
+func metakubeNodeDeploymentFlattenTaintSpec(in *models.TaintSpec) map[string]interface{} {
 	if in == nil {
 		return map[string]interface{}{}
 	}
@@ -165,7 +149,7 @@ func flattenTaintSpec(in *models.TaintSpec) map[string]interface{} {
 	return att
 }
 
-func flattenNodeCloudSpec(values *nodeSpecPreservedValues, in *models.NodeCloudSpec) []interface{} {
+func metakubeNodeDeploymentFlattenCloudSpec(values *nodeSpecPreservedValues, in *models.NodeCloudSpec) []interface{} {
 	if in == nil {
 		return []interface{}{}
 	}
@@ -173,17 +157,17 @@ func flattenNodeCloudSpec(values *nodeSpecPreservedValues, in *models.NodeCloudS
 	att := make(map[string]interface{})
 
 	if in.Aws != nil {
-		att["aws"] = flattenAWSNodeSpec(in.Aws)
+		att["aws"] = metakubeNodeDeploymentFlattenAWSSpec(in.Aws)
 	}
 
 	if in.Openstack != nil {
-		att["openstack"] = flattenOpenstackNodeSpec(in.Openstack)
+		att["openstack"] = metakubeNodeDeploymentFlattenOpenstackSpec(in.Openstack)
 	}
 
 	if in.Azure != nil {
 		// Azure returns empty `{}` properties list, so we are there not writing anything
 		// and preserving values already there.
-		att["azure"] = flattendAzureNodeSpec(values.azure)
+		att["azure"] = metakubeNodeDeploymentFlattenAzureSpec(values.azure)
 	}
 
 	// TODO: add all cloud providers
@@ -191,7 +175,7 @@ func flattenNodeCloudSpec(values *nodeSpecPreservedValues, in *models.NodeCloudS
 	return []interface{}{att}
 }
 
-func flattenAWSNodeSpec(in *models.AWSNodeSpec) []interface{} {
+func metakubeNodeDeploymentFlattenAWSSpec(in *models.AWSNodeSpec) []interface{} {
 	if in == nil {
 		return []interface{}{}
 	}
@@ -235,7 +219,7 @@ func flattenAWSNodeSpec(in *models.AWSNodeSpec) []interface{} {
 	return []interface{}{att}
 }
 
-func flattenOpenstackNodeSpec(in *models.OpenstackNodeSpec) []interface{} {
+func metakubeNodeDeploymentFlattenOpenstackSpec(in *models.OpenstackNodeSpec) []interface{} {
 	if in == nil {
 		return []interface{}{}
 	}
@@ -252,9 +236,13 @@ func flattenOpenstackNodeSpec(in *models.OpenstackNodeSpec) []interface{} {
 
 	att["use_floating_ip"] = in.UseFloatingIP
 
-	att["instance_ready_check_period"] = in.InstanceReadyCheckPeriod
+	if in.InstanceReadyCheckPeriod != "" {
+		att["instance_ready_check_period"] = in.InstanceReadyCheckPeriod
+	}
 
-	att["instance_ready_check_timeout"] = in.InstanceReadyCheckTimeout
+	if in.InstanceReadyCheckTimeout != "" {
+		att["instance_ready_check_timeout"] = in.InstanceReadyCheckTimeout
+	}
 
 	if in.Tags != nil {
 		att["tags"] = in.Tags
@@ -267,7 +255,7 @@ func flattenOpenstackNodeSpec(in *models.OpenstackNodeSpec) []interface{} {
 	return []interface{}{att}
 }
 
-func flattendAzureNodeSpec(in *models.AzureNodeSpec) []interface{} {
+func metakubeNodeDeploymentFlattenAzureSpec(in *models.AzureNodeSpec) []interface{} {
 	if in == nil {
 		return []interface{}{}
 	}
@@ -301,7 +289,7 @@ func flattendAzureNodeSpec(in *models.AzureNodeSpec) []interface{} {
 
 // expanders
 
-func expandNodeDeploymentSpec(p []interface{}) *models.NodeDeploymentSpec {
+func metakubeNodeDeploymentExpandSpec(p []interface{}) *models.NodeDeploymentSpec {
 	if len(p) < 1 {
 		return nil
 	}
@@ -335,7 +323,7 @@ func expandNodeDeploymentSpec(p []interface{}) *models.NodeDeploymentSpec {
 
 	if v, ok := in["template"]; ok {
 		if vv, ok := v.([]interface{}); ok {
-			obj.Template = expandNodeSpec(vv)
+			obj.Template = metakubeNodeDeploymentExpandNodeSpec(vv)
 		}
 	}
 
@@ -348,7 +336,7 @@ func expandNodeDeploymentSpec(p []interface{}) *models.NodeDeploymentSpec {
 	return obj
 }
 
-func expandNodeSpec(p []interface{}) *models.NodeSpec {
+func metakubeNodeDeploymentExpandNodeSpec(p []interface{}) *models.NodeSpec {
 	if len(p) < 1 {
 		return nil
 	}
@@ -375,13 +363,13 @@ func expandNodeSpec(p []interface{}) *models.NodeSpec {
 
 	if v, ok := in["operating_system"]; ok {
 		if vv, ok := v.([]interface{}); ok {
-			obj.OperatingSystem = expandOperatingSystem(vv)
+			obj.OperatingSystem = metakubeNodeDeploymentExpandOS(vv)
 		}
 	}
 
 	if v, ok := in["versions"]; ok {
 		if vv, ok := v.([]interface{}); ok {
-			obj.Versions = expandNodeVersion(vv)
+			obj.Versions = metakubeNodeDeploymentExpandVersion(vv)
 		}
 	}
 
@@ -389,7 +377,7 @@ func expandNodeSpec(p []interface{}) *models.NodeSpec {
 		if vv, ok := v.([]interface{}); ok {
 			for _, t := range vv {
 				if tt, ok := t.(map[string]interface{}); ok {
-					obj.Taints = append(obj.Taints, expandTaintSpec(tt))
+					obj.Taints = append(obj.Taints, metakubeNodeDeploymentExpandTaintSpec(tt))
 				}
 			}
 		}
@@ -397,14 +385,14 @@ func expandNodeSpec(p []interface{}) *models.NodeSpec {
 
 	if v, ok := in["cloud"]; ok {
 		if vv, ok := v.([]interface{}); ok {
-			obj.Cloud = expandNodeCloudSpec(vv)
+			obj.Cloud = metakubeNodeDeploymentExpandCloudSpec(vv)
 		}
 	}
 
 	return obj
 }
 
-func expandOperatingSystem(p []interface{}) *models.OperatingSystemSpec {
+func metakubeNodeDeploymentExpandOS(p []interface{}) *models.OperatingSystemSpec {
 	if len(p) < 1 {
 		return nil
 	}
@@ -420,27 +408,20 @@ func expandOperatingSystem(p []interface{}) *models.OperatingSystemSpec {
 
 	if v, ok := in["ubuntu"]; ok {
 		if vv, ok := v.([]interface{}); ok {
-			obj.Ubuntu = expandUbuntu(vv)
+			obj.Ubuntu = metakubeNodeDeploymentExpandUbuntu(vv)
 		}
 	}
 
-	if v, ok := in["centos"]; ok {
+	if v, ok := in["flatcar"]; ok {
 		if vv, ok := v.([]interface{}); ok {
-			obj.Centos = expandCentos(vv)
-		}
-
-	}
-
-	if v, ok := in["container_linux"]; ok {
-		if vv, ok := v.([]interface{}); ok {
-			obj.ContainerLinux = expandContainerLinux(vv)
+			obj.Flatcar = metakubeNodeDeploymentExpandFlatcar(vv)
 		}
 	}
 
 	return obj
 }
 
-func expandUbuntu(p []interface{}) *models.UbuntuSpec {
+func metakubeNodeDeploymentExpandUbuntu(p []interface{}) *models.UbuntuSpec {
 	if len(p) < 1 {
 		return nil
 	}
@@ -463,34 +444,11 @@ func expandUbuntu(p []interface{}) *models.UbuntuSpec {
 	return obj
 }
 
-func expandCentos(p []interface{}) *models.CentOSSpec {
+func metakubeNodeDeploymentExpandFlatcar(p []interface{}) *models.FlatcarSpec {
 	if len(p) < 1 {
 		return nil
 	}
-	obj := &models.CentOSSpec{}
-	if p[0] == nil {
-		return obj
-	}
-
-	in, ok := p[0].(map[string]interface{})
-	if !ok {
-		return obj
-	}
-
-	if v, ok := in["dist_upgrade_on_boot"]; ok {
-		if vv, ok := v.(bool); ok {
-			obj.DistUpgradeOnBoot = vv
-		}
-	}
-
-	return obj
-}
-
-func expandContainerLinux(p []interface{}) *models.ContainerLinuxSpec {
-	if len(p) < 1 {
-		return nil
-	}
-	obj := &models.ContainerLinuxSpec{}
+	obj := &models.FlatcarSpec{}
 	if p[0] == nil {
 		return obj
 	}
@@ -509,7 +467,7 @@ func expandContainerLinux(p []interface{}) *models.ContainerLinuxSpec {
 	return obj
 }
 
-func expandNodeVersion(p []interface{}) *models.NodeVersionInfo {
+func metakubeNodeDeploymentExpandVersion(p []interface{}) *models.NodeVersionInfo {
 	if len(p) < 1 {
 		return nil
 	}
@@ -532,7 +490,7 @@ func expandNodeVersion(p []interface{}) *models.NodeVersionInfo {
 	return obj
 }
 
-func expandTaintSpec(in map[string]interface{}) *models.TaintSpec {
+func metakubeNodeDeploymentExpandTaintSpec(in map[string]interface{}) *models.TaintSpec {
 	obj := &models.TaintSpec{}
 
 	if v, ok := in["key"]; ok {
@@ -556,7 +514,7 @@ func expandTaintSpec(in map[string]interface{}) *models.TaintSpec {
 	return obj
 }
 
-func expandNodeCloudSpec(p []interface{}) *models.NodeCloudSpec {
+func metakubeNodeDeploymentExpandCloudSpec(p []interface{}) *models.NodeCloudSpec {
 	if len(p) < 1 {
 		return nil
 	}
@@ -572,26 +530,26 @@ func expandNodeCloudSpec(p []interface{}) *models.NodeCloudSpec {
 
 	if v, ok := in["aws"]; ok {
 		if vv, ok := v.([]interface{}); ok {
-			obj.Aws = expandAWSNodeSpec(vv)
+			obj.Aws = metakubeNodeDeploymentExpandAWSSpec(vv)
 		}
 	}
 
 	if v, ok := in["openstack"]; ok {
 		if vv, ok := v.([]interface{}); ok {
-			obj.Openstack = expandOpenstackNodeSpec(vv)
+			obj.Openstack = metakubeNodeDeploymentExpandOpenstackSpec(vv)
 		}
 	}
 
 	if v, ok := in["azure"]; ok {
 		if vv, ok := v.([]interface{}); ok {
-			obj.Azure = expandAzureNodeSpec(vv)
+			obj.Azure = metakubeNodeDeploymentExpandAzureSpec(vv)
 		}
 	}
 
 	return obj
 }
 
-func expandAWSNodeSpec(p []interface{}) *models.AWSNodeSpec {
+func metakubeNodeDeploymentExpandAWSSpec(p []interface{}) *models.AWSNodeSpec {
 	if len(p) < 1 {
 		return nil
 	}
@@ -661,7 +619,7 @@ func expandAWSNodeSpec(p []interface{}) *models.AWSNodeSpec {
 	return obj
 }
 
-func expandOpenstackNodeSpec(p []interface{}) *models.OpenstackNodeSpec {
+func metakubeNodeDeploymentExpandOpenstackSpec(p []interface{}) *models.OpenstackNodeSpec {
 	if len(p) < 1 {
 		return nil
 	}
@@ -723,7 +681,7 @@ func expandOpenstackNodeSpec(p []interface{}) *models.OpenstackNodeSpec {
 	return obj
 }
 
-func expandAzureNodeSpec(p []interface{}) *models.AzureNodeSpec {
+func metakubeNodeDeploymentExpandAzureSpec(p []interface{}) *models.AzureNodeSpec {
 	if len(p) < 1 {
 		return nil
 	}

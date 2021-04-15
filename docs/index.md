@@ -25,7 +25,7 @@ it is possible to change the token location by setting `token_path` argument.
 Another way of authentication is to pass `METAKUBE_TOKEN` env or set `token` param,
 the last option is not recommended due to possible secret leaking.
 
-At the moment global access tokens are not supported by MetaKube API. We **can't manage resources outside their project** using tokens. We suggest to use UI to create project and API Account/Token to use, then import the project using `terraform import metakube_project.my_project <project-id>`. Once this is fixed on API side we will update the provider.
+At the moment global access tokens are not supported by MetaKube API. We **can't manage resources outside their project** using tokens. We suggest to use UI to create project and API Account/Token that is capable to manage resources **inside the project**.
 
 ## Argument Reference
 

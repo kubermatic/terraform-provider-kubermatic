@@ -11,12 +11,12 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
-func isLabelOrTagReserved(path string) bool {
+func matakubeResourceNodeDeploymentLabelOrTagReserved(path string) bool {
 	r := regexp.MustCompile(`(tags|labels)\.(metakube|system|kubernetes\.io)(\/|\-)`)
 	return r.MatchString(path)
 }
 
-func validateLabelOrTag(key string) error {
+func matakubeResourceNodeDeploymentValidateLabelOrTag(key string) error {
 	r := regexp.MustCompile(`^(metakube|system|kubernetes\.io)(\/|\-)`)
 	if r.MatchString(key) {
 		return fmt.Errorf("forbidden tag or label prefix %s", key)
@@ -24,7 +24,7 @@ func validateLabelOrTag(key string) error {
 	return nil
 }
 
-func nodeDeploymentSpecFields() map[string]*schema.Schema {
+func matakubeResourceNodeDeploymentSpecFields() map[string]*schema.Schema {
 	return map[string]*schema.Schema{
 		"dynamic_config": {
 			Type:        schema.TypeBool,
@@ -81,7 +81,7 @@ func nodeDeploymentSpecFields() map[string]*schema.Schema {
 									MaxItems:    1,
 									Description: "AWS node deployment specification",
 									Elem: &schema.Resource{
-										Schema: awsNodeFields(),
+										Schema: matakubeResourceNodeDeploymentAWSSchema(),
 									},
 								},
 								"openstack": {
@@ -90,10 +90,10 @@ func nodeDeploymentSpecFields() map[string]*schema.Schema {
 									MaxItems:    1,
 									Description: "OpenStack node deployment specification",
 									Elem: &schema.Resource{
-										Schema: openstackNodeFields(),
+										Schema: matakubeResourceNodeDeploymentCloudOpenstackSchema(),
 									},
 								},
-								"azure": nodeDeploymentSpecCloudAzureSchema(),
+								"azure": metakubeResourceNodeDeploymentAzureSchema(),
 							},
 						},
 					},
@@ -151,12 +151,12 @@ func nodeDeploymentSpecFields() map[string]*schema.Schema {
 							"It will be applied to Nodes allowing users run their apps on specific Node using labelSelector.",
 						Elem: schema.TypeString,
 						DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-							return isLabelOrTagReserved(k)
+							return matakubeResourceNodeDeploymentLabelOrTagReserved(k)
 						},
 						ValidateFunc: func(v interface{}, k string) (strings []string, errors []error) {
 							l := v.(map[string]interface{})
 							for key := range l {
-								if err := validateLabelOrTag(key); err != nil {
+								if err := matakubeResourceNodeDeploymentValidateLabelOrTag(key); err != nil {
 									errors = append(errors, err)
 								}
 							}
@@ -194,7 +194,7 @@ func nodeDeploymentSpecFields() map[string]*schema.Schema {
 	}
 }
 
-func awsNodeFields() map[string]*schema.Schema {
+func matakubeResourceNodeDeploymentAWSSchema() map[string]*schema.Schema {
 	return map[string]*schema.Schema{
 		"instance_type": {
 			Type:        schema.TypeString,
@@ -240,12 +240,12 @@ func awsNodeFields() map[string]*schema.Schema {
 			Description: "Additional instance tags",
 			Elem:        schema.TypeString,
 			DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-				return isLabelOrTagReserved(k)
+				return matakubeResourceNodeDeploymentLabelOrTagReserved(k)
 			},
 			ValidateFunc: func(v interface{}, k string) (strings []string, errors []error) {
 				l := v.(map[string]interface{})
 				for key := range l {
-					if err := validateLabelOrTag(key); err != nil {
+					if err := matakubeResourceNodeDeploymentValidateLabelOrTag(key); err != nil {
 						errors = append(errors, err)
 					}
 				}
@@ -255,7 +255,7 @@ func awsNodeFields() map[string]*schema.Schema {
 	}
 }
 
-func openstackNodeFields() map[string]*schema.Schema {
+func matakubeResourceNodeDeploymentCloudOpenstackSchema() map[string]*schema.Schema {
 	return map[string]*schema.Schema{
 		"flavor": {
 			Type:        schema.TypeString,
@@ -280,12 +280,12 @@ func openstackNodeFields() map[string]*schema.Schema {
 			Description: "Additional instance tags",
 			Elem:        schema.TypeString,
 			DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-				return isLabelOrTagReserved(k)
+				return matakubeResourceNodeDeploymentLabelOrTagReserved(k)
 			},
 			ValidateFunc: func(v interface{}, k string) (strings []string, errors []error) {
 				l := v.(map[string]interface{})
 				for key := range l {
-					if err := validateLabelOrTag(key); err != nil {
+					if err := matakubeResourceNodeDeploymentValidateLabelOrTag(key); err != nil {
 						errors = append(errors, err)
 					}
 				}
@@ -338,7 +338,7 @@ func isNonEmptyDurationString(v interface{}, p cty.Path) diag.Diagnostics {
 	}
 }
 
-func nodeDeploymentSpecCloudAzureSchema() *schema.Schema {
+func metakubeResourceNodeDeploymentAzureSchema() *schema.Schema {
 	return &schema.Schema{
 		Type:        schema.TypeList,
 		Optional:    true,
@@ -383,12 +383,12 @@ func nodeDeploymentSpecCloudAzureSchema() *schema.Schema {
 					Description: "Additional metadata to set",
 					Elem:        schema.TypeString,
 					DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-						return isLabelOrTagReserved(k)
+						return matakubeResourceNodeDeploymentLabelOrTagReserved(k)
 					},
 					ValidateFunc: func(v interface{}, k string) (strings []string, errors []error) {
 						l := v.(map[string]interface{})
 						for key := range l {
-							if err := validateLabelOrTag(key); err != nil {
+							if err := matakubeResourceNodeDeploymentValidateLabelOrTag(key); err != nil {
 								errors = append(errors, err)
 							}
 						}

@@ -104,7 +104,7 @@ func checkEnv(t *testing.T, n string) {
 	}
 }
 
-func randomTestName() string {
+func makeRandomString() string {
 	return randomName(testNamePrefix, 10)
 }
 

@@ -18,7 +18,11 @@ func validateNodeSpecMatchesCluster() schema.CustomizeDiffFunc {
 		if clusterID == "" {
 			return nil
 		}
-		cluster, err := getClusterForNodeDeployment(clusterID, k)
+		projectID := d.Get("project_id").(string)
+		if projectID == "" {
+			return nil
+		}
+		cluster, err := metakubeGetCluster(projectID, clusterID, k)
 		if err != nil {
 			return err
 		}
@@ -134,19 +138,13 @@ func validateKubeletVersionIsAvailable(d *schema.ResourceDiff, k *metakubeProvid
 	return fmt.Errorf("unknown version for node deployment %s, available versions %v", version, availableVersions)
 }
 
-func getClusterForNodeDeployment(id string, k *metakubeProviderMeta) (*models.Cluster, error) {
-	projectID, seedDC, clusterID, err := metakubeClusterParseID(id)
+func metakubeGetCluster(proj, cls string, k *metakubeProviderMeta) (*models.Cluster, error) {
+	p := project.NewGetClusterV2Params().
+		WithProjectID(proj).
+		WithClusterID(cls)
+	r, err := k.client.Project.GetClusterV2(p, k.auth)
 	if err != nil {
-		return nil, err
-	}
-
-	p := project.NewGetClusterParams()
-	p.SetProjectID(projectID)
-	p.SetDC(seedDC)
-	p.SetClusterID(clusterID)
-	r, err := k.client.Project.GetCluster(p, k.auth)
-	if err != nil {
-		return nil, fmt.Errorf("unable to get cluster %s in project %s in seed dc %s - error: %v", clusterID, projectID, seedDC, err)
+		return nil, fmt.Errorf("unable to get cluster %s in project %s - error: %v", cls, proj, err)
 	}
 
 	return r.Payload, nil

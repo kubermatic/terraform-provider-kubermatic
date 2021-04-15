@@ -5,7 +5,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
-func clusterSpecFields() map[string]*schema.Schema {
+func metakubeResourceClusterSpecFields() map[string]*schema.Schema {
 	return map[string]*schema.Schema{
 		"version": {
 			Type:        schema.TypeString,
@@ -41,7 +41,7 @@ func clusterSpecFields() map[string]*schema.Schema {
 						MaxItems:    1,
 						Description: "AWS cluster specification",
 						Elem: &schema.Resource{
-							Schema: awsCloudSpecFields(),
+							Schema: metakubeResourceCluserAWSCloudSpecFields(),
 						},
 						ConflictsWith: []string{"spec.0.cloud.0.bringyourown", "spec.0.cloud.0.openstack", "spec.0.cloud.0.azure"},
 					},
@@ -51,7 +51,7 @@ func clusterSpecFields() map[string]*schema.Schema {
 						MaxItems:    1,
 						Description: "OpenStack cluster specification",
 						Elem: &schema.Resource{
-							Schema: openstackCloudSpecFields(),
+							Schema: metakubeResourceClusterOpenstackCloudSpecFields(),
 						},
 						ConflictsWith: []string{"spec.0.cloud.0.aws", "spec.0.cloud.0.bringyourown", "spec.0.cloud.0.azure"},
 					},
@@ -61,7 +61,7 @@ func clusterSpecFields() map[string]*schema.Schema {
 						ForceNew:    true,
 						Description: "Azire cluster specification",
 						Elem: &schema.Resource{
-							Schema: azureCloudSpecFields(),
+							Schema: metakubeResourceClusterAzureSpecFields(),
 						},
 						ConflictsWith: []string{"spec.0.cloud.0.aws", "spec.0.cloud.0.openstack", "spec.0.cloud.0.bringyourown"},
 					},
@@ -136,7 +136,7 @@ func clusterSpecFields() map[string]*schema.Schema {
 	}
 }
 
-func azureCloudSpecFields() map[string]*schema.Schema {
+func metakubeResourceClusterAzureSpecFields() map[string]*schema.Schema {
 	return map[string]*schema.Schema{
 		"availability_set": {
 			Type:     schema.TypeString,
@@ -187,7 +187,7 @@ func azureCloudSpecFields() map[string]*schema.Schema {
 	}
 }
 
-func awsCloudSpecFields() map[string]*schema.Schema {
+func metakubeResourceCluserAWSCloudSpecFields() map[string]*schema.Schema {
 	return map[string]*schema.Schema{
 		"access_key_id": {
 			Type:        schema.TypeString,
@@ -229,12 +229,11 @@ func awsCloudSpecFields() map[string]*schema.Schema {
 	}
 }
 
-func openstackCloudSpecFields() map[string]*schema.Schema {
+func metakubeResourceClusterOpenstackCloudSpecFields() map[string]*schema.Schema {
 	return map[string]*schema.Schema{
 		"tenant": {
 			Type:         schema.TypeString,
 			Required:     true,
-			ForceNew:     true,
 			DefaultFunc:  schema.EnvDefaultFunc("OS_PROJECT", ""),
 			ValidateFunc: validation.NoZeroValues,
 			Description:  "The opestack project to use for billing",

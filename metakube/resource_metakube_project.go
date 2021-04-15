@@ -18,11 +18,6 @@ import (
 )
 
 const (
-	projectActive    = "Active"
-	projectInactive  = "Inactive"
-	usersReady       = "Ready"
-	usersUnavailable = "Unavailable"
-
 	projectSchemaName              = "name"
 	projectSchemaLabels            = "labels"
 	projectSchemaUsers             = "user"
@@ -33,12 +28,12 @@ const (
 	projectUserSchemaGroup         = "group"
 )
 
-func resourceProject() *schema.Resource {
+func metakubeResourceProject() *schema.Resource {
 	return &schema.Resource{
-		CreateContext: resourceProjectCreate,
-		ReadContext:   resourceProjectRead,
-		UpdateContext: resourceProjectUpdate,
-		DeleteContext: resourceProjectDelete,
+		CreateContext: metakubeResourceProjectCreate,
+		ReadContext:   metakubeResourceProjectRead,
+		UpdateContext: metakubeResourceProjectUpdate,
+		DeleteContext: metakubeResourceProjectDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -106,7 +101,7 @@ func projectUsersSchema() *schema.Resource {
 	}
 }
 
-func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func metakubeResourceProjectCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	k := m.(*metakubeProviderMeta)
 
 	p := project.NewCreateProjectParams()
@@ -117,7 +112,7 @@ func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, m interf
 	})
 	r, err := k.client.Project.CreateProject(p, k.auth)
 	if err != nil {
-		return diag.Errorf("%s", getErrorResponse(err))
+		return diag.Errorf("%s", stringifyResponseError(err))
 	}
 
 	projectID := r.Payload.ID
@@ -129,7 +124,7 @@ func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, m interf
 		return diag.FromErr(err)
 	}
 
-	ret := resourceProjectRead(ctx, d, m)
+	ret := metakubeResourceProjectRead(ctx, d, m)
 
 	if v, ok := d.GetOk(projectSchemaUsers); ok {
 		if vv, ok := v.(*schema.Set); ok && vv.Len() > 0 {
@@ -144,31 +139,33 @@ func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, m interf
 }
 
 func metakubeProjectWaitForActiveStatus(ctx context.Context, d *schema.ResourceData, projectID string, k *metakubeProviderMeta) error {
-	createStateConf := &resource.StateChangeConf{
-		Pending: []string{
-			projectInactive,
-		},
-		Target: []string{
-			projectActive,
-		},
+	const (
+		pending = "Inactive"
+		target  = "Active"
+	)
+	stateActive := &resource.StateChangeConf{
+		Pending: []string{pending},
+		Target:  []string{target},
 		Refresh: func() (interface{}, string, error) {
-			p := project.NewGetProjectParams().WithContext(ctx).WithProjectID(projectID)
+			p := project.NewGetProjectParams().
+				WithContext(ctx).
+				WithProjectID(projectID)
 			r, err := k.client.Project.GetProject(p, k.auth)
 			if err != nil {
 				if e, ok := err.(*project.GetProjectDefault); ok && (e.Code() == http.StatusForbidden || e.Code() == http.StatusNotFound) {
-					return r, projectInactive, fmt.Errorf("project not ready: %v", err)
+					return r, pending, fmt.Errorf("project not ready: %v", err)
 				}
 				return nil, "", err
 			}
 			k.log.Debugf("creating project '%s', currently in '%s' state", projectID, r.Payload.Status)
-			return r, projectActive, nil
+			return r, target, nil
 		},
 		Timeout:    d.Timeout(schema.TimeoutCreate),
 		MinTimeout: 5 * retryTimeout,
 		Delay:      5 * requestDelay,
 	}
 
-	if _, err := createStateConf.WaitForStateContext(ctx); err != nil {
+	if _, err := stateActive.WaitForStateContext(ctx); err != nil {
 		k.log.Debugf("error while waiting for project '%s' to be created: %s", projectID, err)
 		return fmt.Errorf("error while waiting for project '%s' to be created: %s", projectID, err)
 	}
@@ -187,7 +184,7 @@ func metakubeProjectConfiguredLabels(d *schema.ResourceData) map[string]string {
 	return nil
 }
 
-func resourceProjectRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func metakubeResourceProjectRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	k := m.(*metakubeProviderMeta)
 	p := project.NewGetProjectParams()
 	p.WithContext(ctx)
@@ -200,13 +197,10 @@ func resourceProjectRead(ctx context.Context, d *schema.ResourceData, m interfac
 			comment := fmt.Sprintf("removing project '%s' from terraform state file, code '%d' has been returned", d.Id(), e.Code())
 			k.log.Info(comment)
 			d.SetId("")
-			return diag.Diagnostics{{
-				Severity: diag.Warning,
-				Summary:  comment,
-			}}
+			return nil
 		}
 
-		return diag.Errorf("unable to get project '%s': %s", d.Id(), getErrorResponse(err))
+		return diag.Errorf("unable to get project '%s': %s", d.Id(), stringifyResponseError(err))
 	}
 
 	if err := d.Set(projectSchemaLabels, r.Payload.Labels); err != nil {
@@ -264,7 +258,7 @@ func flattenedProjectUsers(cur *models.User, u map[string]models.User) *schema.S
 	return schema.NewSet(schema.HashResource(projectUsersSchema()), items)
 }
 
-func resourceProjectUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func metakubeResourceProjectUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	k := m.(*metakubeProviderMeta)
 	p := project.NewUpdateProjectParams()
 	p.Body = &models.Project{
@@ -275,10 +269,10 @@ func resourceProjectUpdate(ctx context.Context, d *schema.ResourceData, m interf
 
 	_, err := k.client.Project.UpdateProject(p.WithProjectID(d.Id()), k.auth)
 	if err != nil {
-		return diag.Errorf("unable to update project '%s': %s", d.Id(), getErrorResponse(err))
+		return diag.Errorf("unable to update project '%s': %s", d.Id(), stringifyResponseError(err))
 	}
 
-	ret := resourceProjectRead(ctx, d, m)
+	ret := metakubeResourceProjectRead(ctx, d, m)
 	if d.HasChange(projectSchemaUsers) {
 		return append(ret, diag.Diagnostic{
 			Severity:      diag.Error,
@@ -340,10 +334,7 @@ func metakubeProjectEditUser(ctx context.Context, k *metakubeProviderMeta, pid s
 	p.SetBody(u)
 	_, err := k.client.Users.EditUserInProject(p, k.auth)
 	if err != nil {
-		if e, ok := err.(*users.EditUserInProjectDefault); ok && errorMessage(e.Payload) != "" {
-			return fmt.Errorf("edit user in project errored: %s", errorMessage(e.Payload))
-		}
-		return fmt.Errorf("edit user in project errored: %v", err)
+		return fmt.Errorf("edit user in project errored: %v", stringifyResponseError(err))
 	}
 	return nil
 }
@@ -355,10 +346,7 @@ func metakubeProjectDeleteUser(ctx context.Context, k *metakubeProviderMeta, pid
 	p.SetUserID(uid)
 	_, err := k.client.Users.DeleteUserFromProject(p, k.auth)
 	if err != nil {
-		if e, ok := err.(*users.DeleteUserFromProjectDefault); ok && errorMessage(e.Payload) != "" {
-			return fmt.Errorf("delete user from project: %s", errorMessage(e.Payload))
-		}
-		return fmt.Errorf("delete user from project: %v", err)
+		return fmt.Errorf("delete user from project: %v", stringifyResponseError(err))
 	}
 	return nil
 }
@@ -369,10 +357,7 @@ func metakubeProjectAddUser(ctx context.Context, k *metakubeProviderMeta, pid st
 	p.SetContext(ctx)
 	p.SetBody(u)
 	if _, err := k.client.Users.AddUserToProject(p, k.auth); err != nil {
-		if e, ok := err.(*users.AddUserToProjectDefault); ok && errorMessage(e.Payload) != "" {
-			return fmt.Errorf("add user to project: %s", errorMessage(e.Payload))
-		}
-		return fmt.Errorf("add user to project: %v", err)
+		return fmt.Errorf("add user to project: %v", stringifyResponseError(err))
 	}
 	return nil
 }
@@ -380,22 +365,19 @@ func metakubeProjectAddUser(ctx context.Context, k *metakubeProviderMeta, pid st
 func metakubeProjectCurrentUser(ctx context.Context, k *metakubeProviderMeta) (*models.User, error) {
 	r, err := k.client.Users.GetCurrentUser(users.NewGetCurrentUserParams().WithContext(ctx), k.auth)
 	if err != nil {
-		if e, ok := err.(*users.GetCurrentUserDefault); ok && errorMessage(e.Payload) != "" {
-			return nil, fmt.Errorf("get current user errored: %s", errorMessage(e.Payload))
-		}
-		return nil, fmt.Errorf("get current user errored: %v", err)
+		return nil, fmt.Errorf("get current user errored: %v", stringifyResponseError(err))
 	}
 	return r.Payload, nil
 }
 
 func metakubeProjectUsers(ctx context.Context, k *metakubeProviderMeta, id string) (map[string]models.User, error) {
+	const (
+		pending = "Unavailable"
+		target  = "Ready"
+	)
 	listStateConf := &resource.StateChangeConf{
-		Pending: []string{
-			usersUnavailable,
-		},
-		Target: []string{
-			usersReady,
-		},
+		Pending: []string{pending},
+		Target:  []string{target},
 		Refresh: func() (interface{}, string, error) {
 			p := users.NewGetUsersForProjectParams()
 			p.SetContext(ctx)
@@ -403,13 +385,13 @@ func metakubeProjectUsers(ctx context.Context, k *metakubeProviderMeta, id strin
 
 			r, err := k.client.Users.GetUsersForProject(p, k.auth)
 			if err != nil {
-				return nil, usersUnavailable, fmt.Errorf("%v", getErrorResponse(err))
+				return nil, pending, fmt.Errorf("%v", stringifyResponseError(err))
 			}
 			ret := make(map[string]models.User)
 			for _, p := range r.Payload {
 				ret[p.Email] = *p
 			}
-			return ret, usersReady, nil
+			return ret, target, nil
 		},
 		Timeout: 10 * time.Second,
 		Delay:   5 * requestDelay,
@@ -439,7 +421,7 @@ func metakubeProjectConfiguredUsers(d *schema.ResourceData) map[string]models.Us
 	return ret
 }
 
-func resourceProjectDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func metakubeResourceProjectDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	k := m.(*metakubeProviderMeta)
 	p := project.NewDeleteProjectParams()
 	p.SetContext(ctx)
@@ -449,7 +431,7 @@ func resourceProjectDelete(ctx context.Context, d *schema.ResourceData, m interf
 			k.log.Warnf("project '%s' was not found", d.Id())
 			return nil
 		}
-		return diag.Errorf("unable to delete project '%s': %s", d.Id(), getErrorResponse(err))
+		return diag.Errorf("unable to delete project '%s': %s", d.Id(), stringifyResponseError(err))
 	}
 
 	err = resource.RetryContext(ctx, d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {

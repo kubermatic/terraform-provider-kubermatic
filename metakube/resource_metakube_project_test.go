@@ -2,15 +2,14 @@ package metakube
 
 import (
 	"fmt"
-	"os"
 	"reflect"
+	"regexp"
 	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"github.com/syseleven/terraform-provider-metakube/go-metakube/client/project"
-	"github.com/syseleven/terraform-provider-metakube/go-metakube/client/users"
 	"github.com/syseleven/terraform-provider-metakube/go-metakube/models"
 )
 
@@ -49,11 +48,10 @@ func testSweepProject(region string) error {
 	return nil
 }
 
-func TestAccMetaKubeProject_Basic(t *testing.T) {
+func TestAccMetakubeProject_BasicAndImport(t *testing.T) {
 	var project models.Project
-	var projectUsers []*models.User
-	projectName := randomTestName()
-	otherUsersEmail := os.Getenv(testEnvOtherUserEmail)
+	projectName := makeRandomString()
+	resourceName := "metakube_project.foobar"
 
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -66,12 +64,10 @@ func TestAccMetaKubeProject_Basic(t *testing.T) {
 			{
 				Config: fmt.Sprintf(testAccCheckMetaKubeProjectConfigBasic, projectName),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					testAccCheckMetaKubeProjectExists("metakube_project.foobar", &project, &projectUsers),
-					testAccCheckMetaKubeProjectAttributes(&project, &projectUsers, 1, projectName, map[string]string{
+					testAccCheckMetaKubeProjectExists("metakube_project.foobar", &project),
+					testAccCheckMetaKubeProjectAttributes(&project, projectName, map[string]string{
 						"foo": "bar",
 					}),
-					resource.TestCheckResourceAttr(
-						"metakube_project.foobar", "user.#", "0"),
 					resource.TestCheckResourceAttr(
 						"metakube_project.foobar", "name", projectName),
 					resource.TestCheckResourceAttr(
@@ -79,15 +75,13 @@ func TestAccMetaKubeProject_Basic(t *testing.T) {
 				),
 			},
 			{
-				Config: fmt.Sprintf(testAccCheckMetaKubeProjectConfigBasic2, projectName, otherUsersEmail),
+				Config: fmt.Sprintf(testAccCheckMetaKubeProjectConfigBasic2, projectName),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					testAccCheckMetaKubeProjectExists("metakube_project.foobar", &project, &projectUsers),
-					testAccCheckMetaKubeProjectAttributes(&project, &projectUsers, 2, projectName+"-changed", map[string]string{
+					testAccCheckMetaKubeProjectExists("metakube_project.foobar", &project),
+					testAccCheckMetaKubeProjectAttributes(&project, projectName+"-changed", map[string]string{
 						"foo":     "bar-changed",
 						"new-key": "new-value",
 					}),
-					resource.TestCheckResourceAttr(
-						"metakube_project.foobar", "user.#", "1"),
 					resource.TestCheckResourceAttr(
 						"metakube_project.foobar", "name", projectName+"-changed"),
 					resource.TestCheckResourceAttr(
@@ -95,6 +89,19 @@ func TestAccMetaKubeProject_Basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"metakube_project.foobar", "labels.new-key", "new-value"),
 				),
+			},
+			{
+				ResourceName:      resourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+			// Test importing non-existent resource provides expected error.
+			{
+				ResourceName:      resourceName,
+				ImportState:       true,
+				ImportStateVerify: false,
+				ImportStateId:     "123abc",
+				ExpectError:       regexp.MustCompile(`(Please verify the ID is correct|Cannot import non-existent remote object)`),
 			},
 		},
 	})
@@ -135,15 +142,10 @@ resource "metakube_project" "foobar" {
 		"foo" = "bar-changed"
 		"new-key" = "new-value"
 	}
-
-	user {
-		email = "%s"
-		group = "viewers"
-	}
 }
 `
 
-func testAccCheckMetaKubeProjectExists(n string, rec *models.Project, u *[]*models.User) resource.TestCheckFunc {
+func testAccCheckMetaKubeProjectExists(n string, rec *models.Project) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 
@@ -168,18 +170,11 @@ func testAccCheckMetaKubeProjectExists(n string, rec *models.Project, u *[]*mode
 
 		*rec = *r.Payload
 
-		r2, err := k.client.Users.GetUsersForProject(users.NewGetUsersForProjectParams().WithProjectID(rec.ID), k.auth)
-		if err != nil {
-			return fmt.Errorf("GetUsersForProject: %v", err)
-		}
-
-		*u = r2.Payload
-
 		return nil
 	}
 }
 
-func testAccCheckMetaKubeProjectAttributes(rec *models.Project, users *[]*models.User, wantUsers int, name string, labels map[string]string) resource.TestCheckFunc {
+func testAccCheckMetaKubeProjectAttributes(rec *models.Project, name string, labels map[string]string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		if rec.Name != name {
 			return fmt.Errorf("want project.Name=%s, got %s", name, rec.Name)
@@ -187,11 +182,6 @@ func testAccCheckMetaKubeProjectAttributes(rec *models.Project, users *[]*models
 		if !reflect.DeepEqual(rec.Labels, labels) {
 			return fmt.Errorf("want project.Labels=%+v, got %+v", labels, rec.Labels)
 		}
-
-		if len(*users) != wantUsers {
-			return fmt.Errorf("want %d project user, got %d", wantUsers, len(*users))
-		}
-
 		return nil
 	}
 }
