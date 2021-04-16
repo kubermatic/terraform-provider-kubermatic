@@ -1,7 +1,7 @@
 package metakube
 
 import (
-	"github.com/syseleven/terraform-provider-metakube/go-metakube/models"
+	"github.com/syseleven/go-metakube/models"
 )
 
 // flatteners

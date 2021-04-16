@@ -8,8 +8,8 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
-	"github.com/syseleven/terraform-provider-metakube/go-metakube/client/project"
-	"github.com/syseleven/terraform-provider-metakube/go-metakube/models"
+	"github.com/syseleven/go-metakube/client/project"
+	"github.com/syseleven/go-metakube/models"
 )
 
 func TestAccMetakubeNodeDeployment_Openstack_Basic(t *testing.T) {

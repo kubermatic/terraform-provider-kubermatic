@@ -15,7 +15,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/mitchellh/go-homedir"
-	k8client "github.com/syseleven/terraform-provider-metakube/go-metakube/client"
+	k8client "github.com/syseleven/go-metakube/client"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )

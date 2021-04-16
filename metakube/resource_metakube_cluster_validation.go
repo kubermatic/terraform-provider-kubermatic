@@ -7,9 +7,9 @@ import (
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/syseleven/terraform-provider-metakube/go-metakube/client/openstack"
-	"github.com/syseleven/terraform-provider-metakube/go-metakube/client/versions"
-	"github.com/syseleven/terraform-provider-metakube/go-metakube/models"
+	"github.com/syseleven/go-metakube/client/openstack"
+	"github.com/syseleven/go-metakube/client/versions"
+	"github.com/syseleven/go-metakube/models"
 )
 
 type metakubeResourceClusterOpenstackValidationData struct {

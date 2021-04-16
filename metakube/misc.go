@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/syseleven/terraform-provider-metakube/go-metakube/models"
+	"github.com/syseleven/go-metakube/models"
 )
 
 func stringifyResponseError(resErr error) string {

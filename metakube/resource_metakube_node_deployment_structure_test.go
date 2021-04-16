@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/syseleven/terraform-provider-metakube/go-metakube/models"
+	"github.com/syseleven/go-metakube/models"
 )
 
 func TestMetakubeNodeDeploymentFlatten(t *testing.T) {

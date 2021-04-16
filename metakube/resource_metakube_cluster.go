@@ -13,9 +13,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
-	"github.com/syseleven/terraform-provider-metakube/go-metakube/client/datacenter"
-	"github.com/syseleven/terraform-provider-metakube/go-metakube/client/project"
-	"github.com/syseleven/terraform-provider-metakube/go-metakube/models"
+	"github.com/syseleven/go-metakube/client/datacenter"
+	"github.com/syseleven/go-metakube/client/project"
+	"github.com/syseleven/go-metakube/models"
 )
 
 func metakubeResourceCluster() *schema.Resource {

@@ -12,8 +12,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/syseleven/terraform-provider-metakube/go-metakube/client/project"
-	"github.com/syseleven/terraform-provider-metakube/go-metakube/models"
+	"github.com/syseleven/go-metakube/client/project"
+	"github.com/syseleven/go-metakube/models"
 )
 
 func metakubeResourceNodeDeployment() *schema.Resource {
