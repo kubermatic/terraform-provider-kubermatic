@@ -3,6 +3,7 @@ package metakube
 import (
 	"fmt"
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/go-cty/cty"
@@ -12,8 +13,21 @@ import (
 )
 
 func matakubeResourceNodeDeploymentLabelOrTagReserved(path string) bool {
-	r := regexp.MustCompile(`(tags|labels)\.(metakube|system|kubernetes\.io)(\/|\-)`)
-	return r.MatchString(path)
+	for _, substr := range []string{
+		"%",
+		"%",
+		"metakube-cluster",
+		"system-project",
+		"system-cluster",
+		"system/cluster",
+		"system/project",
+		"kubernetes.io",
+	} {
+		if strings.Contains(path, substr) {
+			return true
+		}
+	}
+	return false
 }
 
 func matakubeResourceNodeDeploymentValidateLabelOrTag(key string) error {
@@ -73,7 +87,9 @@ func matakubeResourceNodeDeploymentSpecFields() map[string]*schema.Schema {
 									Optional:    true,
 									Type:        schema.TypeMap,
 									Description: "Bring your own infrastructure",
-									Elem:        schema.TypeString,
+									Elem: &schema.Schema{
+										Type: schema.TypeString,
+									},
 								},
 								"aws": {
 									Type:        schema.TypeList,
@@ -128,15 +144,14 @@ func matakubeResourceNodeDeploymentSpecFields() map[string]*schema.Schema {
 					},
 					"versions": {
 						Type:        schema.TypeList,
-						Optional:    true,
+						Required:    true,
 						MaxItems:    1,
 						Description: "Cloud components versions",
 						Elem: &schema.Resource{
 							Schema: map[string]*schema.Schema{
 								"kubelet": {
 									Type:        schema.TypeString,
-									Optional:    true,
-									Computed:    true,
+									Required:    true,
 									Description: "Kubelet version",
 								},
 							},
@@ -147,8 +162,10 @@ func matakubeResourceNodeDeploymentSpecFields() map[string]*schema.Schema {
 						Optional: true,
 						Description: "Map of string keys and values that can be used to organize and categorize (scope and select) objects. " +
 							"It will be applied to Nodes allowing users run their apps on specific Node using labelSelector.",
-						Elem: schema.TypeString,
-						DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+						Elem: &schema.Schema{
+							Type: schema.TypeString,
+						},
+						DiffSuppressFunc: func(k, a, b string, d *schema.ResourceData) bool {
 							return matakubeResourceNodeDeploymentLabelOrTagReserved(k)
 						},
 						ValidateFunc: func(v interface{}, k string) (strings []string, errors []error) {
@@ -235,7 +252,9 @@ func matakubeResourceNodeDeploymentAWSSchema() map[string]*schema.Schema {
 			Type:        schema.TypeMap,
 			Optional:    true,
 			Description: "Additional instance tags",
-			Elem:        schema.TypeString,
+			Elem: &schema.Schema{
+				Type: schema.TypeString,
+			},
 			DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
 				return matakubeResourceNodeDeploymentLabelOrTagReserved(k)
 			},
@@ -274,7 +293,9 @@ func matakubeResourceNodeDeploymentCloudOpenstackSchema() map[string]*schema.Sch
 			Type:        schema.TypeMap,
 			Optional:    true,
 			Description: "Additional instance tags",
-			Elem:        schema.TypeString,
+			Elem: &schema.Schema{
+				Type: schema.TypeString,
+			},
 			DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
 				return matakubeResourceNodeDeploymentLabelOrTagReserved(k)
 			},
@@ -376,7 +397,9 @@ func metakubeResourceNodeDeploymentAzureSchema() *schema.Schema {
 					Type:        schema.TypeMap,
 					Optional:    true,
 					Description: "Additional metadata to set",
-					Elem:        schema.TypeString,
+					Elem: &schema.Schema{
+						Type: schema.TypeString,
+					},
 					DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
 						return matakubeResourceNodeDeploymentLabelOrTagReserved(k)
 					},

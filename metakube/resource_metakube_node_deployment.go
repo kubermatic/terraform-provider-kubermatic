@@ -159,7 +159,7 @@ func metakubeResourceNodeDeploymentCreate(ctx context.Context, d *schema.Resourc
 	d.SetId(r.Payload.ID)
 	d.Set("project_id", projectID)
 
-	if err := metakubeResourceNodeDeploymentWaitForReady(ctx, k, d.Timeout(schema.TimeoutCreate), projectID, clusterID, r.Payload.ID); err != nil {
+	if err := metakubeResourceNodeDeploymentWaitForReady(ctx, k, d.Timeout(schema.TimeoutCreate), projectID, clusterID, r.Payload.ID, 0); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -216,19 +216,19 @@ func metakubeResourceNodeDeploymentUpdate(ctx context.Context, d *schema.Resourc
 		Spec: metakubeNodeDeploymentExpandSpec(d.Get("spec").([]interface{})),
 	})
 
-	_, err := k.client.Project.PatchMachineDeployment(p, k.auth)
+	res, err := k.client.Project.PatchMachineDeployment(p, k.auth)
 	if err != nil {
 		return diag.Errorf("unable to update a node deployment: %v", stringifyResponseError(err))
 	}
 
-	if err := metakubeResourceNodeDeploymentWaitForReady(ctx, k, d.Timeout(schema.TimeoutCreate), projectID, clusterID, d.Id()); err != nil {
+	if err := metakubeResourceNodeDeploymentWaitForReady(ctx, k, d.Timeout(schema.TimeoutCreate), projectID, clusterID, d.Id(), res.Payload.Status.ObservedGeneration); err != nil {
 		return diag.FromErr(err)
 	}
 
 	return metakubeResourceNodeDeploymentRead(ctx, d, m)
 }
 
-func metakubeResourceNodeDeploymentWaitForReady(ctx context.Context, k *metakubeProviderMeta, timeout time.Duration, projectID, clusterID, id string) error {
+func metakubeResourceNodeDeploymentWaitForReady(ctx context.Context, k *metakubeProviderMeta, timeout time.Duration, projectID, clusterID, id string, generation int64) error {
 	return resource.RetryContext(ctx, timeout, func() *resource.RetryError {
 		p := project.NewGetMachineDeploymentParams().
 			WithContext(ctx).
@@ -241,7 +241,7 @@ func metakubeResourceNodeDeploymentWaitForReady(ctx context.Context, k *metakube
 			return resource.RetryableError(fmt.Errorf("unable to get node deployment %v", err))
 		}
 
-		if r.Payload.Status.ReadyReplicas < *r.Payload.Spec.Replicas {
+		if r.Payload.Status.ReadyReplicas < *r.Payload.Spec.Replicas || r.Payload.Status.ObservedGeneration <= generation || r.Payload.Status.UnavailableReplicas != 0 {
 			k.log.Debugf("waiting for node deployment '%s' to be ready, %+v", id, r.Payload.Status)
 			return resource.RetryableError(fmt.Errorf("waiting for node deployment '%s' to be ready", id))
 		}

@@ -22,7 +22,7 @@ func TestAccMetakubeNodeDeployment_Openstack_Basic(t *testing.T) {
 	tenant := os.Getenv(testEnvOpenstackTenant)
 	nodeDC := os.Getenv(testEnvOpenstackNodeDC)
 	image := os.Getenv(testEnvOpenstackImage)
-	// image2 := os.Getenv(testEnvOpenstackImage2)
+	image2 := os.Getenv(testEnvOpenstackImage2)
 	flavor := os.Getenv(testEnvOpenstackFlavor)
 	k8sVersion17 := os.Getenv(testEnvK8sVersion)
 	kubeletVersion16 := os.Getenv(testEnvK8sOlderVersion)
@@ -47,29 +47,33 @@ func TestAccMetakubeNodeDeployment_Openstack_Basic(t *testing.T) {
 					resource.TestCheckResourceAttr(resourceName, "spec.0.dynamic_config", "false"),
 				),
 			},
-			// {
-			// 	Config: testAccCheckMetaKubeNodeDeploymentBasic2(testName, nodeDC, username, password, tenant, k8sVersion17, kubeletVersion16, image2, flavor),
-			// 	Check: resource.ComposeAggregateTestCheckFunc(
-			// 		testResourceInstanceState(resourceName, func(is *terraform.InstanceState) error {
-			// 			// Record IDs to test import
-			// 			if is.ID != ndepl.ID {
-			// 				return fmt.Errorf("node deployment not updated. Want ID=%v, got %v", ndepl.ID, is.ID)
-			// 			}
-			// 			return nil
-			// 		}),
-			// 		testAccCheckMetaKubeNodeDeploymentExists(resourceName, &ndepl),
-			// 		testAccCheckMetaKubeNodeDeploymentFields(&ndepl, flavor, image2, kubeletVersion16, 1, 123, true),
-			// 		resource.TestCheckResourceAttr(resourceName, "name", testName),
-			// 		resource.TestCheckResourceAttr(resourceName, "spec.0.replicas", "1"),
-			// 		resource.TestCheckResourceAttr(resourceName, "spec.0.template.0.cloud.0.openstack.0.flavor", flavor),
-			// 		resource.TestCheckResourceAttr(resourceName, "spec.0.template.0.cloud.0.openstack.0.image", image2),
-			// 		resource.TestCheckResourceAttr(resourceName, "spec.0.template.0.cloud.0.openstack.0.use_floating_ip", "true"),
-			// 		resource.TestCheckResourceAttr(resourceName, "spec.0.template.0.cloud.0.openstack.0.disk_size", "123"),
-			// 		resource.TestCheckResourceAttr(resourceName, "spec.0.template.0.operating_system.0.ubuntu.0.dist_upgrade_on_boot", "true"),
-			// 		resource.TestCheckResourceAttr(resourceName, "spec.0.template.0.versions.0.kubelet", kubeletVersion16),
-			// 		resource.TestCheckResourceAttr(resourceName, "spec.0.dynamic_config", "true"),
-			// 	),
-			// },
+			{
+				Config: testAccCheckMetaKubeNodeDeploymentBasic2(testName, nodeDC, username, password, tenant, k8sVersion17, kubeletVersion16, image2, flavor),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testResourceInstanceState(resourceName, func(is *terraform.InstanceState) error {
+						// Record IDs to test import
+						if is.ID != ndepl.ID {
+							return fmt.Errorf("node deployment not updated. Want ID=%v, got %v", ndepl.ID, is.ID)
+						}
+						return nil
+					}),
+					testAccCheckMetaKubeNodeDeploymentExists(resourceName, &ndepl),
+					testAccCheckMetaKubeNodeDeploymentFields(&ndepl, flavor, image2, kubeletVersion16, 1, 123, true),
+					resource.TestCheckResourceAttr(resourceName, "name", testName),
+					resource.TestCheckResourceAttr(resourceName, "spec.0.replicas", "1"),
+					resource.TestCheckResourceAttr(resourceName, "spec.0.template.0.cloud.0.openstack.0.flavor", flavor),
+					resource.TestCheckResourceAttr(resourceName, "spec.0.template.0.cloud.0.openstack.0.image", image2),
+					resource.TestCheckResourceAttr(resourceName, "spec.0.template.0.cloud.0.openstack.0.use_floating_ip", "true"),
+					resource.TestCheckResourceAttr(resourceName, "spec.0.template.0.cloud.0.openstack.0.disk_size", "123"),
+					resource.TestCheckResourceAttr(resourceName, "spec.0.template.0.operating_system.0.ubuntu.0.dist_upgrade_on_boot", "true"),
+					resource.TestCheckResourceAttr(resourceName, "spec.0.template.0.versions.0.kubelet", kubeletVersion16),
+					resource.TestCheckResourceAttr(resourceName, "spec.0.dynamic_config", "true"),
+				),
+			},
+			{
+				Config:   testAccCheckMetaKubeNodeDeploymentBasic2(testName, nodeDC, username, password, tenant, k8sVersion17, kubeletVersion16, image2, flavor),
+				PlanOnly: true,
+			},
 			{
 				ResourceName:      resourceName,
 				ImportState:       true,
