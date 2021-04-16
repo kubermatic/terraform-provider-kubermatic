@@ -129,7 +129,6 @@ func matakubeResourceNodeDeploymentSpecFields() map[string]*schema.Schema {
 					"versions": {
 						Type:        schema.TypeList,
 						Optional:    true,
-						Computed:    true,
 						MaxItems:    1,
 						Description: "Cloud components versions",
 						Elem: &schema.Resource{
@@ -146,7 +145,6 @@ func matakubeResourceNodeDeploymentSpecFields() map[string]*schema.Schema {
 					"labels": {
 						Type:     schema.TypeMap,
 						Optional: true,
-						Computed: true,
 						Description: "Map of string keys and values that can be used to organize and categorize (scope and select) objects. " +
 							"It will be applied to Nodes allowing users run their apps on specific Node using labelSelector.",
 						Elem: schema.TypeString,
@@ -236,7 +234,6 @@ func matakubeResourceNodeDeploymentAWSSchema() map[string]*schema.Schema {
 		"tags": {
 			Type:        schema.TypeMap,
 			Optional:    true,
-			Computed:    true,
 			Description: "Additional instance tags",
 			Elem:        schema.TypeString,
 			DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
@@ -276,7 +273,6 @@ func matakubeResourceNodeDeploymentCloudOpenstackSchema() map[string]*schema.Sch
 		"tags": {
 			Type:        schema.TypeMap,
 			Optional:    true,
-			Computed:    true,
 			Description: "Additional instance tags",
 			Elem:        schema.TypeString,
 			DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
@@ -379,7 +375,6 @@ func metakubeResourceNodeDeploymentAzureSchema() *schema.Schema {
 				"tags": {
 					Type:        schema.TypeMap,
 					Optional:    true,
-					Computed:    true,
 					Description: "Additional metadata to set",
 					Elem:        schema.TypeString,
 					DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
@@ -398,7 +393,6 @@ func metakubeResourceNodeDeploymentAzureSchema() *schema.Schema {
 				"zones": {
 					Type:        schema.TypeList,
 					Optional:    true,
-					Computed:    true,
 					Description: "Represents the availablity zones for azure vms",
 					Elem:        &schema.Schema{Type: schema.TypeString},
 				},
