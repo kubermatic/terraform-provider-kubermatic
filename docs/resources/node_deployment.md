@@ -64,7 +64,7 @@ The following arguments are supported:
 * `cloud` - (Required) Cloud specification.
 * `operating_system` - (Required) Operating system settings.
 * `versions` - (Optional) K8s components versions.
-* `labels` - (Optional) Map of labels to set on nodes.
+* `labels` - (Optional) Map of string keys and values that can be used to organize and categorize (scope and select) objects. It will be applied to Nodes allowing users run their apps on specific Node using labelSelector.
 * `taints` - (Optional) List of taints to set on nodes.
 
 ### `cloud`
