@@ -284,12 +284,11 @@ func metakubeResourceClusterOpenstackCloudSpecFields() map[string]*schema.Schema
 			Description:  "When specified, all worker nodes will be attached to this subnet of specified network. If not specified, a network, subnet & router will be created.",
 		},
 		"subnet_cidr": {
-			Type:         schema.TypeString,
-			Computed:     true,
-			Optional:     true,
-			ForceNew:     true,
-			RequiredWith: []string{"spec.0.cloud.0.openstack.0.network", "spec.0.cloud.0.openstack.0.subnet_id"},
-			Description:  "Change this to configure a different internal IP range for Nodes. Default: 192.168.1.0/24",
+			Type:        schema.TypeString,
+			Computed:    true,
+			Optional:    true,
+			ForceNew:    true,
+			Description: "Change this to configure a different internal IP range for Nodes. Default: 192.168.1.0/24",
 		},
 	}
 }
