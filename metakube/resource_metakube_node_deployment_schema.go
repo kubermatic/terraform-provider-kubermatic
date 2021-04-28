@@ -31,7 +31,7 @@ func matakubeResourceNodeDeploymentLabelOrTagReserved(path string) bool {
 }
 
 func matakubeResourceNodeDeploymentValidateLabelOrTag(key string) error {
-	r := regexp.MustCompile(`^(metakube|system|kubernetes\.io)(\/|\-)`)
+	r := regexp.MustCompile(`^(metakube|system|kubernetes\.io)([/\-])`)
 	if r.MatchString(key) {
 		return fmt.Errorf("forbidden tag or label prefix %s", key)
 	}
@@ -144,14 +144,15 @@ func matakubeResourceNodeDeploymentSpecFields() map[string]*schema.Schema {
 					},
 					"versions": {
 						Type:        schema.TypeList,
-						Required:    true,
+						Optional:    true,
 						MaxItems:    1,
 						Description: "Cloud components versions",
 						Elem: &schema.Resource{
 							Schema: map[string]*schema.Schema{
 								"kubelet": {
 									Type:        schema.TypeString,
-									Required:    true,
+									Optional:    true,
+									Computed:    true,
 									Description: "Kubelet version",
 								},
 							},

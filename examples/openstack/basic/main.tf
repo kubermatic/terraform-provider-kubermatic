@@ -1,7 +1,7 @@
 terraform {
   required_providers {
     metakube = {
-      source  = "syseleven/metakube"
+      source = "syseleven/metakube"
     }
     openstack = {
       source = "terraform-provider-openstack/openstack"
@@ -9,7 +9,7 @@ terraform {
   }
 }
 
-data openstack_images_image_v2 "image" {
+data "openstack_images_image_v2" "image" {
   most_recent = true
 
   visibility = "public"
@@ -19,8 +19,8 @@ data openstack_images_image_v2 "image" {
   }
 }
 
-provider metakube {}
-resource metakube_project "project" {
+provider "metakube" {}
+resource "metakube_project" "project" {
   name = var.project_name
 }
 
@@ -31,18 +31,19 @@ data "local_file" "public_sshkey" {
 resource "metakube_sshkey" "local" {
   project_id = metakube_project.project.id
 
-  name = "local SSH key"
+  name       = "local SSH key"
   public_key = data.local_file.public_sshkey.content
 }
 
-resource metakube_cluster "cluster" {
+resource "metakube_cluster" "cluster" {
   name       = var.cluster_name
   dc_name    = var.dc_name
   project_id = metakube_project.project.id
-  sshkeys = [metakube_sshkey.local.id]
+  sshkeys    = [metakube_sshkey.local.id]
 
   spec {
-    version = var.k8s_version
+    enable_ssh_agent = true
+    version          = var.k8s_version
     cloud {
       openstack {
         floating_ip_pool = var.floating_ip_pool
@@ -56,11 +57,11 @@ resource metakube_cluster "cluster" {
 
 # create admin.conf file
 resource "local_file" "kubeconfig" {
-  content     = metakube_cluster.cluster.kube_config
+  content  = metakube_cluster.cluster.kube_config
   filename = "${path.module}/admin.conf"
 }
 
-resource metakube_node_deployment "node_deployment" {
+resource "metakube_node_deployment" "node_deployment" {
   name       = null // auto generate
   cluster_id = metakube_cluster.cluster.id
   spec {
@@ -68,10 +69,10 @@ resource metakube_node_deployment "node_deployment" {
     template {
       cloud {
         openstack {
-          flavor          = var.node_flavor
-          image           = var.node_image != null ? var.node_image : data.openstack_images_image_v2.image.name
-          use_floating_ip = var.use_floating_ip
-          instance_ready_check_period = "5s"
+          flavor                       = var.node_flavor
+          image                        = var.node_image != null ? var.node_image : data.openstack_images_image_v2.image.name
+          use_floating_ip              = var.use_floating_ip
+          instance_ready_check_period  = "5s"
           instance_ready_check_timeout = "100s"
         }
       }
@@ -84,4 +85,5 @@ resource metakube_node_deployment "node_deployment" {
       }
     }
   }
+
 }

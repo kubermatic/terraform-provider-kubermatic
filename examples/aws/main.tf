@@ -1,11 +1,11 @@
 terraform {
   required_providers {
     metakube = {
-      source  = "syseleven/metakube"
+      source = "syseleven/metakube"
     }
   }
 }
-provider metakube {
+provider "metakube" {
 }
 resource "metakube_project" "example_project" {
   name = var.project_name
@@ -15,7 +15,8 @@ resource "metakube_cluster" "example_cluster" {
   dc_name    = "syseleven-aws-eu-central-1a"
   project_id = metakube_project.example_project.id
   spec {
-    version = var.k8s_version
+    enable_ssh_agent = true
+    version          = var.k8s_version
     cloud {
       aws {
         access_key_id     = var.aws_access_key_id
