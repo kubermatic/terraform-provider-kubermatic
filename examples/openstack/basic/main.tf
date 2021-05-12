@@ -9,6 +9,19 @@ terraform {
   }
 }
 
+// You can download and source "OpenStack RC File v3" for your account at https://cloud.syseleven.de or configure it here.
+// provider "openstack" {
+//  auth_url = "https://keystone.cloud.syseleven.net:5000/v3"
+//
+//  user_name = var.username
+//
+//  password = var.password
+//
+//  tenant_name = var.tenant
+//
+//  domain_name = "Default"
+// }
+
 data "openstack_images_image_v2" "image" {
   most_recent = true
 

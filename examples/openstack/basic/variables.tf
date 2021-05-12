@@ -71,3 +71,4 @@ variable "use_floating_ip" {
   default     = true
 }
 
+variable "" {}

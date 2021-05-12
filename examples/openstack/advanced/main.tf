@@ -9,6 +9,19 @@ terraform {
   }
 }
 
+// You can download and source "OpenStack RC File v3" for your account at https://cloud.syseleven.de or configure it here.
+// provider "openstack" {
+//  auth_url = "https://keystone.cloud.syseleven.net:5000/v3"
+//
+//  user_name = var.username
+//
+//  password = var.password
+//
+//  tenant_name = var.tenant
+//
+//  domain_name = "Default"
+// }
+
 # Create openstack security for cluster internal network.
 resource "openstack_networking_secgroup_v2" "cluster-net" {
   name = var.server_group_name
