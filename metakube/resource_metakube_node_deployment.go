@@ -51,7 +51,7 @@ func metakubeResourceNodeDeployment() *schema.Resource {
 				Required: true,
 				ForceNew: true,
 				// TODO: update descriptions
-				Description: "Reference full cluster identifier of format <project id>:<seed dc>:<cluster id>",
+				Description: "Cluster that node deployment belongs to",
 			},
 
 			"name": {
