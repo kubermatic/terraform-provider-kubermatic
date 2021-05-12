@@ -330,8 +330,6 @@ func testAccCheckMetaKubeClusterOpenstackBasic2(clusterName, username, password,
 		dc_name = "%s"
 		project_id = metakube_project.acctest_project.id
 
-		type = "kubernetes" # should not introduce any change hence type should be computed to this value anyway
-
 		# add labels
 		labels = {
 			"test-key" = "test-value"

@@ -38,7 +38,6 @@ The following arguments are supported:
 * `spec` - (Required) Cluster specification.
 * `labels` - (Optional) Labels added to cluster.
 * `sshkeys` - (Optional) SSH keys attached to nodes.
-* `type` - (Optional) Cloud orchestrator, either Kubernetes or OpenShift.
 
 ## Attributes
 

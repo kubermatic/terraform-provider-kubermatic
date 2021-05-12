@@ -69,13 +69,6 @@ func metakubeResourceCluster() *schema.Resource {
 					Schema: metakubeResourceClusterSpecFields(),
 				},
 			},
-			"type": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				ForceNew:    true,
-				Default:     "kubernetes",
-				Description: "Cloud orchestrator, either Kubernetes or OpenShift",
-			},
 			"creation_timestamp": {
 				Type:        schema.TypeString,
 				Computed:    true,
@@ -123,7 +116,7 @@ func metakubeResourceClusterCreate(ctx context.Context, d *schema.ResourceData, 
 		Cluster: &models.Cluster{
 			Name:   d.Get("name").(string),
 			Spec:   clusterSpec,
-			Type:   d.Get("type").(string),
+			Type:   "kubernetes",
 			Labels: metakubeResourceClusterLabels(d),
 		},
 	}
