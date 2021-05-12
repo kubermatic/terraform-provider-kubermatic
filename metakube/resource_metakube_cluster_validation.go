@@ -61,7 +61,7 @@ func toStrPtrOrNil(v interface{}) *string {
 }
 
 func metakubeResourceClusterValidateClusterFields(ctx context.Context, d *schema.ResourceData, k *metakubeProviderMeta) diag.Diagnostics {
-	ret := metakubeResourceValidateVersionExistance(ctx, d, k)
+	ret := metakubeResourceValidateVersionExistence(ctx, d, k)
 	if _, ok := d.GetOk("spec.0.cloud.0.openstack.0"); !ok {
 		return ret
 	}
@@ -70,12 +70,12 @@ func metakubeResourceClusterValidateClusterFields(ctx context.Context, d *schema
 	return append(ret, diagnoseOpenstackSubnetWithIDExistsIfSet(ctx, d, k)...)
 }
 
-func metakubeResourceValidateVersionExistance(ctx context.Context, d *schema.ResourceData, k *metakubeProviderMeta) diag.Diagnostics {
+func metakubeResourceValidateVersionExistence(ctx context.Context, d *schema.ResourceData, k *metakubeProviderMeta) diag.Diagnostics {
 	version := d.Get("spec.0.version").(string)
 	p := versions.NewGetMasterVersionsParams().WithContext(ctx)
 	r, err := k.client.Versions.GetMasterVersions(p, k.auth)
 	if err != nil {
-		diag.Errorf("%s", stringifyResponseError(err))
+		return diag.Errorf("%s", stringifyResponseError(err))
 	}
 
 	available := make([]string, 0)
