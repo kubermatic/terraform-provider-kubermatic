@@ -7,25 +7,27 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-cty/cty"
+	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
+
 	"github.com/syseleven/go-metakube/client/project"
 	"github.com/syseleven/go-metakube/client/users"
 	"github.com/syseleven/go-metakube/models"
 )
 
 const (
-	projectSchemaName              = "name"
-	projectSchemaLabels            = "labels"
-	projectSchemaUsers             = "user"
-	projectSchemaStatus            = "status"
-	projectSchemaCreationTimestamp = "creation_timestamp"
-	projectSchemaDeletionTimestamp = "deletion_timestamp"
-	projectUserSchemaEmail         = "email"
-	projectUserSchemaGroup         = "group"
+	projectSchemaName                        = "name"
+	projectSchemaLabels                      = "labels"
+	projectSchemaUsers                       = "user"
+	projectSchemaStatus                      = "status"
+	projectSchemaCreationTimestamp           = "creation_timestamp"
+	projectSchemaDeletionTimestamp           = "deletion_timestamp"
+	projectUserSchemaEmail                   = "email"
+	projectUserSchemaGroup                   = "group"
+	projectEnsureFlawlessCreateUUIDLabelName = "terraform-provider-metakube/ensure-flawless"
 )
 
 func metakubeResourceProject() *schema.Resource {
@@ -106,22 +108,35 @@ func metakubeResourceProjectCreate(ctx context.Context, d *schema.ResourceData, 
 
 	p := project.NewCreateProjectParams()
 	p.SetContext(ctx)
+	createUUID, err := uuid.GenerateUUID()
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	labels := metakubeProjectConfiguredLabels(d)
+	// HACK: (https://github.com/syseleven/terraform-provider-metakube/issues/26) API misbehaves and sometimes returns
+	// 403 or 500 on project creation. This is API issue related to RBAC initialization. To create illusion of flawless
+	// creation, we mack project with unique label and even if create return an error, we attempt to find project with\
+	// that label.
+	labels[projectEnsureFlawlessCreateUUIDLabelName] = createUUID
 	p.SetBody(project.CreateProjectBody{
 		Name:   d.Get(projectSchemaName).(string),
-		Labels: metakubeProjectConfiguredLabels(d),
+		Labels: labels,
 	})
-	r, err := k.client.Project.CreateProject(p, k.auth)
+	_, err = k.client.Project.CreateProject(p, k.auth)
 	if err != nil {
-		return diag.Errorf("%s", stringifyResponseError(err))
+		k.log.Error(stringifyResponseError(err))
 	}
 
-	projectID := r.Payload.ID
-
+	// Wait for project active status
+	projectID, err := metakubeProjectWaitForActiveStatus(ctx, d, createUUID, k)
+	if err != nil {
+		return diag.FromErr(err)
+	}
 	d.SetId(projectID)
 
-	// wait for completion
-	if err := metakubeProjectWaitForActiveStatus(ctx, d, projectID, k); err != nil {
-		return diag.FromErr(err)
+	// HACK: (https://github.com/syseleven/terraform-provider-metakube/issues/26) delete "ensure flawless" label
+	if err := metakubeResourceProjectUpdateNameAndLabels(ctx, d, m); err != nil {
+		return diag.Errorf("delete '%s' label: %v", projectEnsureFlawlessCreateUUIDLabelName, err)
 	}
 
 	ret := metakubeResourceProjectRead(ctx, d, m)
@@ -138,38 +153,33 @@ func metakubeResourceProjectCreate(ctx context.Context, d *schema.ResourceData, 
 	return ret
 }
 
-func metakubeProjectWaitForActiveStatus(ctx context.Context, d *schema.ResourceData, projectID string, k *metakubeProviderMeta) error {
-	const (
-		pending = "Inactive"
-		target  = "Active"
-	)
-	stateActive := &resource.StateChangeConf{
-		Pending: []string{pending},
-		Target:  []string{target},
-		Refresh: func() (interface{}, string, error) {
-			p := project.NewGetProjectParams().
-				WithContext(ctx).
-				WithProjectID(projectID)
-			r, err := k.client.Project.GetProject(p, k.auth)
-			if err != nil {
-				if e, ok := err.(*project.GetProjectDefault); ok && (e.Code() == http.StatusForbidden || e.Code() == http.StatusNotFound) {
-					return r, pending, fmt.Errorf("project not ready: %v", err)
-				}
-				return nil, "", err
-			}
-			k.log.Debugf("creating project '%s', currently in '%s' state", projectID, r.Payload.Status)
-			return r, target, nil
-		},
-		Timeout:    d.Timeout(schema.TimeoutCreate),
-		MinTimeout: 5 * retryTimeout,
-		Delay:      5 * requestDelay,
-	}
+func metakubeProjectWaitForActiveStatus(ctx context.Context, d *schema.ResourceData, createUUID string, k *metakubeProviderMeta) (string, error) {
+	const statusActive = "Active"
+	var projectID string
+	err := resource.RetryContext(ctx, d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
+		p := project.NewListProjectsParams().WithContext(ctx)
+		ret, err := k.client.Project.ListProjects(p, k.auth)
+		if err != nil {
+			return resource.RetryableError(fmt.Errorf("list projects: %v", err))
+		}
 
-	if _, err := stateActive.WaitForStateContext(ctx); err != nil {
-		k.log.Debugf("error while waiting for project '%s' to be created: %s", projectID, err)
-		return fmt.Errorf("error while waiting for project '%s' to be created: %s", projectID, err)
-	}
-	return nil
+		var found *models.Project
+		for _, prj := range ret.Payload {
+			if prj.Labels != nil && prj.Labels[projectEnsureFlawlessCreateUUIDLabelName] == createUUID {
+				found = prj
+				break
+			}
+		}
+		if found == nil {
+			return resource.RetryableError(fmt.Errorf("project is not found"))
+		}
+		if found.Status != statusActive {
+			return resource.RetryableError(fmt.Errorf("project is: %s", found.Status))
+		}
+		projectID = found.ID
+		return nil
+	})
+	return projectID, err
 }
 
 func metakubeProjectConfiguredLabels(d *schema.ResourceData) map[string]string {
@@ -259,15 +269,7 @@ func flattenedProjectUsers(cur *models.User, u map[string]models.User) *schema.S
 }
 
 func metakubeResourceProjectUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	k := m.(*metakubeProviderMeta)
-	p := project.NewUpdateProjectParams()
-	p.Body = &models.Project{
-		// name is always required for update requests, otherwise bad request returns
-		Name:   d.Get(projectSchemaName).(string),
-		Labels: metakubeProjectConfiguredLabels(d),
-	}
-
-	_, err := k.client.Project.UpdateProject(p.WithProjectID(d.Id()), k.auth)
+	err := metakubeResourceProjectUpdateNameAndLabels(ctx, d, m)
 	if err != nil {
 		return diag.Errorf("unable to update project '%s': %s", d.Id(), stringifyResponseError(err))
 	}
@@ -281,6 +283,19 @@ func metakubeResourceProjectUpdate(ctx context.Context, d *schema.ResourceData, 
 		})
 	}
 	return ret
+}
+
+func metakubeResourceProjectUpdateNameAndLabels(ctx context.Context, d *schema.ResourceData, m interface{}) error {
+	k := m.(*metakubeProviderMeta)
+	p := project.NewUpdateProjectParams().WithContext(ctx)
+	p.Body = &models.Project{
+		// name is always required for update requests, otherwise bad request returns
+		Name:   d.Get(projectSchemaName).(string),
+		Labels: metakubeProjectConfiguredLabels(d),
+	}
+
+	_, err := k.client.Project.UpdateProject(p.WithProjectID(d.Id()), k.auth)
+	return err
 }
 
 func metakubeProjectUpdateUsers(ctx context.Context, k *metakubeProviderMeta, d *schema.ResourceData) error {
