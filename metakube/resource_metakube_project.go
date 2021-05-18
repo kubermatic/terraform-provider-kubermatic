@@ -117,6 +117,9 @@ func metakubeResourceProjectCreate(ctx context.Context, d *schema.ResourceData, 
 	// 403 or 500 on project creation. This is API issue related to RBAC initialization. To create illusion of flawless
 	// creation, we mack project with unique label and even if create return an error, we attempt to find project with\
 	// that label.
+	if labels == nil {
+		labels = make(map[string]string)
+	}
 	labels[projectEnsureFlawlessCreateUUIDLabelName] = createUUID
 	p.SetBody(project.CreateProjectBody{
 		Name:   d.Get(projectSchemaName).(string),

@@ -122,6 +122,16 @@ func TestMetakubeNodeDeploymentSpecFlatten(t *testing.T) {
 			},
 		},
 		{
+			&models.NodeSpec{
+				Versions: &models.NodeVersionInfo{
+					Kubelet: "",
+				},
+			},
+			[]interface{}{
+				map[string]interface{}{},
+			},
+		},
+		{
 			&models.NodeSpec{},
 			[]interface{}{
 				map[string]interface{}{},
@@ -424,7 +434,13 @@ func TestExpandNodeSpec(t *testing.T) {
 		{
 
 			[]interface{}{
-				map[string]interface{}{},
+				map[string]interface{}{
+					"versions": []interface{}{
+						map[string]interface{}{
+							"kubelet": "",
+						},
+					},
+				},
 			},
 			&models.NodeSpec{},
 		},

@@ -52,7 +52,7 @@ func metakubeNodeDeploymentFlattenNodeSpec(values *nodeSpecPreservedValues, in *
 		att["operating_system"] = metakubeNodeDeploymentFlattenOperatingSystem(in.OperatingSystem)
 	}
 
-	if in.Versions != nil {
+	if in.Versions != nil && in.Versions.Kubelet != "" {
 		att["versions"] = metakubeNodeDeploymentFlattenVersion(in.Versions)
 	}
 
@@ -471,23 +471,24 @@ func metakubeNodeDeploymentExpandVersion(p []interface{}) *models.NodeVersionInf
 	if len(p) < 1 {
 		return nil
 	}
-	obj := &models.NodeVersionInfo{}
 	if p[0] == nil {
-		return obj
+		return nil
 	}
 
 	in, ok := p[0].(map[string]interface{})
 	if !ok {
-		return obj
+		return nil
 	}
 
-	if v, ok := in["kubelet"]; ok {
-		if vv, ok := v.(string); ok && vv != "" {
-			obj.Kubelet = vv
-		}
+	v, ok := in["kubelet"]
+	if !ok {
+		return nil
 	}
 
-	return obj
+	if vv, ok := v.(string); ok && vv != "" {
+		return &models.NodeVersionInfo{Kubelet: vv}
+	}
+	return nil
 }
 
 func metakubeNodeDeploymentExpandTaintSpec(in map[string]interface{}) *models.TaintSpec {
