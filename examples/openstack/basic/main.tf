@@ -9,7 +9,7 @@ terraform {
   }
 }
 
-// You can download and source "OpenStack RC File v3" for your account at https://cloud.syseleven.de or configure it here.
+// You can download and source "OpenStack RC File v3" for your account at https://cloud.syseleven.de and source it or configure provider manually here.
 // provider "openstack" {
 //  auth_url = "https://keystone.cloud.syseleven.net:5000/v3"
 //
@@ -32,7 +32,9 @@ data "openstack_images_image_v2" "image" {
   }
 }
 
-provider "metakube" {}
+provider "metakube" {
+  host = "https://dev.metakube.de"
+}
 resource "metakube_project" "project" {
   name = var.project_name
 }
@@ -48,6 +50,11 @@ resource "metakube_sshkey" "local" {
   public_key = data.local_file.public_sshkey.content
 }
 
+data "metakube_k8s_version" "cluster" {
+  major = "1"
+  minor = var.k8s_minor_version
+}
+
 resource "metakube_cluster" "cluster" {
   name       = var.cluster_name
   dc_name    = var.dc_name
@@ -56,7 +63,7 @@ resource "metakube_cluster" "cluster" {
 
   spec {
     enable_ssh_agent = true
-    version          = var.k8s_version
+    version          = data.metakube_k8s_version.cluster.version
     cloud {
       openstack {
         floating_ip_pool = var.floating_ip_pool
@@ -94,7 +101,7 @@ resource "metakube_node_deployment" "node_deployment" {
         }
       }
       versions {
-        kubelet = var.k8s_version
+        kubelet = data.metakube_k8s_version.cluster.version
       }
     }
   }

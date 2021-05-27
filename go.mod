@@ -19,4 +19,5 @@ require (
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/syseleven/go-metakube v0.0.0-20210416091829-b6a6fb1490a6
 	go.uber.org/zap v1.16.0
+	golang.org/x/mod v0.3.0
 )

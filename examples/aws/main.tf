@@ -10,13 +10,17 @@ provider "metakube" {
 resource "metakube_project" "example_project" {
   name = var.project_name
 }
+data "metakube_k8s_version" "cluster" {
+  major = "1"
+  minor = var.k8s_minor_version
+}
 resource "metakube_cluster" "example_cluster" {
   name       = var.cluster_name
   dc_name    = "syseleven-aws-eu-central-1a"
   project_id = metakube_project.example_project.id
   spec {
     enable_ssh_agent = true
-    version          = var.k8s_version
+    version          = data.metakube_k8s_version.cluster.version
     cloud {
       aws {
         access_key_id     = var.aws_access_key_id
@@ -48,7 +52,7 @@ resource "metakube_node_deployment" "example_node" {
         }
       }
       versions {
-        kubelet = var.k8s_version
+        kubelet = data.metakube_k8s_version.cluster.version
       }
     }
   }

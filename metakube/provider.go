@@ -23,8 +23,6 @@ import (
 const (
 	// wait this time before starting resource checks
 	requestDelay = time.Second
-	// smallest time to wait before refreshes
-	retryTimeout = time.Second
 )
 
 type metakubeProviderMeta struct {
@@ -86,6 +84,10 @@ func Provider() *schema.Provider {
 			"metakube_sshkey":                metakubeResourceSSHKey(),
 			"metakube_service_account":       metakubeResourceServiceAccount(),
 			"metakube_service_account_token": metakubeResourceServiceAccountToken(),
+		},
+
+		DataSourcesMap: map[string]*schema.Resource{
+			"metakube_k8s_version": dataSourceMetakubeK8sClusterVersion(),
 		},
 	}
 

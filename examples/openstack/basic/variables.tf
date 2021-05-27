@@ -12,8 +12,8 @@ variable "cluster_name" {
   type        = string
 }
 
-variable "k8s_version" {
-  description = "Kubernetes version"
+variable "k8s_minor_version" {
+  description = "The minor part of Kubernetes version, eg 21 for v1.21.2"
   type        = string
 }
 
@@ -71,4 +71,3 @@ variable "use_floating_ip" {
   default     = true
 }
 
-variable "" {}

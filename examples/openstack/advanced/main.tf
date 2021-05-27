@@ -128,11 +128,17 @@ resource "metakube_project" "project" {
 data "local_file" "public_sshkey" {
   filename = pathexpand(var.public_sshkey_file)
 }
+
 resource "metakube_sshkey" "local" {
   project_id = metakube_project.project.id
 
   name       = "local SSH key"
   public_key = data.local_file.public_sshkey.content
+}
+
+data "metakube_k8s_version" "cluster" {
+  major = "1"
+  minor = var.k8s_minor_version
 }
 
 resource "metakube_cluster" "cluster" {
@@ -153,7 +159,7 @@ resource "metakube_cluster" "cluster" {
 
   spec {
     enable_ssh_agent = true
-    version          = var.k8s_version
+    version          = data.metakube_k8s_version.cluster.version
     cloud {
       openstack {
         tenant           = var.tenant
@@ -218,7 +224,7 @@ resource "metakube_node_deployment" "acctest_nd" {
         }
       }
       versions {
-        kubelet = var.k8s_version
+        kubelet = data.metakube_k8s_version.cluster.version
       }
     }
   }
