@@ -250,7 +250,7 @@ func getDatacenterByName(k *kubermaticProviderMeta, name string) (*models.Datace
 	}
 
 	for _, v := range r.Payload {
-		if !v.Seed && v.Metadata.Name == name {
+		if v.Metadata.Name == name {
 			return v, nil
 		}
 	}

@@ -102,6 +102,22 @@ func nodeDeploymentSpecFields() map[string]*schema.Schema {
 										},
 									},
 								},
+								"flatcar": {
+									Type:        schema.TypeList,
+									Optional:    true,
+									MaxItems:    1,
+									Description: "Flatcar operating system",
+									Elem: &schema.Resource{
+										Schema: map[string]*schema.Schema{
+											"disable_auto_update": {
+												Type:        schema.TypeBool,
+												Optional:    true,
+												Default:     false,
+												Description: "Disable auto update.",
+											},
+										},
+									},
+								},
 							},
 						},
 					},
@@ -251,6 +267,21 @@ func openstackNodeFields() map[string]*schema.Schema {
 			Optional:     true,
 			ValidateFunc: validation.IntAtLeast(1),
 			Description:  "If set, the rootDisk will be a volume. If not, the rootDisk will be on ephemeral storage and its size will be derived from the flavor",
+		},
+		"availability_zone": {
+			Type:        schema.TypeString,
+			Optional:    true,
+			Description: "Availability zone of Openstack.",
+		},
+		"instance_ready_check_period": {
+			Type:        schema.TypeString,
+			Optional:    true,
+			Description: "Ready check period. (e.g. '5s')",
+		},
+		"instance_ready_check_timeout": {
+			Type:        schema.TypeString,
+			Optional:    true,
+			Description: "Ready check period. (e.g. '120s')",
 		},
 		"tags": {
 			Type:        schema.TypeMap,
