@@ -118,6 +118,22 @@ func nodeDeploymentSpecFields() map[string]*schema.Schema {
 										},
 									},
 								},
+								"centos": {
+									Type:        schema.TypeList,
+									Optional:    true,
+									MaxItems:    1,
+									Description: "CentOS operating system",
+									Elem: &schema.Resource{
+										Schema: map[string]*schema.Schema{
+											"dist_upgrade_on_boot": {
+												Type:        schema.TypeBool,
+												Optional:    true,
+												Default:     false,
+												Description: "Upgrade operating system on boot",
+											},
+										},
+									},
+								},
 							},
 						},
 					},
