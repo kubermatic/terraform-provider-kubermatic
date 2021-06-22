@@ -27,7 +27,7 @@ const (
 )
 
 type kubermaticProviderMeta struct {
-	client *k8client.Kubermatic
+	client *k8client.KubermaticAPI
 	auth   runtime.ClientAuthInfoWriter
 	log    *zap.SugaredLogger
 }
@@ -177,7 +177,7 @@ func newLogger(logDev, logDebug bool, logPath string, fd *os.File) (*zap.Sugared
 	return zap.New(core).Sugar(), nil
 }
 
-func newClient(host string) (*k8client.Kubermatic, error) {
+func newClient(host string) (*k8client.KubermaticAPI, error) {
 	u, err := url.Parse(host)
 	if err != nil {
 		return nil, err

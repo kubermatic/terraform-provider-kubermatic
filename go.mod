@@ -15,8 +15,9 @@ require (
 	github.com/hashicorp/go-version v1.2.0
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/hashicorp/terraform-plugin-sdk v1.6.0
-	github.com/kubermatic/go-kubermatic v0.0.0-20200525122204-c7830498e48a
+	github.com/kubermatic/go-kubermatic v0.0.0-20210621104323-bf6273b36f82
 	github.com/mitchellh/go-homedir v1.1.0
+	github.com/pkg/errors v0.9.1 // indirect
 	go.uber.org/atomic v1.6.0 // indirect
 	go.uber.org/multierr v1.1.0 // indirect
 	go.uber.org/zap v1.9.1
