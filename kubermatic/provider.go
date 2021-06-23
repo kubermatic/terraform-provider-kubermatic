@@ -86,6 +86,9 @@ func Provider() terraform.ResourceProvider {
 			"kubermatic_service_account":       resourceServiceAccount(),
 			"kubermatic_service_account_token": resourceServiceAccountToken(),
 		},
+		DataSourcesMap: map[string]*schema.Resource{
+			"kubermatic_cluster": dataSourceCluster(),
+		},
 	}
 
 	// copying stderr because of https://github.com/hashicorp/go-plugin/issues/93
