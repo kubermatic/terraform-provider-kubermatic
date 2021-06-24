@@ -15,10 +15,12 @@ func TestFlattenClusterSpec(t *testing.T) {
 	}{
 		{
 			&models.ClusterSpec{
-				Version:               "1.15.6",
-				MachineNetworks:       nil,
-				AuditLogging:          &models.AuditLoggingSettings{},
-				EnableUserSSHKeyAgent: false,
+				Version:                             "1.15.6",
+				MachineNetworks:                     nil,
+				AuditLogging:                        &models.AuditLoggingSettings{},
+				EnableUserSSHKeyAgent:               false,
+				UsePodSecurityPolicyAdmissionPlugin: true,
+				UsePodNodeSelectorAdmissionPlugin:   true,
 				Cloud: &models.CloudSpec{
 					DatacenterName: "eu-west-1",
 					Bringyourown:   map[string]interface{}{},
@@ -29,7 +31,8 @@ func TestFlattenClusterSpec(t *testing.T) {
 					"version":                   "1.15.6",
 					"audit_logging":             false,
 					"enable_user_ssh_key_agent": false,
-					"pod_security_policy":       false,
+					"use_pod_security_policy_admission_plugin": true,
+					"use_pod_node_selector_admission_plugin":   true,
 					"cloud": []interface{}{
 						map[string]interface{}{
 							"bringyourown": []interface{}{map[string]interface{}{}},
@@ -42,9 +45,10 @@ func TestFlattenClusterSpec(t *testing.T) {
 			&models.ClusterSpec{},
 			[]interface{}{
 				map[string]interface{}{
-					"audit_logging":             false,
-					"pod_security_policy":       false,
-					"enable_user_ssh_key_agent": false,
+					"audit_logging":                            false,
+					"use_pod_node_selector_admission_plugin":   false,
+					"use_pod_security_policy_admission_plugin": false,
+					"enable_user_ssh_key_agent":                false,
 				},
 			},
 		},
@@ -315,10 +319,11 @@ func TestExpandClusterSpec(t *testing.T) {
 		{
 			[]interface{}{
 				map[string]interface{}{
-					"version":             "1.15.6",
-					"machine_networks":    []interface{}{},
-					"audit_logging":       false,
-					"pod_security_policy": true,
+					"version":          "1.15.6",
+					"machine_networks": []interface{}{},
+					"audit_logging":    false,
+					"use_pod_security_policy_admission_plugin": true,
+					"use_pod_node_selector_admission_plugin":   true,
 					"cloud": []interface{}{
 						map[string]interface{}{
 							"bringyourown": []interface{}{
@@ -333,6 +338,7 @@ func TestExpandClusterSpec(t *testing.T) {
 				MachineNetworks:                     nil,
 				AuditLogging:                        &models.AuditLoggingSettings{},
 				UsePodSecurityPolicyAdmissionPlugin: true,
+				UsePodNodeSelectorAdmissionPlugin:   true,
 				Cloud: &models.CloudSpec{
 					DatacenterName: "eu-west-1",
 					Bringyourown:   map[string]interface{}{},

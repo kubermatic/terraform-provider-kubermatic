@@ -88,11 +88,15 @@ func clusterSpecFields() map[string]*schema.Schema {
 			Default:     false,
 			Description: "Whether to enable audit logging or not",
 		},
-		"pod_security_policy": {
-			Type:        schema.TypeBool,
-			Optional:    true,
-			Default:     false,
-			Description: "Pod security policies allow detailed authorization of pod creation and updates.",
+		"use_pod_node_selector_admission_plugin": {
+			Type:     schema.TypeBool,
+			Optional: true,
+			Default:  false,
+		},
+		"use_pod_security_policy_admission_plugin": {
+			Type:     schema.TypeBool,
+			Optional: true,
+			Default:  false,
 		},
 	}
 }
