@@ -26,6 +26,7 @@ func flattenClusterSpec(values clusterPreserveValues, in *models.ClusterSpec) []
 		att["audit_logging"] = in.AuditLogging.Enabled
 	}
 
+	att["enable_user_ssh_key_agent"] = in.EnableUserSSHKeyAgent
 	att["pod_security_policy"] = in.UsePodSecurityPolicyAdmissionPlugin
 
 	if in.Cloud != nil {
@@ -222,6 +223,10 @@ func expandClusterSpec(p []interface{}, dcName string) *models.ClusterSpec {
 
 	if v, ok := in["machine_networks"]; ok {
 		obj.MachineNetworks = expandMachineNetworks(v.([]interface{}))
+	}
+
+	if v, ok := in["enable_user_ssh_key_agent"]; ok {
+		obj.EnableUserSSHKeyAgent = v.(bool)
 	}
 
 	if v, ok := in["audit_logging"]; ok {

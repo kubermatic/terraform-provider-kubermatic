@@ -15,9 +15,10 @@ func TestFlattenClusterSpec(t *testing.T) {
 	}{
 		{
 			&models.ClusterSpec{
-				Version:         "1.15.6",
-				MachineNetworks: nil,
-				AuditLogging:    &models.AuditLoggingSettings{},
+				Version:               "1.15.6",
+				MachineNetworks:       nil,
+				AuditLogging:          &models.AuditLoggingSettings{},
+				EnableUserSSHKeyAgent: false,
 				Cloud: &models.CloudSpec{
 					DatacenterName: "eu-west-1",
 					Bringyourown:   map[string]interface{}{},
@@ -25,9 +26,10 @@ func TestFlattenClusterSpec(t *testing.T) {
 			},
 			[]interface{}{
 				map[string]interface{}{
-					"version":             "1.15.6",
-					"audit_logging":       false,
-					"pod_security_policy": false,
+					"version":                   "1.15.6",
+					"audit_logging":             false,
+					"enable_user_ssh_key_agent": false,
+					"pod_security_policy":       false,
 					"cloud": []interface{}{
 						map[string]interface{}{
 							"bringyourown": []interface{}{map[string]interface{}{}},
@@ -40,8 +42,9 @@ func TestFlattenClusterSpec(t *testing.T) {
 			&models.ClusterSpec{},
 			[]interface{}{
 				map[string]interface{}{
-					"audit_logging":       false,
-					"pod_security_policy": false,
+					"audit_logging":             false,
+					"pod_security_policy":       false,
+					"enable_user_ssh_key_agent": false,
 				},
 			},
 		},

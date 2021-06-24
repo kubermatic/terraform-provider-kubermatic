@@ -50,6 +50,12 @@ func clusterSpecFields() map[string]*schema.Schema {
 				},
 			},
 		},
+		"enable_user_ssh_key_agent": {
+			Type:        schema.TypeBool,
+			Optional:    true,
+			Default:     true,
+			Description: "Enable user ssh key Agent",
+		},
 		"machine_networks": {
 			Type:        schema.TypeList,
 			Optional:    true,
