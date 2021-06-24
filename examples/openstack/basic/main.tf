@@ -33,7 +33,7 @@ data "openstack_images_image_v2" "image" {
 }
 
 provider "metakube" {
-  host = "https://dev.metakube.de"
+  host = "https://metakube.syseleven.de"
 }
 resource "metakube_project" "project" {
   name = var.project_name
