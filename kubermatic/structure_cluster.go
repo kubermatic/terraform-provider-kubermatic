@@ -30,6 +30,10 @@ func flattenClusterSpec(values clusterPreserveValues, in *models.ClusterSpec) []
 		att["opa_integration"] = flattenOPAIntegration(in.OpaIntegration)
 	}
 
+	if in.OpaIntegration != nil {
+		att["mla"] = flattenMLA(in.Mla)
+	}
+
 	att["enable_user_ssh_key_agent"] = in.EnableUserSSHKeyAgent
 	att["use_pod_node_selector_admission_plugin"] = in.UsePodNodeSelectorAdmissionPlugin
 	att["use_pod_security_policy_admission_plugin"] = in.UsePodSecurityPolicyAdmissionPlugin
@@ -50,6 +54,19 @@ func flattenOPAIntegration(in *models.OPAIntegrationSettings) interface{} {
 
 	att["enabled"] = in.Enabled
 	att["webhook_timeout_seconds"] = in.WebhookTimeoutSeconds
+
+	return []interface{}{att}
+}
+
+func flattenMLA(in *models.MLASettings) interface{} {
+	if in == nil {
+		return []interface{}{}
+	}
+
+	att := make(map[string]interface{})
+
+	att["logging_enabled"] = in.LoggingEnabled
+	att["monitoring_enabled"] = in.MonitoringEnabled
 
 	return []interface{}{att}
 }
@@ -271,6 +288,10 @@ func expandClusterSpec(p []interface{}, dcName string) *models.ClusterSpec {
 		obj.OpaIntegration = expandOPAIntegration(v.([]interface{}))
 	}
 
+	if v, ok := in["mla"]; ok {
+		obj.Mla = expandMLA(v.([]interface{}))
+	}
+
 	if v, ok := in["use_pod_node_selector_admission_plugin"]; ok {
 		obj.UsePodNodeSelectorAdmissionPlugin = v.(bool)
 	}
@@ -301,6 +322,25 @@ func expandOPAIntegration(p []interface{}) *models.OPAIntegrationSettings {
 	}
 	if v, ok := in["webhook_timeout_seconds"]; ok {
 		obj.WebhookTimeoutSeconds = int32(v.(int))
+	}
+	return obj
+}
+
+func expandMLA(p []interface{}) *models.MLASettings {
+	obj := &models.MLASettings{}
+	if len(p) < 1 {
+		return nil
+	}
+	if p[0] == nil {
+		return obj
+	}
+	in := p[0].(map[string]interface{})
+
+	if v, ok := in["logging_enabled"]; ok {
+		obj.LoggingEnabled = v.(bool)
+	}
+	if v, ok := in["monitoring_enabled"]; ok {
+		obj.MonitoringEnabled = v.(bool)
 	}
 	return obj
 }

@@ -101,6 +101,25 @@ func clusterSpecFields() map[string]*schema.Schema {
 				},
 			},
 		},
+		"mla": {
+			Type:        schema.TypeList,
+			Optional:    true,
+			Description: "Enable MLA Feature",
+			Elem: &schema.Resource{
+				Schema: map[string]*schema.Schema{
+					"logging_enabled": {
+						Type:     schema.TypeBool,
+						Optional: true,
+						Default:  false,
+					},
+					"monitoring_enabled": {
+						Type:     schema.TypeBool,
+						Optional: true,
+						Default:  false,
+					},
+				},
+			},
+		},
 		"audit_logging": {
 			Type:        schema.TypeBool,
 			Optional:    true,

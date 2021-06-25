@@ -25,6 +25,10 @@ func TestFlattenClusterSpec(t *testing.T) {
 					Enabled:               true,
 					WebhookTimeoutSeconds: 0,
 				},
+				Mla: &models.MLASettings{
+					LoggingEnabled:    true,
+					MonitoringEnabled: true,
+				},
 				Cloud: &models.CloudSpec{
 					DatacenterName: "eu-west-1",
 					Bringyourown:   map[string]interface{}{},
@@ -41,6 +45,12 @@ func TestFlattenClusterSpec(t *testing.T) {
 						map[string]interface{}{
 							"enabled":                 true,
 							"webhook_timeout_seconds": int32(0),
+						},
+					},
+					"mla": []interface{}{
+						map[string]interface{}{
+							"logging_enabled":    true,
+							"monitoring_enabled": true,
 						},
 					},
 					"cloud": []interface{}{
@@ -306,6 +316,33 @@ func TestFlattenOPAIntegration(t *testing.T) {
 	}
 }
 
+func TestflattenMLA(t *testing.T) {
+	cases := []struct {
+		Input          *models.MLASettings
+		ExpectedOutput []interface{}
+	}{
+		{
+			&models.MLASettings{
+				LoggingEnabled:    true,
+				MonitoringEnabled: true,
+			},
+			[]interface{}{
+				map[string]interface{}{
+					"logging_enabled":    true,
+					"monitoring_enabled": true,
+				},
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		output := flattenMLA(tc.Input)
+		if diff := cmp.Diff(tc.ExpectedOutput, output); diff != "" {
+			t.Fatalf("Unexpected output from expander: mismatch (-want +got):\n%s", diff)
+		}
+	}
+}
+
 func TestFlattenMachineNetwork(t *testing.T) {
 	cases := []struct {
 		Input          []*models.MachineNetworkingConfig
@@ -371,6 +408,12 @@ func TestExpandClusterSpec(t *testing.T) {
 							"webhook_timeout_seconds": 10,
 						},
 					},
+					"mla": []interface{}{
+						map[string]interface{}{
+							"logging_enabled":    true,
+							"monitoring_enabled": true,
+						},
+					},
 					"cloud": []interface{}{
 						map[string]interface{}{
 							"bringyourown": []interface{}{
@@ -389,6 +432,10 @@ func TestExpandClusterSpec(t *testing.T) {
 				OpaIntegration: &models.OPAIntegrationSettings{
 					Enabled:               false,
 					WebhookTimeoutSeconds: int32(10),
+				},
+				Mla: &models.MLASettings{
+					LoggingEnabled:    true,
+					MonitoringEnabled: true,
 				},
 				Cloud: &models.CloudSpec{
 					DatacenterName: "eu-west-1",
@@ -674,6 +721,33 @@ func TestExpandOPAIntegration(t *testing.T) {
 
 	for _, tc := range cases {
 		output := expandOPAIntegration(tc.Input)
+		if diff := cmp.Diff(tc.ExpectedOutput, output); diff != "" {
+			t.Fatalf("Unexpected output from expander: mismatch (-want +got):\n%s", diff)
+		}
+	}
+}
+
+func TestExpandMLA(t *testing.T) {
+	cases := []struct {
+		Input          []interface{}
+		ExpectedOutput *models.MLASettings
+	}{
+		{
+			[]interface{}{
+				map[string]interface{}{
+					"logging_enabled":    true,
+					"monitoring_enabled": true,
+				},
+			},
+			&models.MLASettings{
+				LoggingEnabled:    true,
+				MonitoringEnabled: true,
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		output := expandMLA(tc.Input)
 		if diff := cmp.Diff(tc.ExpectedOutput, output); diff != "" {
 			t.Fatalf("Unexpected output from expander: mismatch (-want +got):\n%s", diff)
 		}
