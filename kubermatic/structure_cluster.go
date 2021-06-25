@@ -26,6 +26,10 @@ func flattenClusterSpec(values clusterPreserveValues, in *models.ClusterSpec) []
 		att["audit_logging"] = in.AuditLogging.Enabled
 	}
 
+	if in.OpaIntegration != nil {
+		att["opa_integration"] = flattenOPAIntegration(in.OpaIntegration)
+	}
+
 	att["enable_user_ssh_key_agent"] = in.EnableUserSSHKeyAgent
 	att["use_pod_node_selector_admission_plugin"] = in.UsePodNodeSelectorAdmissionPlugin
 	att["use_pod_security_policy_admission_plugin"] = in.UsePodSecurityPolicyAdmissionPlugin
@@ -33,6 +37,19 @@ func flattenClusterSpec(values clusterPreserveValues, in *models.ClusterSpec) []
 	if in.Cloud != nil {
 		att["cloud"] = flattenClusterCloudSpec(values, in.Cloud)
 	}
+
+	return []interface{}{att}
+}
+
+func flattenOPAIntegration(in *models.OPAIntegrationSettings) interface{} {
+	if in == nil {
+		return []interface{}{}
+	}
+
+	att := make(map[string]interface{})
+
+	att["enabled"] = in.Enabled
+	att["webhook_timeout_seconds"] = in.WebhookTimeoutSeconds
 
 	return []interface{}{att}
 }
@@ -250,6 +267,10 @@ func expandClusterSpec(p []interface{}, dcName string) *models.ClusterSpec {
 		obj.AuditLogging = expandAuditLogging(v.(bool))
 	}
 
+	if v, ok := in["opa_integration"]; ok {
+		obj.OpaIntegration = expandOPAIntegration(v.([]interface{}))
+	}
+
 	if v, ok := in["use_pod_node_selector_admission_plugin"]; ok {
 		obj.UsePodNodeSelectorAdmissionPlugin = v.(bool)
 	}
@@ -262,6 +283,25 @@ func expandClusterSpec(p []interface{}, dcName string) *models.ClusterSpec {
 		obj.Cloud = expandClusterCloudSpec(v.([]interface{}), dcName)
 	}
 
+	return obj
+}
+
+func expandOPAIntegration(p []interface{}) *models.OPAIntegrationSettings {
+	obj := &models.OPAIntegrationSettings{}
+	if len(p) < 1 {
+		return nil
+	}
+	if p[0] == nil {
+		return obj
+	}
+	in := p[0].(map[string]interface{})
+
+	if v, ok := in["enabled"]; ok {
+		obj.Enabled = v.(bool)
+	}
+	if v, ok := in["webhook_timeout_seconds"]; ok {
+		obj.WebhookTimeoutSeconds = int32(v.(int))
+	}
 	return obj
 }
 

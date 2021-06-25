@@ -82,6 +82,25 @@ func clusterSpecFields() map[string]*schema.Schema {
 				},
 			},
 		},
+		"opa_integration": {
+			Type:        schema.TypeList,
+			Optional:    true,
+			Description: "Enable OPA Integration",
+			Elem: &schema.Resource{
+				Schema: map[string]*schema.Schema{
+					"enabled": {
+						Type:     schema.TypeBool,
+						Optional: true,
+						Default:  false,
+					},
+					"webhook_timeout_seconds": {
+						Type:     schema.TypeInt,
+						Optional: true,
+						Default:  0,
+					},
+				},
+			},
+		},
 		"audit_logging": {
 			Type:        schema.TypeBool,
 			Optional:    true,

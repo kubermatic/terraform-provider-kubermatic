@@ -21,6 +21,10 @@ func TestFlattenClusterSpec(t *testing.T) {
 				EnableUserSSHKeyAgent:               false,
 				UsePodSecurityPolicyAdmissionPlugin: true,
 				UsePodNodeSelectorAdmissionPlugin:   true,
+				OpaIntegration: &models.OPAIntegrationSettings{
+					Enabled:               true,
+					WebhookTimeoutSeconds: 0,
+				},
 				Cloud: &models.CloudSpec{
 					DatacenterName: "eu-west-1",
 					Bringyourown:   map[string]interface{}{},
@@ -33,6 +37,12 @@ func TestFlattenClusterSpec(t *testing.T) {
 					"enable_user_ssh_key_agent": false,
 					"use_pod_security_policy_admission_plugin": true,
 					"use_pod_node_selector_admission_plugin":   true,
+					"opa_integration": []interface{}{
+						map[string]interface{}{
+							"enabled":                 true,
+							"webhook_timeout_seconds": int32(0),
+						},
+					},
 					"cloud": []interface{}{
 						map[string]interface{}{
 							"bringyourown": []interface{}{map[string]interface{}{}},
@@ -269,6 +279,33 @@ func TestFlattenAzureCloudSpec(t *testing.T) {
 	}
 }
 
+func TestFlattenOPAIntegration(t *testing.T) {
+	cases := []struct {
+		Input          *models.OPAIntegrationSettings
+		ExpectedOutput []interface{}
+	}{
+		{
+			&models.OPAIntegrationSettings{
+				Enabled:               false,
+				WebhookTimeoutSeconds: 40,
+			},
+			[]interface{}{
+				map[string]interface{}{
+					"enabled":                 false,
+					"webhook_timeout_seconds": int32(40),
+				},
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		output := flattenOPAIntegration(tc.Input)
+		if diff := cmp.Diff(tc.ExpectedOutput, output); diff != "" {
+			t.Fatalf("Unexpected output from expander: mismatch (-want +got):\n%s", diff)
+		}
+	}
+}
+
 func TestFlattenMachineNetwork(t *testing.T) {
 	cases := []struct {
 		Input          []*models.MachineNetworkingConfig
@@ -328,6 +365,12 @@ func TestExpandClusterSpec(t *testing.T) {
 					"audit_logging":    false,
 					"use_pod_security_policy_admission_plugin": true,
 					"use_pod_node_selector_admission_plugin":   true,
+					"opa_integration": []interface{}{
+						map[string]interface{}{
+							"enabled":                 false,
+							"webhook_timeout_seconds": 10,
+						},
+					},
 					"cloud": []interface{}{
 						map[string]interface{}{
 							"bringyourown": []interface{}{
@@ -343,6 +386,10 @@ func TestExpandClusterSpec(t *testing.T) {
 				AuditLogging:                        &models.AuditLoggingSettings{},
 				UsePodSecurityPolicyAdmissionPlugin: true,
 				UsePodNodeSelectorAdmissionPlugin:   true,
+				OpaIntegration: &models.OPAIntegrationSettings{
+					Enabled:               false,
+					WebhookTimeoutSeconds: int32(10),
+				},
 				Cloud: &models.CloudSpec{
 					DatacenterName: "eu-west-1",
 					Bringyourown:   map[string]interface{}{},
@@ -600,6 +647,33 @@ func TestExpandAzureCloudSpec(t *testing.T) {
 
 	for _, tc := range cases {
 		output := expandAzureCloudSpec(tc.Input)
+		if diff := cmp.Diff(tc.ExpectedOutput, output); diff != "" {
+			t.Fatalf("Unexpected output from expander: mismatch (-want +got):\n%s", diff)
+		}
+	}
+}
+
+func TestExpandOPAIntegration(t *testing.T) {
+	cases := []struct {
+		Input          []interface{}
+		ExpectedOutput *models.OPAIntegrationSettings
+	}{
+		{
+			[]interface{}{
+				map[string]interface{}{
+					"enabled":                 true,
+					"webhook_timeout_seconds": 20,
+				},
+			},
+			&models.OPAIntegrationSettings{
+				Enabled:               true,
+				WebhookTimeoutSeconds: 20,
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		output := expandOPAIntegration(tc.Input)
 		if diff := cmp.Diff(tc.ExpectedOutput, output); diff != "" {
 			t.Fatalf("Unexpected output from expander: mismatch (-want +got):\n%s", diff)
 		}
