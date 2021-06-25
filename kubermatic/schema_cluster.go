@@ -204,6 +204,35 @@ func awsCloudSpecFields() map[string]*schema.Schema {
 
 func openstackCloudSpecFields() map[string]*schema.Schema {
 	return map[string]*schema.Schema{
+		"domain": {
+			Type:     schema.TypeString,
+			ForceNew: true,
+			Optional: true,
+		},
+		"floating_ip_pool": {
+			Type:     schema.TypeString,
+			Required: true,
+			ForceNew: true,
+		},
+		"network": {
+			Type:     schema.TypeString,
+			ForceNew: true,
+			Optional: true,
+		},
+		"router_id": {
+			Type:     schema.TypeString,
+			ForceNew: true,
+			Optional: true,
+		},
+		"security_groups": {
+			Type:     schema.TypeString,
+			Optional: true,
+		},
+		"subnet_id": {
+			Type:     schema.TypeString,
+			ForceNew: true,
+			Optional: true,
+		},
 		"tenant": {
 			Type:         schema.TypeString,
 			Required:     true,
@@ -216,16 +245,17 @@ func openstackCloudSpecFields() map[string]*schema.Schema {
 			Sensitive:    true,
 			ValidateFunc: validation.NoZeroValues,
 		},
+		"use_octavia": {
+			Type:     schema.TypeBool,
+			ForceNew: true,
+			Optional: true,
+			Default:  true,
+		},
 		"password": {
 			Type:         schema.TypeString,
 			Required:     true,
 			Sensitive:    true,
 			ValidateFunc: validation.NoZeroValues,
-		},
-		"floating_ip_pool": {
-			Type:     schema.TypeString,
-			Required: true,
-			ForceNew: true,
 		},
 	}
 }

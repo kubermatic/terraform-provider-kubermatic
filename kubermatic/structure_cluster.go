@@ -141,6 +141,28 @@ func flattenOpenstackSpec(values *clusterOpenstackPreservedValues, in *models.Op
 		att["floating_ip_pool"] = in.FloatingIPPool
 	}
 
+	if in.Domain != "" {
+		att["domain"] = in.Domain
+	}
+
+	att["use_octavia"] = in.UseOctavia
+
+	if in.Network != "" {
+		att["network"] = in.Network
+	}
+
+	if in.RouterID != "" {
+		att["router_id"] = in.RouterID
+	}
+
+	if in.SecurityGroups != "" {
+		att["security_groups"] = in.SecurityGroups
+	}
+
+	if in.SubnetID != "" {
+		att["subnet_id"] = in.SubnetID
+	}
+
 	if values.openstackTenant != nil {
 		att["tenant"] = values.openstackTenant
 	}
@@ -383,6 +405,30 @@ func expandOpenstackCloudSpec(p []interface{}) *models.OpenstackCloudSpec {
 		obj.FloatingIPPool = v.(string)
 	}
 
+	if v, ok := in["domain"]; ok {
+		obj.Domain = v.(string)
+	}
+
+	if v, ok := in["use_octavia"]; ok {
+		obj.UseOctavia = v.(bool)
+	}
+
+	if v, ok := in["network"]; ok {
+		obj.Network = v.(string)
+	}
+
+	if v, ok := in["subnet_id"]; ok {
+		obj.SubnetID = v.(string)
+	}
+
+	if v, ok := in["router_id"]; ok {
+		obj.RouterID = v.(string)
+	}
+
+	if v, ok := in["security_groups"]; ok {
+		obj.SecurityGroups = v.(string)
+	}
+
 	if v, ok := in["username"]; ok {
 		obj.Username = v.(string)
 	}
@@ -390,9 +436,6 @@ func expandOpenstackCloudSpec(p []interface{}) *models.OpenstackCloudSpec {
 	if v, ok := in["password"]; ok {
 		obj.Password = v.(string)
 	}
-
-	// HACK(furkhat): API doesn't return domain for cluster. Use 'Default' all the time.
-	obj.Domain = "Default"
 
 	return obj
 }

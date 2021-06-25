@@ -177,6 +177,8 @@ func TestFlattenOpenstackCloudSpec(t *testing.T) {
 				Tenant:         "",
 				TenantID:       "TenantID",
 				Username:       "",
+				Domain:         "Domain",
+				UseOctavia:     true,
 			},
 			clusterOpenstackPreservedValues{
 				openstackUsername: "Username",
@@ -185,10 +187,16 @@ func TestFlattenOpenstackCloudSpec(t *testing.T) {
 			},
 			[]interface{}{
 				map[string]interface{}{
+					"domain":           "Domain",
 					"username":         "Username",
 					"password":         "Password",
 					"tenant":           "Tenant",
 					"floating_ip_pool": "FloatingIPPool",
+					"network":          "Network",
+					"subnet_id":        "SubnetID",
+					"router_id":        "RouterID",
+					"security_groups":  "SecurityGroups",
+					"use_octavia":      true,
 				},
 			},
 		},
@@ -196,7 +204,10 @@ func TestFlattenOpenstackCloudSpec(t *testing.T) {
 			&models.OpenstackCloudSpec{},
 			clusterOpenstackPreservedValues{},
 			[]interface{}{
-				map[string]interface{}{},
+				map[string]interface{}{
+					// OpenstackCloudSpec{} no values are set -> false
+					"use_octavia": false,
+				},
 			},
 		},
 		{
@@ -498,7 +509,7 @@ func TestExpandAWSCloudSpec(t *testing.T) {
 	}
 }
 
-func TestExpandAzureCloudSpec(t *testing.T) {
+func TestExpandOpenstackCloudSpec(t *testing.T) {
 	cases := []struct {
 		Input          []interface{}
 		ExpectedOutput *models.OpenstackCloudSpec
@@ -510,23 +521,32 @@ func TestExpandAzureCloudSpec(t *testing.T) {
 					"floating_ip_pool": "FloatingIPPool",
 					"username":         "Username",
 					"password":         "Password",
+					"use_octavia":      false,
+					"network":          "Network",
+					"subnet_id":        "SubnetID",
+					"router_id":        "RouterID",
+					"domain":           "Domain",
+					"security_groups":  "SecurityGroups",
 				},
 			},
 			&models.OpenstackCloudSpec{
-				Domain:         "Default",
+				Domain:         "Domain",
 				FloatingIPPool: "FloatingIPPool",
 				Password:       "Password",
 				Tenant:         "Tenant",
 				Username:       "Username",
+				UseOctavia:     false,
+				Network:        "Network",
+				SubnetID:       "SubnetID",
+				RouterID:       "RouterID",
+				SecurityGroups: "SecurityGroups",
 			},
 		},
 		{
 			[]interface{}{
 				map[string]interface{}{},
 			},
-			&models.OpenstackCloudSpec{
-				Domain: "Default",
-			},
+			&models.OpenstackCloudSpec{},
 		},
 		{
 			[]interface{}{},
@@ -542,7 +562,7 @@ func TestExpandAzureCloudSpec(t *testing.T) {
 	}
 }
 
-func TestExpandOpenstackCloudSpec(t *testing.T) {
+func TestExpandAzureCloudSpec(t *testing.T) {
 	cases := []struct {
 		Input          []interface{}
 		ExpectedOutput *models.AzureCloudSpec
