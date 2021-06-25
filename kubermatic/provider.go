@@ -87,7 +87,8 @@ func Provider() terraform.ResourceProvider {
 			"kubermatic_service_account_token": resourceServiceAccountToken(),
 		},
 		DataSourcesMap: map[string]*schema.Resource{
-			"kubermatic_cluster": dataSourceCluster(),
+			"kubermatic_cluster":            dataSourceCluster(),
+			"kubermatic_cluster_kubeconfig": dataSourceClusterKubeconfigV2(),
 		},
 	}
 
