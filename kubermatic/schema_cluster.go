@@ -245,12 +245,6 @@ func openstackCloudSpecFields() map[string]*schema.Schema {
 			Sensitive:    true,
 			ValidateFunc: validation.NoZeroValues,
 		},
-		"use_octavia": {
-			Type:     schema.TypeBool,
-			ForceNew: true,
-			Optional: true,
-			Default:  true,
-		},
 		"password": {
 			Type:         schema.TypeString,
 			Required:     true,

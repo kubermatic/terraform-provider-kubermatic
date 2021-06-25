@@ -178,7 +178,6 @@ func TestFlattenOpenstackCloudSpec(t *testing.T) {
 				TenantID:       "TenantID",
 				Username:       "",
 				Domain:         "Domain",
-				UseOctavia:     true,
 			},
 			clusterOpenstackPreservedValues{
 				openstackUsername: "Username",
@@ -196,7 +195,6 @@ func TestFlattenOpenstackCloudSpec(t *testing.T) {
 					"subnet_id":        "SubnetID",
 					"router_id":        "RouterID",
 					"security_groups":  "SecurityGroups",
-					"use_octavia":      true,
 				},
 			},
 		},
@@ -204,10 +202,7 @@ func TestFlattenOpenstackCloudSpec(t *testing.T) {
 			&models.OpenstackCloudSpec{},
 			clusterOpenstackPreservedValues{},
 			[]interface{}{
-				map[string]interface{}{
-					// OpenstackCloudSpec{} no values are set -> false
-					"use_octavia": false,
-				},
+				map[string]interface{}{},
 			},
 		},
 		{
@@ -521,7 +516,6 @@ func TestExpandOpenstackCloudSpec(t *testing.T) {
 					"floating_ip_pool": "FloatingIPPool",
 					"username":         "Username",
 					"password":         "Password",
-					"use_octavia":      false,
 					"network":          "Network",
 					"subnet_id":        "SubnetID",
 					"router_id":        "RouterID",
@@ -535,7 +529,6 @@ func TestExpandOpenstackCloudSpec(t *testing.T) {
 				Password:       "Password",
 				Tenant:         "Tenant",
 				Username:       "Username",
-				UseOctavia:     false,
 				Network:        "Network",
 				SubnetID:       "SubnetID",
 				RouterID:       "RouterID",

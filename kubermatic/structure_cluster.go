@@ -145,8 +145,6 @@ func flattenOpenstackSpec(values *clusterOpenstackPreservedValues, in *models.Op
 		att["domain"] = in.Domain
 	}
 
-	att["use_octavia"] = in.UseOctavia
-
 	if in.Network != "" {
 		att["network"] = in.Network
 	}
@@ -408,11 +406,6 @@ func expandOpenstackCloudSpec(p []interface{}) *models.OpenstackCloudSpec {
 	if v, ok := in["domain"]; ok {
 		obj.Domain = v.(string)
 	}
-
-	if v, ok := in["use_octavia"]; ok {
-		obj.UseOctavia = v.(bool)
-	}
-
 	if v, ok := in["network"]; ok {
 		obj.Network = v.(string)
 	}
