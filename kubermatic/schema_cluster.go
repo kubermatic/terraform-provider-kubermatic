@@ -204,11 +204,6 @@ func awsCloudSpecFields() map[string]*schema.Schema {
 
 func openstackCloudSpecFields() map[string]*schema.Schema {
 	return map[string]*schema.Schema{
-		"domain": {
-			Type:     schema.TypeString,
-			ForceNew: true,
-			Optional: true,
-		},
 		"floating_ip_pool": {
 			Type:     schema.TypeString,
 			Required: true,

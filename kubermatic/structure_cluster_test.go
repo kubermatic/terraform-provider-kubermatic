@@ -177,7 +177,6 @@ func TestFlattenOpenstackCloudSpec(t *testing.T) {
 				Tenant:         "",
 				TenantID:       "TenantID",
 				Username:       "",
-				Domain:         "Domain",
 			},
 			clusterOpenstackPreservedValues{
 				openstackUsername: "Username",
@@ -186,7 +185,6 @@ func TestFlattenOpenstackCloudSpec(t *testing.T) {
 			},
 			[]interface{}{
 				map[string]interface{}{
-					"domain":           "Domain",
 					"username":         "Username",
 					"password":         "Password",
 					"tenant":           "Tenant",
@@ -519,12 +517,11 @@ func TestExpandOpenstackCloudSpec(t *testing.T) {
 					"network":          "Network",
 					"subnet_id":        "SubnetID",
 					"router_id":        "RouterID",
-					"domain":           "Domain",
 					"security_groups":  "SecurityGroups",
 				},
 			},
 			&models.OpenstackCloudSpec{
-				Domain:         "Domain",
+				Domain:         "Default",
 				FloatingIPPool: "FloatingIPPool",
 				Password:       "Password",
 				Tenant:         "Tenant",
@@ -539,7 +536,9 @@ func TestExpandOpenstackCloudSpec(t *testing.T) {
 			[]interface{}{
 				map[string]interface{}{},
 			},
-			&models.OpenstackCloudSpec{},
+			&models.OpenstackCloudSpec{
+				Domain: "Default",
+			},
 		},
 		{
 			[]interface{}{},

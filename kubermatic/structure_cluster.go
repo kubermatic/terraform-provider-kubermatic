@@ -141,10 +141,6 @@ func flattenOpenstackSpec(values *clusterOpenstackPreservedValues, in *models.Op
 		att["floating_ip_pool"] = in.FloatingIPPool
 	}
 
-	if in.Domain != "" {
-		att["domain"] = in.Domain
-	}
-
 	if in.Network != "" {
 		att["network"] = in.Network
 	}
@@ -403,9 +399,6 @@ func expandOpenstackCloudSpec(p []interface{}) *models.OpenstackCloudSpec {
 		obj.FloatingIPPool = v.(string)
 	}
 
-	if v, ok := in["domain"]; ok {
-		obj.Domain = v.(string)
-	}
 	if v, ok := in["network"]; ok {
 		obj.Network = v.(string)
 	}
@@ -429,6 +422,9 @@ func expandOpenstackCloudSpec(p []interface{}) *models.OpenstackCloudSpec {
 	if v, ok := in["password"]; ok {
 		obj.Password = v.(string)
 	}
+
+	// HACK(furkhat): API doesn't return domain for cluster. Use 'Default' all the time.
+	obj.Domain = "Default"
 
 	return obj
 }
