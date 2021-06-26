@@ -49,10 +49,7 @@ func TestAccKubermaticNodeDeployment_Openstack_Basic(t *testing.T) {
 				Config: testAccCheckKubermaticNodeDeploymentBasic2(testName, nodeDC, username, password, tenant, k8sVersion17, kubeletVersion16, image2, flavor),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testResourceInstanceState("kubermatic_node_deployment.acctest_nd", func(is *terraform.InstanceState) error {
-						_, _, _, id, err := kubermaticNodeDeploymentParseID(is.ID)
-						if err != nil {
-							return err
-						}
+						id := is.ID
 						if id != ndepl.ID {
 							return fmt.Errorf("node deployment not updated. Want ID=%v, got %v", ndepl.ID, id)
 						}
@@ -423,7 +420,11 @@ func testAccCheckKubermaticNodeDeploymentExists(n string, rec *models.NodeDeploy
 
 		k := testAccProvider.Meta().(*kubermaticProviderMeta)
 
-		projectID, seedDC, clusterID, nodeDeplID, err := kubermaticNodeDeploymentParseID(rs.Primary.ID)
+		projectID := rs.Primary.Attributes["project_id"]
+		dc_name := rs.Primary.Attributes["dc_name"]
+		clusterID := rs.Primary.Attributes["cluster_id"]
+		nodeDeplID := rs.Primary.ID
+		dc, err := getDatacenterByName(k, dc_name)
 		if err != nil {
 			return err
 		}
@@ -431,7 +432,7 @@ func testAccCheckKubermaticNodeDeploymentExists(n string, rec *models.NodeDeploy
 		p := project.NewGetNodeDeploymentParams()
 		p.SetProjectID(projectID)
 		p.SetClusterID(clusterID)
-		p.SetDC(seedDC)
+		p.SetDC(dc.Spec.Seed)
 		p.SetNodeDeploymentID(nodeDeplID)
 		r, err := k.client.Project.GetNodeDeployment(p, k.auth)
 		if err != nil {

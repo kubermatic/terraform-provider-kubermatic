@@ -316,7 +316,7 @@ func TestFlattenOPAIntegration(t *testing.T) {
 	}
 }
 
-func TestflattenMLA(t *testing.T) {
+func TestFlattenMLA(t *testing.T) {
 	cases := []struct {
 		Input          *models.MLASettings
 		ExpectedOutput []interface{}
