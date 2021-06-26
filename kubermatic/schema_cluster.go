@@ -249,22 +249,19 @@ func openstackCloudSpecFields() map[string]*schema.Schema {
 		},
 		"network": {
 			Type:     schema.TypeString,
-			ForceNew: true,
-			Optional: true,
+			Computed: true,
 		},
 		"router_id": {
 			Type:     schema.TypeString,
-			ForceNew: true,
-			Optional: true,
+			Computed: true,
 		},
 		"security_groups": {
 			Type:     schema.TypeString,
-			Optional: true,
+			Computed: true,
 		},
 		"subnet_id": {
 			Type:     schema.TypeString,
-			ForceNew: true,
-			Optional: true,
+			Computed: true,
 		},
 		"tenant": {
 			Type:         schema.TypeString,
