@@ -526,7 +526,7 @@ func metakubeResourceClusterSendPatchReq(ctx context.Context, d *schema.Resource
 	p.SetProjectID(projectID)
 	p.SetClusterID(d.Id())
 	name := d.Get("name").(string)
-	labels := d.Get("labels")
+	labels := metakubeResourceClusterGetLabelsChange(d)
 	clusterSpec := metakubeResourceClusterExpandSpec(d.Get("spec").([]interface{}), d.Get("dc_name").(string))
 	p.SetPatch(map[string]interface{}{
 		"name":   name,
@@ -549,6 +549,27 @@ func metakubeResourceClusterSendPatchReq(ctx context.Context, d *schema.Resource
 	}
 
 	return nil
+}
+
+func metakubeResourceClusterGetLabelsChange(d *schema.ResourceData) map[string]interface{} {
+	oldLabels, newLabels := d.GetChange("labels")
+	var oldLabelsMap, newLabelsMap map[string]interface{}
+	if oldLabels != nil {
+		oldLabelsMap = oldLabels.(map[string]interface{})
+	}
+	if newLabels != nil {
+		newLabelsMap = newLabels.(map[string]interface{})
+	} else {
+		newLabelsMap = make(map[string]interface{})
+	}
+
+	for k := range oldLabelsMap {
+		if _, ok := newLabelsMap[k]; !ok {
+			newLabelsMap[k] = nil
+		}
+	}
+
+	return newLabelsMap
 }
 
 func updateClusterSSHKeys(ctx context.Context, d *schema.ResourceData, k *metakubeProviderMeta) diag.Diagnostics {

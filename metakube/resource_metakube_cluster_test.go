@@ -43,10 +43,12 @@ func TestAccMetakubeCluster_Openstack_Basic(t *testing.T) {
 				Config: testAccCheckMetaKubeClusterOpenstackBasic(clusterName, username, password, tenant, nodeDC, versionK8s17),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccCheckMetaKubeClusterExists(&cluster),
-					testAccCheckMetaKubeClusterOpenstackAttributes(&cluster, clusterName, username, password, tenant, nodeDC, versionK8s17, nil, false),
+					testAccCheckMetaKubeClusterOpenstackAttributes(&cluster, clusterName, nodeDC, versionK8s17, false),
 					resource.TestCheckResourceAttr(resourceName, "dc_name", nodeDC),
 					resource.TestCheckResourceAttr(resourceName, "name", clusterName),
-					resource.TestCheckResourceAttr(resourceName, "labels.%", "0"),
+					resource.TestCheckResourceAttr(resourceName, "labels.%", "2"),
+					resource.TestCheckResourceAttr(resourceName, "labels.a", "b"),
+					resource.TestCheckResourceAttr(resourceName, "labels.c", "d"),
 					resource.TestCheckResourceAttr(resourceName, "spec.#", "1"),
 					resource.TestCheckResourceAttr(resourceName, "spec.0.version", versionK8s17),
 					resource.TestCheckResourceAttr(resourceName, "spec.0.domain_name", "foodomain.local"),
@@ -56,9 +58,6 @@ func TestAccMetakubeCluster_Openstack_Basic(t *testing.T) {
 					resource.TestCheckResourceAttr(resourceName, "spec.0.cloud.0.bringyourown.#", "0"),
 					resource.TestCheckResourceAttr(resourceName, "spec.0.cloud.0.aws.#", "0"),
 					resource.TestCheckResourceAttr(resourceName, "spec.0.cloud.0.openstack.#", "1"),
-					resource.TestCheckResourceAttr(resourceName, "spec.0.cloud.0.openstack.0.tenant", tenant),
-					resource.TestCheckResourceAttr(resourceName, "spec.0.cloud.0.openstack.0.username", username),
-					resource.TestCheckResourceAttr(resourceName, "spec.0.cloud.0.openstack.0.password", password),
 					resource.TestCheckResourceAttrSet(resourceName, "spec.0.cloud.0.openstack.0.security_group"),
 					resource.TestCheckResourceAttrSet(resourceName, "spec.0.cloud.0.openstack.0.network"),
 					resource.TestCheckResourceAttrSet(resourceName, "spec.0.cloud.0.openstack.0.subnet_id"),
@@ -108,7 +107,6 @@ func TestAccMetakubeCluster_Openstack_Basic(t *testing.T) {
 						return nil
 					}),
 					resource.TestCheckResourceAttr(resourceName, "spec.0.audit_logging", "false"),
-					resource.TestCheckResourceAttr(resourceName, "type", "kubernetes"),
 					resource.TestCheckResourceAttrSet(resourceName, "creation_timestamp"),
 					resource.TestCheckResourceAttrSet(resourceName, "deletion_timestamp"),
 				),
@@ -117,13 +115,10 @@ func TestAccMetakubeCluster_Openstack_Basic(t *testing.T) {
 				Config: testAccCheckMetaKubeClusterOpenstackBasic2(clusterName+"-changed", username, password, tenant, nodeDC, versionK8s17),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccCheckMetaKubeClusterExists(&cluster),
-					testAccCheckMetaKubeClusterOpenstackAttributes(&cluster, clusterName+"-changed", username, password, tenant, nodeDC, versionK8s17, map[string]string{
-						"foo":      "bar", // label propagated from project
-						"test-key": "test-value",
-					}, true),
+					testAccCheckMetaKubeClusterOpenstackAttributes(&cluster, clusterName+"-changed", nodeDC, versionK8s17, true),
 					resource.TestCheckResourceAttr(resourceName, "name", clusterName+"-changed"),
 					resource.TestCheckResourceAttr(resourceName, "labels.%", "1"),
-					resource.TestCheckResourceAttr(resourceName, "labels.test-key", "test-value"),
+					resource.TestCheckResourceAttr(resourceName, "labels.foo", "bar"),
 					resource.TestCheckResourceAttr(resourceName, "spec.#", "1"),
 					resource.TestCheckResourceAttr(resourceName, "spec.0.version", versionK8s17),
 					resource.TestCheckResourceAttr(resourceName, "spec.0.domain_name", "foodomain.local"),
@@ -135,9 +130,6 @@ func TestAccMetakubeCluster_Openstack_Basic(t *testing.T) {
 					resource.TestCheckResourceAttr(resourceName, "spec.0.cloud.0.bringyourown.#", "0"),
 					resource.TestCheckResourceAttr(resourceName, "spec.0.cloud.0.aws.#", "0"),
 					resource.TestCheckResourceAttr(resourceName, "spec.0.cloud.0.openstack.#", "1"),
-					resource.TestCheckResourceAttr(resourceName, "spec.0.cloud.0.openstack.0.tenant", tenant),
-					resource.TestCheckResourceAttr(resourceName, "spec.0.cloud.0.openstack.0.username", username),
-					resource.TestCheckResourceAttr(resourceName, "spec.0.cloud.0.openstack.0.password", password),
 					resource.TestCheckResourceAttr(resourceName, "spec.0.cloud.0.openstack.0.floating_ip_pool", "ext-net"),
 					resource.TestCheckResourceAttrSet(resourceName, "spec.0.cloud.0.openstack.0.security_group"),
 					resource.TestCheckResourceAttrSet(resourceName, "spec.0.cloud.0.openstack.0.network"),
@@ -188,7 +180,6 @@ func TestAccMetakubeCluster_Openstack_Basic(t *testing.T) {
 						return nil
 					}),
 					resource.TestCheckResourceAttr(resourceName, "spec.0.audit_logging", "true"),
-					resource.TestCheckResourceAttr(resourceName, "type", "kubernetes"),
 					resource.TestCheckResourceAttrSet(resourceName, "creation_timestamp"),
 					resource.TestCheckResourceAttrSet(resourceName, "deletion_timestamp"),
 				),
@@ -197,6 +188,11 @@ func TestAccMetakubeCluster_Openstack_Basic(t *testing.T) {
 				ResourceName:      resourceName,
 				ImportState:       true,
 				ImportStateVerify: true,
+				ImportStateVerifyIgnore: []string{
+					"spec.0.cloud.0.openstack.0.username",
+					"spec.0.cloud.0.openstack.0.password",
+					"spec.0.cloud.0.openstack.0.tenant",
+				},
 			},
 			// Test importing non-existent resource provides expected error.
 			{
@@ -269,6 +265,11 @@ func testAccCheckMetaKubeClusterOpenstackBasic(clusterName, username, password, 
 		name = "%s"
 		dc_name = "%s"
 		project_id = metakube_project.acctest_project.id
+		
+		labels = {
+			"a" = "b"
+		  	"c" = "d"
+		}
 
 		spec {
 			version = "%s"
@@ -320,9 +321,6 @@ func testAccCheckMetaKubeClusterOpenstackBasic2(clusterName, username, password,
 	}
 	resource "metakube_project" "acctest_project" {
 		name = "%s"
-		labels = {
-			"foo" = "bar"
-		}
 	}
 
 	resource "metakube_cluster" "acctest_cluster" {
@@ -332,7 +330,7 @@ func testAccCheckMetaKubeClusterOpenstackBasic2(clusterName, username, password,
 
 		# add labels
 		labels = {
-			"test-key" = "test-value"
+			"foo" = "bar"
 		}
 
 		spec {
@@ -378,14 +376,10 @@ func testAccCheckMetaKubeClusterOpenstackBasic2(clusterName, username, password,
 	return fmt.Sprintf(config, clusterName, clusterName, nodeDC, k8sVersion, tenant, username, password, clusterName, clusterName, clusterName)
 }
 
-func testAccCheckMetaKubeClusterOpenstackAttributes(cluster *models.Cluster, name, username, password, tenant, nodeDC, k8sVersion string, labels map[string]string, auditLogging bool) resource.TestCheckFunc {
+func testAccCheckMetaKubeClusterOpenstackAttributes(cluster *models.Cluster, name, nodeDC, k8sVersion string, auditLogging bool) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		if cluster.Name != name {
 			return fmt.Errorf("want .Name=%s, got %s", name, cluster.Name)
-		}
-
-		if diff := cmp.Diff(labels, cluster.Labels); diff != "" {
-			return fmt.Errorf("wrong labels: %s", diff)
 		}
 
 		if cluster.Spec.AuditLogging != nil && cluster.Spec.AuditLogging.Enabled != auditLogging {
