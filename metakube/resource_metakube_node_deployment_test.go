@@ -40,6 +40,9 @@ func TestAccMetakubeNodeDeployment_Openstack_Basic(t *testing.T) {
 					resource.TestCheckResourceAttr(resourceName, "name", testName),
 					resource.TestCheckResourceAttrPtr(resourceName, "name", &ndepl.Name),
 					resource.TestCheckResourceAttr(resourceName, "spec.0.replicas", "1"),
+					resource.TestCheckResourceAttr(resourceName, "spec.0.template.0.labels.%", "4"),
+					resource.TestCheckResourceAttr(resourceName, "spec.0.template.0.labels.a", "b"),
+					resource.TestCheckResourceAttr(resourceName, "spec.0.template.0.labels.c", "d"),
 					resource.TestCheckResourceAttr(resourceName, "spec.0.template.0.cloud.0.openstack.0.flavor", flavor),
 					resource.TestCheckResourceAttr(resourceName, "spec.0.template.0.cloud.0.openstack.0.image", image),
 					resource.TestCheckResourceAttr(resourceName, "spec.0.template.0.operating_system.0.ubuntu.#", "1"),
@@ -61,6 +64,8 @@ func TestAccMetakubeNodeDeployment_Openstack_Basic(t *testing.T) {
 					testAccCheckMetaKubeNodeDeploymentFields(&ndepl, flavor, image2, kubeletVersion16, 1, 123, true),
 					resource.TestCheckResourceAttr(resourceName, "name", testName),
 					resource.TestCheckResourceAttr(resourceName, "spec.0.replicas", "1"),
+					resource.TestCheckResourceAttr(resourceName, "spec.0.template.0.labels.%", "3"),
+					resource.TestCheckResourceAttr(resourceName, "spec.0.template.0.labels.foo", "bar"),
 					resource.TestCheckResourceAttr(resourceName, "spec.0.template.0.cloud.0.openstack.0.flavor", flavor),
 					resource.TestCheckResourceAttr(resourceName, "spec.0.template.0.cloud.0.openstack.0.image", image2),
 					resource.TestCheckResourceAttr(resourceName, "spec.0.template.0.cloud.0.openstack.0.use_floating_ip", "true"),
@@ -129,6 +134,10 @@ func testAccCheckMetaKubeNodeDeploymentBasic(testName, nodeDC, username, passwor
 		spec {
 			replicas = 1
 			template {
+				labels = {
+                	"a" = "b"
+					"c" = "d"
+				}
 				cloud {
 					openstack {
 						flavor = "%s"

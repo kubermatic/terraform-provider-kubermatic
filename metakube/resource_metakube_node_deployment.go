@@ -221,6 +221,58 @@ func metakubeResourceNodeDeploymentUpdate(ctx context.Context, d *schema.Resourc
 		return diag.Errorf("unable to update a node deployment: %v", stringifyResponseError(err))
 	}
 
+	if d.HasChange("spec.0.template.0.labels") {
+		// To delete a label key we have to send PATCH request with that key set to null.
+		// For simplicity we are doing it in a separate PATCH.
+
+		before, now := d.GetChange("spec.0.template.0.labels")
+
+		var beforeMap, nowMap map[string]interface{}
+		var ok bool
+
+		if before != nil {
+			beforeMap, ok = before.(map[string]interface{})
+			if !ok {
+				return diag.Errorf("failed to apply labels change")
+			}
+		}
+
+		if now != nil {
+			nowMap, ok = now.(map[string]interface{})
+			if !ok {
+				return diag.Errorf("failed to apply labels change")
+			}
+		}
+
+		labelsPatch := make(map[string]interface{})
+		for k := range beforeMap {
+			if _, ok := nowMap[k]; !ok {
+				labelsPatch[k] = nil
+			}
+		}
+
+		if len(labelsPatch) > 0 {
+			patch := map[string]interface{}{
+				"spec": map[string]interface{}{
+					"template": map[string]interface{}{
+						"labels": labelsPatch,
+					},
+				},
+			}
+			p := project.NewPatchMachineDeploymentParams()
+			p.SetContext(ctx)
+			p.SetProjectID(projectID)
+			p.SetClusterID(clusterID)
+			p.SetMachineDeploymentID(d.Id())
+			p.SetPatch(&patch)
+
+			_, err := k.client.Project.PatchMachineDeployment(p, k.auth)
+			if err != nil {
+				return diag.Errorf("unable to update a node deployment: %v", stringifyResponseError(err))
+			}
+		}
+	}
+
 	if err := metakubeResourceNodeDeploymentWaitForReady(ctx, k, d.Timeout(schema.TimeoutCreate), projectID, clusterID, d.Id(), res.Payload.Status.ObservedGeneration); err != nil {
 		return diag.FromErr(err)
 	}

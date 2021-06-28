@@ -14,14 +14,13 @@ import (
 
 func matakubeResourceNodeDeploymentLabelOrTagReserved(path string) bool {
 	for _, substr := range []string{
-		"%",
-		"%",
 		"metakube-cluster",
 		"system-project",
 		"system-cluster",
 		"system/cluster",
 		"system/project",
 		"kubernetes.io",
+		"syseleven.de",
 	} {
 		if strings.Contains(path, substr) {
 			return true
@@ -31,7 +30,7 @@ func matakubeResourceNodeDeploymentLabelOrTagReserved(path string) bool {
 }
 
 func matakubeResourceNodeDeploymentValidateLabelOrTag(key string) error {
-	r := regexp.MustCompile(`^(metakube|system|kubernetes\.io)([/\-])`)
+	r := regexp.MustCompile(`^(syseleven\.de|metakube|system|kubernetes\.io)([/\-])`)
 	if r.MatchString(key) {
 		return fmt.Errorf("forbidden tag or label prefix %s", key)
 	}
