@@ -292,8 +292,6 @@ func metakubeResourceClusterRead(ctx context.Context, d *schema.ResourceData, m 
 
 	_ = d.Set("name", r.Payload.Name)
 
-	_ = d.Set("type", r.Payload.Type)
-
 	values := readClusterPreserveValues(d)
 	specFlattened := metakubeResourceClusterFlattenSpec(values, r.Payload.Spec)
 	if err = d.Set("spec", specFlattened); err != nil {
