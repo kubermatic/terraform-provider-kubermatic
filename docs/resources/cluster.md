@@ -96,6 +96,7 @@ One of the following must be selected.
 * `route_table_id` - (Optional) Route table identifier.
 * `instance_profile_name` - (Optional) Instance profile name.
 * `role_arn` - (Optional) The IAM role that the control plane will use.
+* `openstack_billing_tenant` - (Required) Openstack Tenant/Project name for the account.
 
 ### `azure`
 
@@ -110,3 +111,4 @@ One of the following must be selected.
 * `security_group` - (Optional) Security group name.
 * `subnet` - (Optional) Subnet.
 * `vnet` - (Optional) Vnet.
+* `openstack_billing_tenant` - (Required) Openstack Tenant/Project name for the account.

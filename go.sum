@@ -462,8 +462,6 @@ github.com/stretchr/testify v1.4.0/go.mod h1:j7eGeouHqKxXV5pUuKE4zz7dFj8WfuZ+81P
 github.com/stretchr/testify v1.6.1/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
 github.com/stretchr/testify v1.7.0 h1:nwc3DEeHmmLAfoZucVR881uASk0Mfjw8xYJ99tb5CcY=
 github.com/stretchr/testify v1.7.0/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
-github.com/syseleven/go-metakube v0.0.0-20210416091829-b6a6fb1490a6 h1:/bXn1zDkHppCEWW4z38auOMK/0st3YCT5EVzuRffzR0=
-github.com/syseleven/go-metakube v0.0.0-20210416091829-b6a6fb1490a6/go.mod h1:4AYa17U1yL9SFYSC5VF7rH6Jr4tMYrFSboduGQhrCx8=
 github.com/syseleven/go-metakube v0.0.0-20210624055517-a73033719ddf h1:IF8+oNGTwwp3d3LpLxgEJGrrLGF0jeIS6tkMgMnVFnw=
 github.com/syseleven/go-metakube v0.0.0-20210624055517-a73033719ddf/go.mod h1:4AYa17U1yL9SFYSC5VF7rH6Jr4tMYrFSboduGQhrCx8=
 github.com/tidwall/pretty v1.0.0 h1:HsD+QiTn7sK6flMKIvNmpqz1qrpP3Ps6jOKIKMooyg4=
