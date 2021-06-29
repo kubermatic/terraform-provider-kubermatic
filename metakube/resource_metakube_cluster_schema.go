@@ -184,6 +184,13 @@ func metakubeResourceClusterAzureSpecFields() map[string]*schema.Schema {
 			Computed: true,
 			Optional: true,
 		},
+		"openstack_billing_tenant": {
+			Type:         schema.TypeString,
+			Required:     true,
+			DefaultFunc:  schema.EnvDefaultFunc("OS_PROJECT", ""),
+			ValidateFunc: validation.NoZeroValues,
+			Description:  "Openstack tenant/project name for the account",
+		},
 	}
 }
 
@@ -225,6 +232,13 @@ func metakubeResourceCluserAWSCloudSpecFields() map[string]*schema.Schema {
 			Type:        schema.TypeString,
 			Optional:    true,
 			Description: "The IAM role the control plane will use over assume-role",
+		},
+		"openstack_billing_tenant": {
+			Type:         schema.TypeString,
+			Required:     true,
+			DefaultFunc:  schema.EnvDefaultFunc("OS_PROJECT", ""),
+			ValidateFunc: validation.NoZeroValues,
+			Description:  "Openstack tenant/project name for the account",
 		},
 	}
 }

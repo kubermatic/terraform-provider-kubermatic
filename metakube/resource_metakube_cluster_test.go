@@ -579,6 +579,7 @@ func TestAccMetakubeCluster_Azure_Basic(t *testing.T) {
 	subsID := os.Getenv(testEnvAzureSubscriptionID)
 	nodeDC := os.Getenv(testEnvAzureNodeDC)
 	k8sVersion := os.Getenv(testEnvK8sVersion)
+	billingTenant := os.Getenv(testEnvOpenstackTenant)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheckForAzure(t) },
@@ -586,7 +587,7 @@ func TestAccMetakubeCluster_Azure_Basic(t *testing.T) {
 		CheckDestroy: testAccCheckMetaKubeClusterDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCheckMetaKubeClusterAzureBasic(clusterName, clientID, clientSecret, tenantID, subsID, nodeDC, k8sVersion),
+				Config: testAccCheckMetaKubeClusterAzureBasic(clusterName, clientID, clientSecret, tenantID, subsID, nodeDC, billingTenant, k8sVersion),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccCheckMetaKubeClusterExists(&cluster),
 					resource.TestCheckResourceAttr(resourceName, "spec.0.cloud.0.azure.0.client_id", clientID),
@@ -599,7 +600,7 @@ func TestAccMetakubeCluster_Azure_Basic(t *testing.T) {
 	})
 }
 
-func testAccCheckMetaKubeClusterAzureBasic(n, clientID, clientSecret, tenantID, subscID, nodeDC, k8sVersion string) string {
+func testAccCheckMetaKubeClusterAzureBasic(n, clientID, clientSecret, tenantID, subscID, nodeDC, billingTenant, k8sVersion string) string {
 	return fmt.Sprintf(`
 	resource "metakube_project" "acctest_project" {
 		name = "%s"
@@ -618,10 +619,11 @@ func testAccCheckMetaKubeClusterAzureBasic(n, clientID, clientSecret, tenantID, 
 					client_secret = "%s"
 					tenant_id = "%s"
 					subscription_id = "%s"
+					openstack_billing_tenant = "%s"
 				}
 			}
 		}
-	}`, n, n, nodeDC, k8sVersion, clientID, clientSecret, tenantID, subscID)
+	}`, n, n, nodeDC, k8sVersion, clientID, clientSecret, tenantID, subscID, billingTenant)
 }
 
 func TestAccMetakubeCluster_AWS_Basic(t *testing.T) {
@@ -633,6 +635,7 @@ func TestAccMetakubeCluster_AWS_Basic(t *testing.T) {
 	vpcID := os.Getenv(testEnvAWSVPCID)
 	nodeDC := os.Getenv(testEnvAWSNodeDC)
 	k8sVersion17 := os.Getenv(testEnvK8sVersion)
+	billingTenant := os.Getenv(testEnvOpenstackTenant)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheckForAWS(t) },
@@ -640,7 +643,7 @@ func TestAccMetakubeCluster_AWS_Basic(t *testing.T) {
 		CheckDestroy: testAccCheckMetaKubeClusterDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCheckMetaKubeClusterAWSBasic(clusterName, awsAccessKeyID, awsSecretAccessKey, vpcID, nodeDC, k8sVersion17),
+				Config: testAccCheckMetaKubeClusterAWSBasic(clusterName, awsAccessKeyID, awsSecretAccessKey, vpcID, nodeDC, billingTenant, k8sVersion17),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccCheckMetaKubeClusterExists(&cluster),
 					resource.TestCheckResourceAttr(resourceName, "spec.0.cloud.0.aws.#", "1"),
@@ -650,7 +653,7 @@ func TestAccMetakubeCluster_AWS_Basic(t *testing.T) {
 	})
 }
 
-func testAccCheckMetaKubeClusterAWSBasic(n, keyID, keySecret, vpcID, nodeDC, k8sVersion string) string {
+func testAccCheckMetaKubeClusterAWSBasic(n, keyID, keySecret, vpcID, nodeDC, billingTenant, k8sVersion string) string {
 	return fmt.Sprintf(`
 	resource "metakube_project" "acctest_project" {
 		name = "%s"
@@ -668,10 +671,11 @@ func testAccCheckMetaKubeClusterAWSBasic(n, keyID, keySecret, vpcID, nodeDC, k8s
 					access_key_id = "%s"
 					secret_access_key = "%s"
 					vpc_id = "%s"
+					openstack_billing_tenant = "%s"
 				}
 			}
 		}
-	}`, n, n, nodeDC, k8sVersion, keyID, keySecret, vpcID)
+	}`, n, n, nodeDC, k8sVersion, keyID, keySecret, vpcID, billingTenant)
 }
 
 func testAccCheckMetaKubeClusterDestroy(s *terraform.State) error {

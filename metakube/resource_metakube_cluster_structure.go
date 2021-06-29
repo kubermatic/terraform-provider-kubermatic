@@ -137,6 +137,10 @@ func flattenAWSCloudSpec(in *models.AWSCloudSpec) []interface{} {
 		att["role_arn"] = in.ControlPlaneRoleARN
 	}
 
+	if in.OpenstackBillingTenant != "" {
+		att["openstack_billing_tenant"] = in.OpenstackBillingTenant
+	}
+
 	if in.RouteTableID != "" {
 		att["route_table_id"] = in.RouteTableID
 	}
@@ -221,6 +225,10 @@ func flattenAzureSpec(in *models.AzureCloudSpec) []interface{} {
 
 	if in.RouteTableName != "" {
 		att["route_table"] = in.RouteTableName
+	}
+
+	if in.OpenstackBillingTenant != "" {
+		att["openstack_billing_tenant"] = in.OpenstackBillingTenant
 	}
 
 	if in.SecurityGroup != "" {
@@ -462,6 +470,12 @@ func expandAWSCloudSpec(p []interface{}) *models.AWSCloudSpec {
 		}
 	}
 
+	if v, ok := in["openstack_billing_tenant"]; ok {
+		if vv, ok := v.(string); ok && vv != "" {
+			obj.OpenstackBillingTenant = vv
+		}
+	}
+
 	if v, ok := in["route_table_id"]; ok {
 		if vv, ok := v.(string); ok && vv != "" {
 			obj.RouteTableID = vv
@@ -588,6 +602,12 @@ func expandAzureCloudSpec(p []interface{}) *models.AzureCloudSpec {
 	if v, ok := in["route_table"]; ok {
 		if vv, ok := v.(string); ok && vv != "" {
 			obj.RouteTableName = vv
+		}
+	}
+
+	if v, ok := in["openstack_billing_tenant"]; ok {
+		if vv, ok := v.(string); ok && vv != "" {
+			obj.OpenstackBillingTenant = vv
 		}
 	}
 

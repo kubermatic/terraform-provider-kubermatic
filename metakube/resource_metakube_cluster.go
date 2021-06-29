@@ -455,29 +455,31 @@ func readClusterPreserveValues(d *schema.ResourceData) clusterPreserveValues {
 	var azure *models.AzureCloudSpec
 	if _, ok := d.GetOk(key("azure.0")); ok {
 		azure = &models.AzureCloudSpec{
-			AvailabilitySet: d.Get(key("azure.0.availability_set")).(string),
-			ClientID:        d.Get(key("azure.0.client_id")).(string),
-			ClientSecret:    d.Get(key("azure.0.client_secret")).(string),
-			SubscriptionID:  d.Get(key("azure.0.subscription_id")).(string),
-			TenantID:        d.Get(key("azure.0.tenant_id")).(string),
-			ResourceGroup:   d.Get(key("azure.0.resource_group")).(string),
-			RouteTableName:  d.Get(key("azure.0.route_table")).(string),
-			SecurityGroup:   d.Get(key("azure.0.security_group")).(string),
-			SubnetName:      d.Get(key("azure.0.subnet")).(string),
-			VNetName:        d.Get(key("azure.0.vnet")).(string),
+			AvailabilitySet:        d.Get(key("azure.0.availability_set")).(string),
+			ClientID:               d.Get(key("azure.0.client_id")).(string),
+			ClientSecret:           d.Get(key("azure.0.client_secret")).(string),
+			SubscriptionID:         d.Get(key("azure.0.subscription_id")).(string),
+			TenantID:               d.Get(key("azure.0.tenant_id")).(string),
+			ResourceGroup:          d.Get(key("azure.0.resource_group")).(string),
+			RouteTableName:         d.Get(key("azure.0.route_table")).(string),
+			SecurityGroup:          d.Get(key("azure.0.security_group")).(string),
+			SubnetName:             d.Get(key("azure.0.subnet")).(string),
+			VNetName:               d.Get(key("azure.0.vnet")).(string),
+			OpenstackBillingTenant: d.Get(key("azure.0.openstack_billing_tenant")).(string),
 		}
 	}
 
 	var aws *models.AWSCloudSpec
 	if _, ok := d.GetOk(key("aws.0")); ok {
 		aws = &models.AWSCloudSpec{
-			AccessKeyID:         d.Get(key("aws.0.access_key_id")).(string),
-			SecretAccessKey:     d.Get(key("aws.0.secret_access_key")).(string),
-			VPCID:               d.Get(key("aws.0.vpc_id")).(string),
-			SecurityGroupID:     d.Get(key("aws.0.security_group_id")).(string),
-			RouteTableID:        d.Get(key("aws.0.route_table_id")).(string),
-			InstanceProfileName: d.Get(key("aws.0.instance_profile_name")).(string),
-			ControlPlaneRoleARN: d.Get(key("aws.0.role_arn")).(string),
+			AccessKeyID:            d.Get(key("aws.0.access_key_id")).(string),
+			SecretAccessKey:        d.Get(key("aws.0.secret_access_key")).(string),
+			VPCID:                  d.Get(key("aws.0.vpc_id")).(string),
+			SecurityGroupID:        d.Get(key("aws.0.security_group_id")).(string),
+			RouteTableID:           d.Get(key("aws.0.route_table_id")).(string),
+			InstanceProfileName:    d.Get(key("aws.0.instance_profile_name")).(string),
+			ControlPlaneRoleARN:    d.Get(key("aws.0.role_arn")).(string),
+			OpenstackBillingTenant: d.Get(key("aws.0.openstack_billing_tenant")).(string),
 		}
 	}
 
