@@ -214,8 +214,10 @@ func resourceNodeDeploymentUpdate(d *schema.ResourceData, m interface{}) error {
 		return fmt.Errorf("unable to update a node deployment: %v", getErrorResponse(err))
 	}
 
-	if err := waitForNodeDeploymentRead(k, d.Timeout(schema.TimeoutCreate), projectID, dc.Spec.Seed, clusterID, r.Payload.ID); err != nil {
-		return err
+	if d.Get("spec.0.replicas").(int) > 0 {
+		if err := waitForNodeDeploymentRead(k, d.Timeout(schema.TimeoutCreate), projectID, dc.Spec.Seed, clusterID, r.Payload.ID); err != nil {
+			return err
+		}
 	}
 
 	return resourceNodeDeploymentRead(d, m)
