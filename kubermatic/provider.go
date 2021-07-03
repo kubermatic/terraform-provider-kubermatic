@@ -91,6 +91,7 @@ func Provider() terraform.ResourceProvider {
 			"kubermatic_cluster":            dataSourceCluster(),
 			"kubermatic_cluster_kubeconfig": dataSourceClusterKubeconfigV2(),
 			"kubermatic_node_deployment":    dataSourceNodeDeployment(),
+			"kubermatic_sshkey":             dataSourceSSHKey(),
 		},
 	}
 
