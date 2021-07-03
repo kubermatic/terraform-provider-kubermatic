@@ -89,6 +89,7 @@ func Provider() terraform.ResourceProvider {
 		DataSourcesMap: map[string]*schema.Resource{
 			"kubermatic_cluster":            dataSourceCluster(),
 			"kubermatic_cluster_kubeconfig": dataSourceClusterKubeconfigV2(),
+			"kubermatic_node_deployment":    dataSourceNodeDeployment(),
 		},
 	}
 
