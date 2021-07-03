@@ -109,18 +109,29 @@ func resourceNodeDeploymentCreate(d *schema.ResourceData, m interface{}) error {
 		return fmt.Errorf("cluster is not ready: %v", err)
 	}
 
-	r, err := k.client.Project.CreateNodeDeployment(p, k.auth)
-	if err != nil {
-		if e, ok := err.(*project.CreateNodeDeploymentDefault); ok && errorMessage(e.Payload) != "" {
-			return fmt.Errorf("unable to create node deployment: %s", errorMessage(e.Payload))
+	i := 0
+	for i < 3 {
+		r, err := k.client.Project.CreateNodeDeployment(p, k.auth)
+		if err != nil {
+			if i < 2 {
+				time.Sleep(5 * time.Second)
+				i++
+				continue
+			}
+			if e, ok := err.(*project.CreateNodeDeploymentDefault); ok && errorMessage(e.Payload) != "" {
+				return fmt.Errorf("unable to create node deployment: %s", errorMessage(e.Payload))
+			}
+
+			return fmt.Errorf("unable to create a node deployment: %v", getErrorResponse(err))
 		}
+		i = 3
+		d.SetId(r.Payload.ID)
 
-		return fmt.Errorf("unable to create a node deployment: %v", getErrorResponse(err))
-	}
-	d.SetId(r.Payload.ID)
-
-	if err := waitForNodeDeploymentRead(k, d.Timeout(schema.TimeoutCreate), projectID, dc.Spec.Seed, clusterID, r.Payload.ID); err != nil {
-		return err
+		if d.Get("spec.0.replicas").(int) > 0 {
+			if err := waitForNodeDeploymentRead(k, d.Timeout(schema.TimeoutCreate), projectID, dc.Spec.Seed, clusterID, r.Payload.ID); err != nil {
+				return err
+			}
+		}
 	}
 
 	return resourceNodeDeploymentRead(d, m)
