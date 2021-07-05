@@ -265,19 +265,19 @@ func openstackCloudSpecFields() map[string]*schema.Schema {
 		},
 		"tenant": {
 			Type:         schema.TypeString,
-			Required:     true,
+			Optional:     true,
 			ForceNew:     true,
 			ValidateFunc: validation.NoZeroValues,
 		},
 		"username": {
 			Type:         schema.TypeString,
-			Required:     true,
+			Optional:     true,
 			Sensitive:    true,
 			ValidateFunc: validation.NoZeroValues,
 		},
 		"password": {
 			Type:         schema.TypeString,
-			Required:     true,
+			Optional:     true,
 			Sensitive:    true,
 			ValidateFunc: validation.NoZeroValues,
 		},
