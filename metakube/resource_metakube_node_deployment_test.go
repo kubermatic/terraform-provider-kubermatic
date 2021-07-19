@@ -24,8 +24,8 @@ func TestAccMetakubeNodeDeployment_Openstack_Basic(t *testing.T) {
 	image := os.Getenv(testEnvOpenstackImage)
 	image2 := os.Getenv(testEnvOpenstackImage2)
 	flavor := os.Getenv(testEnvOpenstackFlavor)
-	k8sVersion17 := os.Getenv(testEnvK8sVersion)
-	kubeletVersion16 := os.Getenv(testEnvK8sOlderVersion)
+	k8sVersionNew := os.Getenv(testEnvK8sVersion)
+	k8sVersionOld := os.Getenv(testEnvK8sOlderVersion)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheckForOpenstack(t) },
@@ -33,10 +33,10 @@ func TestAccMetakubeNodeDeployment_Openstack_Basic(t *testing.T) {
 		CheckDestroy: testAccCheckMetaKubeNodeDeploymentDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCheckMetaKubeNodeDeploymentBasic(testName, nodeDC, username, password, tenant, k8sVersion17, kubeletVersion16, image, flavor),
+				Config: testAccCheckMetaKubeNodeDeploymentBasic(testName, nodeDC, username, password, tenant, k8sVersionOld, k8sVersionOld, image, flavor),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccCheckMetaKubeNodeDeploymentExists(resourceName, &ndepl),
-					testAccCheckMetaKubeNodeDeploymentFields(&ndepl, flavor, image, kubeletVersion16, 1, 0, false),
+					testAccCheckMetaKubeNodeDeploymentFields(&ndepl, flavor, image, k8sVersionOld, 1, 0, false),
 					resource.TestCheckResourceAttr(resourceName, "name", testName),
 					resource.TestCheckResourceAttrPtr(resourceName, "name", &ndepl.Name),
 					resource.TestCheckResourceAttr(resourceName, "spec.0.replicas", "1"),
@@ -46,12 +46,12 @@ func TestAccMetakubeNodeDeployment_Openstack_Basic(t *testing.T) {
 					resource.TestCheckResourceAttr(resourceName, "spec.0.template.0.cloud.0.openstack.0.flavor", flavor),
 					resource.TestCheckResourceAttr(resourceName, "spec.0.template.0.cloud.0.openstack.0.image", image),
 					resource.TestCheckResourceAttr(resourceName, "spec.0.template.0.operating_system.0.ubuntu.#", "1"),
-					resource.TestCheckResourceAttr(resourceName, "spec.0.template.0.versions.0.kubelet", kubeletVersion16),
+					resource.TestCheckResourceAttr(resourceName, "spec.0.template.0.versions.0.kubelet", k8sVersionOld),
 					resource.TestCheckResourceAttr(resourceName, "spec.0.dynamic_config", "false"),
 				),
 			},
 			{
-				Config: testAccCheckMetaKubeNodeDeploymentBasic2(testName, nodeDC, username, password, tenant, k8sVersion17, kubeletVersion16, image2, flavor),
+				Config: testAccCheckMetaKubeNodeDeploymentBasic2(testName, nodeDC, username, password, tenant, k8sVersionNew, k8sVersionNew, image2, flavor),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testResourceInstanceState(resourceName, func(is *terraform.InstanceState) error {
 						// Record IDs to test import
@@ -61,7 +61,7 @@ func TestAccMetakubeNodeDeployment_Openstack_Basic(t *testing.T) {
 						return nil
 					}),
 					testAccCheckMetaKubeNodeDeploymentExists(resourceName, &ndepl),
-					testAccCheckMetaKubeNodeDeploymentFields(&ndepl, flavor, image2, kubeletVersion16, 1, 123, true),
+					testAccCheckMetaKubeNodeDeploymentFields(&ndepl, flavor, image2, k8sVersionNew, 1, 123, true),
 					resource.TestCheckResourceAttr(resourceName, "name", testName),
 					resource.TestCheckResourceAttr(resourceName, "spec.0.replicas", "1"),
 					resource.TestCheckResourceAttr(resourceName, "spec.0.template.0.labels.%", "3"),
@@ -71,12 +71,12 @@ func TestAccMetakubeNodeDeployment_Openstack_Basic(t *testing.T) {
 					resource.TestCheckResourceAttr(resourceName, "spec.0.template.0.cloud.0.openstack.0.use_floating_ip", "true"),
 					resource.TestCheckResourceAttr(resourceName, "spec.0.template.0.cloud.0.openstack.0.disk_size", "123"),
 					resource.TestCheckResourceAttr(resourceName, "spec.0.template.0.operating_system.0.ubuntu.0.dist_upgrade_on_boot", "true"),
-					resource.TestCheckResourceAttr(resourceName, "spec.0.template.0.versions.0.kubelet", kubeletVersion16),
+					resource.TestCheckResourceAttr(resourceName, "spec.0.template.0.versions.0.kubelet", k8sVersionNew),
 					resource.TestCheckResourceAttr(resourceName, "spec.0.dynamic_config", "true"),
 				),
 			},
 			{
-				Config:   testAccCheckMetaKubeNodeDeploymentBasic2(testName, nodeDC, username, password, tenant, k8sVersion17, kubeletVersion16, image2, flavor),
+				Config:   testAccCheckMetaKubeNodeDeploymentBasic2(testName, nodeDC, username, password, tenant, k8sVersionNew, k8sVersionNew, image2, flavor),
 				PlanOnly: true,
 			},
 			{

@@ -3,6 +3,8 @@ package metakube
 import (
 	"context"
 	"fmt"
+	"github.com/hashicorp/go-version"
+	"github.com/syseleven/go-metakube/client/versions"
 	"net/http"
 	"strings"
 	"time"
@@ -118,14 +120,21 @@ func metakubeResourceNodeDeploymentCreate(ctx context.Context, d *schema.Resourc
 			return diag.Errorf("")
 		}
 	}
+
+	nodeDeployment := &models.NodeDeployment{
+		Name: d.Get("name").(string),
+		Spec: metakubeNodeDeploymentExpandSpec(d.Get("spec").([]interface{})),
+	}
+
+	if err := metakubeResourceNodeDeploymentVersionCompatibleWithCluster(ctx, k, projectID, clusterID, nodeDeployment); err != nil {
+		return diag.FromErr(err)
+	}
+
 	p := project.NewCreateMachineDeploymentParams().
 		WithContext(ctx).
 		WithProjectID(projectID).
 		WithClusterID(clusterID).
-		WithBody(&models.NodeDeployment{
-			Name: d.Get("name").(string),
-			Spec: metakubeNodeDeploymentExpandSpec(d.Get("spec").([]interface{})),
-		})
+		WithBody(nodeDeployment)
 
 	if err := metakubeResourceClusterWaitForReady(ctx, k, d, projectID, clusterID); err != nil {
 		return diag.Errorf("cluster is not ready: %v", err)
@@ -207,15 +216,21 @@ func metakubeResourceNodeDeploymentUpdate(ctx context.Context, d *schema.Resourc
 	k := m.(*metakubeProviderMeta)
 	projectID := d.Get("project_id").(string)
 	clusterID := d.Get("cluster_id").(string)
+
+	nodeDeployment := &models.NodeDeployment{
+		Spec: metakubeNodeDeploymentExpandSpec(d.Get("spec").([]interface{})),
+	}
+
+	if err := metakubeResourceNodeDeploymentVersionCompatibleWithCluster(ctx, k, projectID, clusterID, nodeDeployment); err != nil {
+		return diag.FromErr(err)
+	}
+
 	p := project.NewPatchMachineDeploymentParams()
 	p.SetContext(ctx)
 	p.SetProjectID(projectID)
 	p.SetClusterID(clusterID)
 	p.SetMachineDeploymentID(d.Id())
-	p.SetPatch(&models.NodeDeployment{
-		Spec: metakubeNodeDeploymentExpandSpec(d.Get("spec").([]interface{})),
-	})
-
+	p.SetPatch(nodeDeployment)
 	res, err := k.client.Project.PatchMachineDeployment(p, k.auth)
 	if err != nil {
 		return diag.Errorf("unable to update a node deployment: %v", stringifyResponseError(err))
@@ -266,7 +281,16 @@ func metakubeResourceNodeDeploymentUpdate(ctx context.Context, d *schema.Resourc
 			p.SetMachineDeploymentID(d.Id())
 			p.SetPatch(&patch)
 
-			_, err := k.client.Project.PatchMachineDeployment(p, k.auth)
+			resource.RetryContext(ctx, d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+				_, err := k.client.Project.PatchMachineDeployment(p, k.auth)
+				if err != nil {
+					if strings.Contains(stringifyResponseError(err), "the object has been modified") {
+						return resource.RetryableError(fmt.Errorf("machine deployment patch conflict: %v", err))
+					}
+					return resource.NonRetryableError(fmt.Errorf("patch machine deployment '%s': %v", d.Id(), err))
+				}
+				return nil
+			})
 			if err != nil {
 				return diag.Errorf("unable to update a node deployment: %v", stringifyResponseError(err))
 			}
@@ -278,6 +302,77 @@ func metakubeResourceNodeDeploymentUpdate(ctx context.Context, d *schema.Resourc
 	}
 
 	return metakubeResourceNodeDeploymentRead(ctx, d, m)
+}
+
+func metakubeResourceNodeDeploymentVersionCompatibleWithCluster(ctx context.Context, k *metakubeProviderMeta, projectID, clusterID string, ndepl *models.NodeDeployment) error {
+	cluster, err := metakubeGetCluster(ctx, projectID, clusterID, k)
+	if err != nil {
+		return err
+	}
+	clusterVersion := cluster.Spec.Version.(string)
+
+	var kubeletVersion string
+	if ndepl.Spec.Template != nil && ndepl.Spec.Template.Versions != nil {
+		kubeletVersion = ndepl.Spec.Template.Versions.Kubelet
+	}
+	err = validateVersionAgainstCluster(kubeletVersion, clusterVersion)
+	if err != nil {
+		return err
+	}
+	return validateKubeletVersionIsAvailable(k, kubeletVersion, clusterVersion)
+}
+
+func validateVersionAgainstCluster(kubeletVersion, clusterVersion string) error {
+	if kubeletVersion == "" {
+		return nil
+	}
+
+	clusterSemverVersion, err := version.NewVersion(clusterVersion)
+	if err != nil {
+		return err
+	}
+
+	v, err := version.NewVersion(kubeletVersion)
+
+	if err != nil {
+		return fmt.Errorf("unable to parse node deployment version")
+	}
+
+	if clusterSemverVersion.LessThan(v) {
+		return fmt.Errorf("node deployment version (%s) cannot be greater than cluster version (%s)", v, clusterVersion)
+	}
+	return nil
+}
+
+func validateKubeletVersionIsAvailable(k *metakubeProviderMeta, kubeletVersion, clusterVersion string) error {
+	if kubeletVersion == "" {
+		return nil
+	}
+
+	versionType := "kubernetes"
+
+	p := versions.NewGetNodeUpgradesParams()
+	p.SetType(&versionType)
+	p.SetControlPlaneVersion(&clusterVersion)
+	r, err := k.client.Versions.GetNodeUpgrades(p, k.auth)
+
+	if err != nil {
+		if e, ok := err.(*versions.GetNodeUpgradesDefault); ok && e.Payload != nil && e.Payload.Error != nil && e.Payload.Error.Message != nil {
+			return fmt.Errorf("get node_deployment upgrades: %s", *e.Payload.Error.Message)
+		}
+		return err
+	}
+
+	var availableVersions []string
+	for _, v := range r.Payload {
+		s, ok := v.Version.(string)
+		if ok && s == kubeletVersion && !v.RestrictedByKubeletVersion {
+			return nil
+		}
+		availableVersions = append(availableVersions, s)
+	}
+
+	return fmt.Errorf("unknown version for node deployment %s, available versions %v", kubeletVersion, availableVersions)
 }
 
 func metakubeResourceNodeDeploymentWaitForReady(ctx context.Context, k *metakubeProviderMeta, timeout time.Duration, projectID, clusterID, id string, generation int64) error {

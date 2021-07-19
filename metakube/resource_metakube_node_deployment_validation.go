@@ -4,10 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/syseleven/go-metakube/client/project"
-	"github.com/syseleven/go-metakube/client/versions"
 	"github.com/syseleven/go-metakube/models"
 )
 
@@ -22,13 +20,7 @@ func validateNodeSpecMatchesCluster() schema.CustomizeDiffFunc {
 		if projectID == "" {
 			return nil
 		}
-		cluster, err := metakubeGetCluster(projectID, clusterID, k)
-		if err != nil {
-			return err
-		}
-		clusterVersion := cluster.Spec.Version.(string)
-
-		err = validateVersionAgainstCluster(d, clusterVersion)
+		cluster, err := metakubeGetCluster(ctx, projectID, clusterID, k)
 		if err != nil {
 			return err
 		}
@@ -37,10 +29,6 @@ func validateNodeSpecMatchesCluster() schema.CustomizeDiffFunc {
 			return err
 		}
 		err = validateProviderMatchesCluster(d, clusterProvider)
-		if err != nil {
-			return err
-		}
-		err = validateKubeletVersionIsAvailable(d, k, clusterVersion)
 		if err != nil {
 			return err
 		}
@@ -83,63 +71,9 @@ func validateProviderMatchesCluster(d *schema.ResourceDiff, clusterProvider stri
 
 }
 
-func validateVersionAgainstCluster(d *schema.ResourceDiff, clusterVersion string) error {
-	nodeVersion, ok := d.Get("spec.0.template.0.versions.0.kubelet").(string)
-	if nodeVersion == "" || !ok {
-		return nil
-	}
-
-	clusterSemverVersion, err := version.NewVersion(clusterVersion)
-	if err != nil {
-		return err
-	}
-
-	v, err := version.NewVersion(nodeVersion)
-
-	if err != nil {
-		return fmt.Errorf("unable to parse node deployment version")
-	}
-
-	if clusterSemverVersion.LessThan(v) {
-		return fmt.Errorf("node deployment version (%s) cannot be greater than cluster version (%s)", v, clusterVersion)
-	}
-	return nil
-}
-
-func validateKubeletVersionIsAvailable(d *schema.ResourceDiff, k *metakubeProviderMeta, clusterVersion string) error {
-	version := d.Get("spec.0.template.0.versions.0.kubelet").(string)
-	if version == "" || version == clusterVersion {
-		return nil
-	}
-
-	versionType := "kubernetes"
-
-	p := versions.NewGetNodeUpgradesParams()
-	p.SetType(&versionType)
-	p.SetControlPlaneVersion(&clusterVersion)
-	r, err := k.client.Versions.GetNodeUpgrades(p, k.auth)
-
-	if err != nil {
-		if e, ok := err.(*versions.GetNodeUpgradesDefault); ok && e.Payload != nil && e.Payload.Error != nil && e.Payload.Error.Message != nil {
-			return fmt.Errorf("get node_deployment upgrades: %s", *e.Payload.Error.Message)
-		}
-		return err
-	}
-
-	var availableVersions []string
-	for _, v := range r.Payload {
-		s, ok := v.Version.(string)
-		if ok && s == version && !v.RestrictedByKubeletVersion {
-			return nil
-		}
-		availableVersions = append(availableVersions, s)
-	}
-
-	return fmt.Errorf("unknown version for node deployment %s, available versions %v", version, availableVersions)
-}
-
-func metakubeGetCluster(proj, cls string, k *metakubeProviderMeta) (*models.Cluster, error) {
+func metakubeGetCluster(ctx context.Context, proj, cls string, k *metakubeProviderMeta) (*models.Cluster, error) {
 	p := project.NewGetClusterV2Params().
+		WithContext(ctx).
 		WithProjectID(proj).
 		WithClusterID(cls)
 	r, err := k.client.Project.GetClusterV2(p, k.auth)
