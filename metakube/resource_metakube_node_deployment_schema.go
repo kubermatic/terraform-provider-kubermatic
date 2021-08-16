@@ -120,13 +120,13 @@ func matakubeResourceNodeDeploymentSpecFields() map[string]*schema.Schema {
 						Description: "Operating system",
 						Elem: &schema.Resource{
 							Schema: map[string]*schema.Schema{
-								// TODO: add missing operating systems
 								"ubuntu": {
-									Type:        schema.TypeList,
-									Required:    true,
-									MinItems:    1,
-									MaxItems:    1,
-									Description: "Ubuntu operating system",
+									Type:         schema.TypeList,
+									Optional:     true,
+									MinItems:     1,
+									MaxItems:     1,
+									ExactlyOneOf: []string{"spec.0.template.0.operating_system.0.ubuntu", "spec.0.template.0.operating_system.0.flatcar"},
+									Description:  "Ubuntu operating system",
 									Elem: &schema.Resource{
 										Schema: map[string]*schema.Schema{
 											"dist_upgrade_on_boot": {
@@ -134,6 +134,24 @@ func matakubeResourceNodeDeploymentSpecFields() map[string]*schema.Schema {
 												Optional:    true,
 												Default:     false,
 												Description: "Upgrade operating system on boot",
+											},
+										},
+									},
+								},
+								"flatcar": {
+									Type:         schema.TypeList,
+									Optional:     true,
+									MinItems:     1,
+									MaxItems:     1,
+									ExactlyOneOf: []string{"spec.0.template.0.operating_system.0.ubuntu", "spec.0.template.0.operating_system.0.flatcar"},
+									Description:  "Flatcar operating system",
+									Elem: &schema.Resource{
+										Schema: map[string]*schema.Schema{
+											"disable_auto_update": {
+												Type:        schema.TypeBool,
+												Optional:    true,
+												Default:     false,
+												Description: "Disable flatcar auto update feature",
 											},
 										},
 									},

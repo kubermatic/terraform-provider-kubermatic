@@ -11,13 +11,13 @@ replace (
 require (
 	github.com/go-openapi/runtime v0.19.27
 	github.com/go-openapi/strfmt v0.20.1
-	github.com/google/go-cmp v0.5.4
+	github.com/google/go-cmp v0.5.6
 	github.com/hashicorp/go-cty v1.4.1-0.20200414143053-d3edf31b6320
 	github.com/hashicorp/go-uuid v1.0.1
-	github.com/hashicorp/go-version v1.2.1
-	github.com/hashicorp/terraform-plugin-sdk/v2 v2.5.0
+	github.com/hashicorp/go-version v1.3.0
+	github.com/hashicorp/terraform-plugin-sdk/v2 v2.7.0
 	github.com/mitchellh/go-homedir v1.1.0
-	github.com/syseleven/go-metakube v0.0.0-20210624055517-a73033719ddf
+	github.com/syseleven/go-metakube v0.0.0-20210813105953-a3ac28df591f
 	go.uber.org/zap v1.16.0
 	golang.org/x/mod v0.3.0
 )
