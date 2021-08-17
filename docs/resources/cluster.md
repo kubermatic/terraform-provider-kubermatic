@@ -51,9 +51,10 @@ The following arguments are supported:
 
 #### Arguments
 
-* `version` - (Required) Cloud orchestrator version, either Kubernetes or OpenShift.
+* `version` - (Required) Cloud orchestrator version. You can use [metakube_k8s_version](../data-sources/k8s_version.md) to query available versions.
 * `enable_ssh_agent` - (Optional) User SSH Agent runs on each node and manages ssh keys. You can disable it if you prefer to manage ssh keys manually.
 * `cloud` - (Required) Cloud provider specification.
+* `update_window` - (Optional) Node reboot window. Currently used only for Flatcar node deployments.
 * `machine_networks` - (Optional) Machine networks, optionally specifies the parameters for IPAM.
 * `audit_logging` - (Optional) Audit logging settings.
 * `pod_security_policy` - (Optional) Pod security policies allow detailed authorization of pod creation and updates.

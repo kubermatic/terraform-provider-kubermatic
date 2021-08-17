@@ -84,7 +84,8 @@ One of the following must be selected.
 
 #### Arguments
 
-* `ubuntu` - (Optional) Ubuntu operating system and its settings.
+* `ubuntu` - (Exactly one choice, this or another required) Ubuntu operating system and its settings.
+* `flatcar` - (Exactly one choice, this or another required) Flatcar operating system and its settings.
 
 ### `versions`
 
@@ -136,3 +137,9 @@ One of the following must be selected.
 #### Arguments
 
 * `dist_upgrade_on_boot` - (Optional) Upgrade operating system on boot, default to false.
+
+### `flatcar`
+
+#### Arguments
+
+* `disable_auto_update` - (Optional) Disable Flatcar auto update feature. Defaults to false.
