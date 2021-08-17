@@ -17,6 +17,10 @@ func metakubeResourceClusterFlattenSpec(values clusterPreserveValues, in *models
 		att["version"] = in.Version
 	}
 
+	if in.UpdateWindow != nil {
+		att["update_window"] = flattenUpdateWindow(in.UpdateWindow)
+	}
+
 	att["enable_ssh_agent"] = in.EnableUserSSHKeyAgent
 
 	if len(in.MachineNetworks) > 0 {
@@ -49,6 +53,13 @@ func metakubeResourceClusterFlattenSpec(values clusterPreserveValues, in *models
 	}
 
 	return []interface{}{att}
+}
+
+func flattenUpdateWindow(in *models.UpdateWindow) []interface{} {
+	m := make(map[string]interface{})
+	m["start"] = in.Start
+	m["length"] = in.Length
+	return []interface{}{m}
 }
 
 func flattenMachineNetworks(in []*models.MachineNetworkingConfig) []interface{} {
@@ -264,6 +275,12 @@ func metakubeResourceClusterExpandSpec(p []interface{}, dcName string) *models.C
 		}
 	}
 
+	if v, ok := in["update_window"]; ok {
+		if vv, ok := v.([]interface{}); ok {
+			obj.UpdateWindow = expandUpdateWindow(vv)
+		}
+	}
+
 	if v, ok := in["enable_ssh_agent"]; ok {
 		if vv, ok := v.(bool); ok {
 			obj.EnableUserSSHKeyAgent = vv
@@ -332,6 +349,22 @@ func metakubeResourceClusterExpandSpec(p []interface{}, dcName string) *models.C
 	}
 
 	return obj
+}
+
+func expandUpdateWindow(p []interface{}) *models.UpdateWindow {
+	if len(p) < 1 {
+		return nil
+	}
+
+	m := p[0].(map[string]interface{})
+	ret := new(models.UpdateWindow)
+	if v, ok := m["start"]; ok {
+		ret.Start = v.(string)
+	}
+	if v, ok := m["length"]; ok {
+		ret.Length = v.(string)
+	}
+	return ret
 }
 
 func expandMachineNetworks(p []interface{}) []*models.MachineNetworkingConfig {

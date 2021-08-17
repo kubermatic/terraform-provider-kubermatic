@@ -51,6 +51,8 @@ func TestAccMetakubeCluster_Openstack_Basic(t *testing.T) {
 					resource.TestCheckResourceAttr(resourceName, "labels.c", "d"),
 					resource.TestCheckResourceAttr(resourceName, "spec.#", "1"),
 					resource.TestCheckResourceAttr(resourceName, "spec.0.version", versionK8s17),
+					resource.TestCheckResourceAttr(resourceName, "spec.0.update_window.0.start", "Tue 02:00"),
+					resource.TestCheckResourceAttr(resourceName, "spec.0.update_window.0.length", "2h"),
 					resource.TestCheckResourceAttr(resourceName, "spec.0.domain_name", "foodomain.local"),
 					resource.TestCheckResourceAttr(resourceName, "spec.0.services_cidr", "10.240.16.0/18"),
 					resource.TestCheckResourceAttr(resourceName, "spec.0.pods_cidr", "172.25.0.0/18"),
@@ -121,6 +123,8 @@ func TestAccMetakubeCluster_Openstack_Basic(t *testing.T) {
 					resource.TestCheckResourceAttr(resourceName, "labels.foo", "bar"),
 					resource.TestCheckResourceAttr(resourceName, "spec.#", "1"),
 					resource.TestCheckResourceAttr(resourceName, "spec.0.version", versionK8s17),
+					resource.TestCheckResourceAttr(resourceName, "spec.0.update_window.0.start", "Wed 12:00"),
+					resource.TestCheckResourceAttr(resourceName, "spec.0.update_window.0.length", "3h"),
 					resource.TestCheckResourceAttr(resourceName, "spec.0.domain_name", "foodomain.local"),
 					resource.TestCheckResourceAttr(resourceName, "spec.0.services_cidr", "10.240.16.0/18"),
 					resource.TestCheckResourceAttr(resourceName, "spec.0.pods_cidr", "172.25.0.0/18"),
@@ -273,6 +277,10 @@ func testAccCheckMetaKubeClusterOpenstackBasic(clusterName, username, password, 
 
 		spec {
 			version = "%s"
+			update_window {
+			  start = "Tue 02:00"
+			  length = "2h"
+			}
 			cloud {
 				openstack {
 					tenant = "%s"
@@ -335,6 +343,10 @@ func testAccCheckMetaKubeClusterOpenstackBasic2(clusterName, username, password,
 
 		spec {
 			version = "%s"
+			update_window {
+			  start = "Wed 12:00"
+			  length = "3h"
+			}
 			cloud {
 				openstack {
 					tenant = "%s"

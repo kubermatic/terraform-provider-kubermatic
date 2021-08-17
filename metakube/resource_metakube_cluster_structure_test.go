@@ -15,7 +15,11 @@ func TestMetakubeClusterFlattenSpec(t *testing.T) {
 	}{
 		{
 			&models.ClusterSpec{
-				Version:               "1.18.8",
+				Version: "1.18.8",
+				UpdateWindow: &models.UpdateWindow{
+					Start:  "Tue 02:00",
+					Length: "3h",
+				},
 				MachineNetworks:       nil,
 				EnableUserSSHKeyAgent: true,
 				AuditLogging:          &models.AuditLoggingSettings{},
@@ -35,7 +39,13 @@ func TestMetakubeClusterFlattenSpec(t *testing.T) {
 			},
 			[]interface{}{
 				map[string]interface{}{
-					"version":             "1.18.8",
+					"version": "1.18.8",
+					"update_window": []interface{}{
+						map[string]interface{}{
+							"start":  "Tue 02:00",
+							"length": "3h",
+						},
+					},
 					"audit_logging":       false,
 					"pod_security_policy": false,
 					"pod_node_selector":   false,
@@ -336,7 +346,13 @@ func TestExpandClusterSpec(t *testing.T) {
 		{
 			[]interface{}{
 				map[string]interface{}{
-					"version":             "1.18.8",
+					"version": "1.18.8",
+					"update_window": []interface{}{
+						map[string]interface{}{
+							"start":  "Tue 02:00",
+							"length": "3h",
+						},
+					},
 					"machine_networks":    []interface{}{},
 					"audit_logging":       false,
 					"pod_security_policy": true,
@@ -354,7 +370,11 @@ func TestExpandClusterSpec(t *testing.T) {
 				},
 			},
 			&models.ClusterSpec{
-				Version:                             "1.18.8",
+				Version: "1.18.8",
+				UpdateWindow: &models.UpdateWindow{
+					Start:  "Tue 02:00",
+					Length: "3h",
+				},
 				MachineNetworks:                     nil,
 				AuditLogging:                        &models.AuditLoggingSettings{},
 				UsePodSecurityPolicyAdmissionPlugin: true,

@@ -1,6 +1,9 @@
 package metakube
 
 import (
+	"regexp"
+	"time"
+
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -17,6 +20,35 @@ func metakubeResourceClusterSpecFields() map[string]*schema.Schema {
 			Computed:    true,
 			Optional:    true,
 			Description: "SSH Agent as a daemon running on each node that can manage ssh keys. Disable it if you want to manage keys manually",
+		},
+		"update_window": {
+			Type:        schema.TypeList,
+			Optional:    true,
+			MaxItems:    1,
+			Description: "Flatcar nodes reboot window",
+			Elem: &schema.Resource{
+				Schema: map[string]*schema.Schema{
+					"start": {
+						Type:         schema.TypeString,
+						Required:     true,
+						Description:  "Node reboot window start time",
+						ValidateFunc: validation.StringMatch(regexp.MustCompile("(Mon |Tue |Wed |Thu |Fri |Sat )*([0-1][0-9]|2[0-4]):[0-5][0-9]"), "Example: 'Thu 02:00' or '02:00'"),
+					},
+					"length": {
+						Type:        schema.TypeString,
+						Required:    true,
+						Description: "Node reboot window duration",
+						ValidateFunc: func(i interface{}, _ string) ([]string, []error) {
+							s := i.(string)
+							_, err := time.ParseDuration(s)
+							if err != nil {
+								return nil, []error{err}
+							}
+							return nil, nil
+						},
+					},
+				},
+			},
 		},
 		"cloud": {
 			Type:        schema.TypeList,
