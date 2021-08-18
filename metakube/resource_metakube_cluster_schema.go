@@ -90,7 +90,7 @@ func metakubeResourceClusterSpecFields() map[string]*schema.Schema {
 					"azure": {
 						Type:        schema.TypeList,
 						Optional:    true,
-						ForceNew:    true,
+						MaxItems:    1,
 						Description: "Azire cluster specification",
 						Elem: &schema.Resource{
 							Schema: metakubeResourceClusterAzureSpecFields(),
