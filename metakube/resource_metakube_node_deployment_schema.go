@@ -51,22 +51,25 @@ func matakubeResourceNodeDeploymentSpecFields() map[string]*schema.Schema {
 			Default:       3,
 			Description:   "Number of replicas",
 			ConflictsWith: []string{"spec.0.min_replicas", "spec.0.max_replicas"},
+			DiffSuppressFunc: func(_, _, n string, d *schema.ResourceData) bool {
+				minv, ok1 := d.GetOkConfigured("spec.0.min_replicas")
+				maxv, ok2 := d.GetOkConfigured("spec.0.max_replicas")
+				return ok1 && minv.(int) > 0 && ok2 && maxv.(int) > 0
+			},
 		},
 		"min_replicas": {
-			Type:          schema.TypeInt,
-			Optional:      true,
-			ValidateFunc:  validation.IntAtLeast(1),
-			Description:   "Minimum number of replicas to downscale",
-			RequiredWith:  []string{"spec.0.max_replicas"},
-			ConflictsWith: []string{"spec.0.replicas"},
+			Type:         schema.TypeInt,
+			Optional:     true,
+			ValidateFunc: validation.IntAtLeast(1),
+			Description:  "Minimum number of replicas to downscale",
+			RequiredWith: []string{"spec.0.max_replicas"},
 		},
 		"max_replicas": {
-			Type:          schema.TypeInt,
-			Optional:      true,
-			ValidateFunc:  validation.IntAtLeast(1),
-			Description:   "Maximum number of replicas to scale up",
-			RequiredWith:  []string{"spec.0.min_replicas"},
-			ConflictsWith: []string{"spec.0.replicas"},
+			Type:         schema.TypeInt,
+			Optional:     true,
+			ValidateFunc: validation.IntAtLeast(1),
+			Description:  "Maximum number of replicas to scale up",
+			RequiredWith: []string{"spec.0.min_replicas"},
 		},
 		"template": {
 			Type:        schema.TypeList,
@@ -185,7 +188,7 @@ func matakubeResourceNodeDeploymentSpecFields() map[string]*schema.Schema {
 						Elem: &schema.Schema{
 							Type: schema.TypeString,
 						},
-						DiffSuppressFunc: func(k, a, b string, d *schema.ResourceData) bool {
+						DiffSuppressFunc: func(k, _, _ string, _ *schema.ResourceData) bool {
 							return matakubeResourceNodeDeploymentLabelOrTagReserved(k)
 						},
 						ValidateFunc: func(v interface{}, k string) (strings []string, errors []error) {
@@ -347,7 +350,7 @@ func matakubeResourceNodeDeploymentCloudOpenstackSchema() map[string]*schema.Sch
 		"instance_ready_check_timeout": {
 			Type:             schema.TypeString,
 			Optional:         true,
-			Default:          "100s",
+			Default:          "120s",
 			Description:      "Specifies how long should the controller check if instance is ready before timing out",
 			ValidateDiagFunc: isNonEmptyDurationString,
 		},

@@ -3,18 +3,17 @@ package metakube
 import (
 	"context"
 	"fmt"
-	"github.com/hashicorp/go-version"
-	"github.com/syseleven/go-metakube/client/versions"
 	"net/http"
 	"strings"
 	"time"
 
+	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/syseleven/go-metakube/client/project"
+	"github.com/syseleven/go-metakube/client/versions"
 	"github.com/syseleven/go-metakube/models"
 )
 
@@ -376,6 +375,8 @@ func validateKubeletVersionIsAvailable(k *metakubeProviderMeta, kubeletVersion, 
 }
 
 func metakubeResourceNodeDeploymentWaitForReady(ctx context.Context, k *metakubeProviderMeta, timeout time.Duration, projectID, clusterID, id string, generation int64) error {
+	ensures := 0
+	needed := 2
 	return resource.RetryContext(ctx, timeout, func() *resource.RetryError {
 		p := project.NewGetMachineDeploymentParams().
 			WithContext(ctx).
@@ -388,9 +389,15 @@ func metakubeResourceNodeDeploymentWaitForReady(ctx context.Context, k *metakube
 			return resource.RetryableError(fmt.Errorf("unable to get node deployment %v", err))
 		}
 
-		if r.Payload.Status.ReadyReplicas < *r.Payload.Spec.Replicas || r.Payload.Status.ObservedGeneration <= generation || r.Payload.Status.UnavailableReplicas != 0 {
+		if r.Payload.Status.ReadyReplicas < *r.Payload.Spec.Replicas || r.Payload.Status.UnavailableReplicas != 0 {
 			k.log.Debugf("waiting for node deployment '%s' to be ready, %+v", id, r.Payload.Status)
 			return resource.RetryableError(fmt.Errorf("waiting for node deployment '%s' to be ready", id))
+		} else {
+			ensures++
+		}
+		if ensures <= needed {
+			k.log.Debugf("looks ok, ensuring")
+			return resource.RetryableError(fmt.Errorf("looks ok but check again to ensure machines are not being reconciled."))
 		}
 		return nil
 	})
