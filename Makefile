@@ -2,7 +2,7 @@ DOMAIN=syseleven.de
 NAMESPACE=syseleven
 PKG_NAME=metakube
 BINARY=terraform-provider-${PKG_NAME}
-VERSION=0.4.1
+VERSION=0.4.3
 PLATFORM=darwin_amd64
 SWEEP_DIR?=./metakube
 SWEEP?=all
@@ -24,7 +24,7 @@ reset:
 	rm -rf terraform*
 	rm -rf .terraform*
 	make install
-	terraform init .
+	terraform init 
 
 test: fmtcheck
 	go test ./$(PKG_NAME)
