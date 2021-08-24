@@ -88,22 +88,6 @@ func metakubeResourceNodeDeployment() *schema.Resource {
 	}
 }
 
-type nodeSpecPreservedValues struct {
-	// API returns empty spec for Azure clusters, so we just preserve values used for creation
-	azure *models.AzureNodeSpec
-}
-
-func readMachineDeploymentPreservedValues(d *schema.ResourceData) *nodeSpecPreservedValues {
-	if v, ok := d.GetOk("spec.0.template.0.cloud.0.azure"); ok {
-		if vv, ok := v.([]interface{}); ok && len(vv) == 1 {
-			return &nodeSpecPreservedValues{
-				azure: metakubeNodeDeploymentExpandAzureSpec(vv),
-			}
-		}
-	}
-	return &nodeSpecPreservedValues{}
-}
-
 func metakubeResourceNodeDeploymentCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	k := m.(*metakubeProviderMeta)
 	clusterID := d.Get("cluster_id").(string)
@@ -202,7 +186,7 @@ func metakubeResourceNodeDeploymentRead(ctx context.Context, d *schema.ResourceD
 
 	_ = d.Set("name", r.Payload.Name)
 
-	_ = d.Set("spec", metakubeNodeDeploymentFlattenSpec(readMachineDeploymentPreservedValues(d), r.Payload.Spec))
+	_ = d.Set("spec", metakubeNodeDeploymentFlattenSpec(r.Payload.Spec))
 
 	_ = d.Set("creation_timestamp", r.Payload.CreationTimestamp.String())
 

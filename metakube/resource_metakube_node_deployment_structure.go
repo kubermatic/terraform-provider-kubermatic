@@ -5,7 +5,7 @@ import (
 )
 
 // flatteners
-func metakubeNodeDeploymentFlattenSpec(values *nodeSpecPreservedValues, in *models.NodeDeploymentSpec) []interface{} {
+func metakubeNodeDeploymentFlattenSpec(in *models.NodeDeploymentSpec) []interface{} {
 	if in == nil {
 		return []interface{}{}
 	}
@@ -16,12 +16,16 @@ func metakubeNodeDeploymentFlattenSpec(values *nodeSpecPreservedValues, in *mode
 		att["replicas"] = *in.Replicas
 	}
 
-	att["min_replicas"] = in.MinReplicas
+	if in.MinReplicas > 0 {
+		att["min_replicas"] = in.MinReplicas
+	}
 
-	att["max_replicas"] = in.MaxReplicas
+	if in.MaxReplicas > 0 {
+		att["max_replicas"] = in.MaxReplicas
+	}
 
 	if in.Template != nil {
-		att["template"] = metakubeNodeDeploymentFlattenNodeSpec(values, in.Template)
+		att["template"] = metakubeNodeDeploymentFlattenNodeSpec(in.Template)
 	}
 
 	att["dynamic_config"] = in.DynamicConfig
@@ -29,7 +33,7 @@ func metakubeNodeDeploymentFlattenSpec(values *nodeSpecPreservedValues, in *mode
 	return []interface{}{att}
 }
 
-func metakubeNodeDeploymentFlattenNodeSpec(values *nodeSpecPreservedValues, in *models.NodeSpec) []interface{} {
+func metakubeNodeDeploymentFlattenNodeSpec(in *models.NodeSpec) []interface{} {
 	if in == nil {
 		return []interface{}{}
 	}
@@ -61,7 +65,7 @@ func metakubeNodeDeploymentFlattenNodeSpec(values *nodeSpecPreservedValues, in *
 	}
 
 	if in.Cloud != nil {
-		att["cloud"] = metakubeNodeDeploymentFlattenCloudSpec(values, in.Cloud)
+		att["cloud"] = metakubeNodeDeploymentFlattenCloudSpec(in.Cloud)
 	}
 
 	return []interface{}{att}
@@ -145,7 +149,7 @@ func metakubeNodeDeploymentFlattenTaintSpec(in *models.TaintSpec) map[string]int
 	return att
 }
 
-func metakubeNodeDeploymentFlattenCloudSpec(values *nodeSpecPreservedValues, in *models.NodeCloudSpec) []interface{} {
+func metakubeNodeDeploymentFlattenCloudSpec(in *models.NodeCloudSpec) []interface{} {
 	if in == nil {
 		return []interface{}{}
 	}
@@ -161,12 +165,8 @@ func metakubeNodeDeploymentFlattenCloudSpec(values *nodeSpecPreservedValues, in 
 	}
 
 	if in.Azure != nil {
-		// Azure returns empty `{}` properties list, so we are there not writing anything
-		// and preserving values already there.
-		att["azure"] = metakubeNodeDeploymentFlattenAzureSpec(values.azure)
+		att["azure"] = metakubeNodeDeploymentFlattenAzureSpec(in.Azure)
 	}
-
-	// TODO: add all cloud providers
 
 	return []interface{}{att}
 }
@@ -713,36 +713,26 @@ func metakubeNodeDeploymentExpandAzureSpec(p []interface{}) *models.AzureNodeSpe
 	}
 
 	if v, ok := in["disk_size_gb"]; ok {
-		if vv, ok := v.(int); ok {
-			obj.DataDiskSize = int32(vv)
+		if vv, ok := v.(int32); ok {
+			obj.DataDiskSize = vv
 		}
 	}
 
 	if v, ok := in["os_disk_size_gb"]; ok {
-		if vv, ok := v.(int); ok {
-			obj.OSDiskSize = int32(vv)
+		if vv, ok := v.(int32); ok {
+			obj.OSDiskSize = vv
 		}
 	}
 
 	if v, ok := in["tags"]; ok {
-		obj.Tags = make(map[string]string)
-		if vv, ok := v.(map[string]interface{}); ok {
-			for key, val := range vv {
-				if s, ok := val.(string); ok && s != "" {
-					obj.Tags[key] = s
-				}
-			}
+		if vv, ok := v.(map[string]string); ok {
+			obj.Tags = vv
 		}
 	}
 
 	if v, ok := in["zones"]; ok {
-		if vv, ok := v.([]interface{}); ok && len(vv) > 0 {
-			obj.Zones = make([]string, len(vv))
-			for i, z := range vv {
-				if s, ok := z.(string); ok && s != "" {
-					obj.Zones[i] = s
-				}
-			}
+		if vv, ok := v.([]string); ok && len(vv) > 0 {
+			obj.Zones = vv
 		}
 	}
 

@@ -39,9 +39,9 @@ func TestMetakubeNodeDeploymentFlatten(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		output := metakubeNodeDeploymentFlattenSpec(nil, tc.Input)
+		output := metakubeNodeDeploymentFlattenSpec(tc.Input)
 		if diff := cmp.Diff(tc.ExpectedOutput, output); diff != "" {
-			t.Fatalf("Unexpected output from expander: mismatch (-want +got):\n%s", diff)
+			t.Fatalf("Unexpected output from flattener: mismatch (-want +got):\n%s", diff)
 		}
 	}
 }
@@ -144,9 +144,9 @@ func TestMetakubeNodeDeploymentSpecFlatten(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		output := metakubeNodeDeploymentFlattenNodeSpec(nil, tc.Input)
+		output := metakubeNodeDeploymentFlattenNodeSpec(tc.Input)
 		if diff := cmp.Diff(tc.ExpectedOutput, output); diff != "" {
-			t.Fatalf("Unexpected output from expander: mismatch (-want +got):\n%s", diff)
+			t.Fatalf("Unexpected output from flattener: mismatch (-want +got):\n%s", diff)
 		}
 	}
 }
@@ -203,7 +203,7 @@ func TestMetakubeNodeDeploymentFlattenOperatingSystem(t *testing.T) {
 	for _, tc := range cases {
 		output := metakubeNodeDeploymentFlattenOperatingSystem(tc.Input)
 		if diff := cmp.Diff(tc.ExpectedOutput, output); diff != "" {
-			t.Fatalf("Unexpected output from expander: mismatch (-want +got):\n%s", diff)
+			t.Fatalf("Unexpected output from flattener: mismatch (-want +got):\n%s", diff)
 		}
 	}
 }
@@ -258,7 +258,62 @@ func TestMetakubeNodeDeploymentFlattenAWSSpec(t *testing.T) {
 	for _, tc := range cases {
 		output := metakubeNodeDeploymentFlattenAWSSpec(tc.Input)
 		if diff := cmp.Diff(tc.ExpectedOutput, output); diff != "" {
-			t.Fatalf("Unexpected output from expander: mismatch (-want +got):\n%s", diff)
+			t.Fatalf("Unexpected output from flattener: mismatch (-want +got):\n%s", diff)
+		}
+	}
+}
+
+func TestFlattenAzureNodeSpec(t *testing.T) {
+	cases := []struct {
+		Input          *models.AzureNodeSpec
+		ExpectedOutput []interface{}
+	}{
+		{
+			&models.AzureNodeSpec{
+				ImageID:        "ImageID",
+				Size:           strToPtr("Size"),
+				AssignPublicIP: false,
+				DataDiskSize:   1,
+				OSDiskSize:     2,
+				Tags: map[string]string{
+					"tag-k": "tag-v",
+				},
+				Zones: []string{"Zone-x"},
+			},
+			[]interface{}{
+				map[string]interface{}{
+					"image_id":         "ImageID",
+					"size":             "Size",
+					"assign_public_ip": false,
+					"disk_size_gb":     int32(1),
+					"os_disk_size_gb":  int32(2),
+					"tags": map[string]string{
+						"tag-k": "tag-v",
+					},
+					"zones": []string{"Zone-x"},
+				},
+			},
+		},
+		{
+			&models.AzureNodeSpec{},
+			[]interface{}{
+				map[string]interface{}{
+					"assign_public_ip": false,
+					"disk_size_gb":     int32(0),
+					"os_disk_size_gb":  int32(0),
+				},
+			},
+		},
+		{
+			nil,
+			[]interface{}{},
+		},
+	}
+
+	for _, tc := range cases {
+		output := metakubeNodeDeploymentFlattenAzureSpec(tc.Input)
+		if diff := cmp.Diff(tc.ExpectedOutput, output); diff != "" {
+			t.Fatalf("Unexpected output from flattener: mismatch (-want +got):\n%s", diff)
 		}
 	}
 }
@@ -311,7 +366,7 @@ func TestFlattenOpenstackNodeSpec(t *testing.T) {
 	for _, tc := range cases {
 		output := metakubeNodeDeploymentFlattenOpenstackSpec(tc.Input)
 		if diff := cmp.Diff(tc.ExpectedOutput, output); diff != "" {
-			t.Fatalf("Unexpected output from expander: mismatch (-want +got):\n%s", diff)
+			t.Fatalf("Unexpected output from flattener: mismatch (-want +got):\n%s", diff)
 		}
 	}
 }
@@ -628,12 +683,12 @@ func TestExpandAzureNodeSpec(t *testing.T) {
 					"image_id":         "ImageID",
 					"size":             "Size",
 					"assign_public_ip": false,
-					"disk_size_gb":     1,
-					"os_disk_size_gb":  2,
-					"tags": map[string]interface{}{
+					"disk_size_gb":     int32(1),
+					"os_disk_size_gb":  int32(2),
+					"tags": map[string]string{
 						"tag-k": "tag-v",
 					},
-					"zones": []interface{}{"Zone-x"},
+					"zones": []string{"Zone-x"},
 				},
 			},
 			&models.AzureNodeSpec{

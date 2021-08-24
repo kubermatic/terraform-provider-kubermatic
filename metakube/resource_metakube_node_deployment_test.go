@@ -397,6 +397,20 @@ func TestAccMetakubeNodeDeployment_Azure_Basic(t *testing.T) {
 					resource.TestCheckResourceAttr("metakube_node_deployment.acctest_nd", "spec.0.template.0.cloud.0.azure.0.size", nodeSize),
 				),
 			},
+			{
+				ResourceName:      "metakube_node_deployment.acctest_nd",
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateIdFunc: func(s *terraform.State) (string, error) {
+					for _, rs := range s.RootModule().Resources {
+						if rs.Type == "metakube_node_deployment" {
+							return fmt.Sprintf("%s:%s:%s", rs.Primary.Attributes["project_id"], rs.Primary.Attributes["cluster_id"], rs.Primary.ID), nil
+						}
+					}
+
+					return "", fmt.Errorf("not found")
+				},
+			},
 		},
 	})
 }

@@ -12,6 +12,7 @@ replace (
 require (
 	github.com/go-openapi/runtime v0.19.30
 	github.com/go-openapi/strfmt v0.20.2
+	github.com/google/go-cmp v0.5.6
 	github.com/hashicorp/go-cty v1.4.1-0.20200723130312-85980079f637
 	github.com/hashicorp/go-uuid v1.0.2
 	github.com/hashicorp/go-version v1.3.0
