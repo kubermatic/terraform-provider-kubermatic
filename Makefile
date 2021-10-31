@@ -5,6 +5,7 @@ SWEEP?=all
 export GOPATH?=$(shell go env GOPATH)
 export GOPROXY=https://proxy.golang.org
 export GO111MODULE=on
+export GOOS=$(shell go env GOOS)
 
 default: install
 

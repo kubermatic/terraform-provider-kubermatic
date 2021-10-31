@@ -111,9 +111,7 @@ func TestAccKubermaticCluster_Openstack_Basic(t *testing.T) {
 				Config: testAccCheckKubermaticClusterOpenstackBasic2(testName+"-changed", username, password, tenant, nodeDC, versionK8s17),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testResourceInstanceState("kubermatic_cluster.acctest_cluster", func(is *terraform.InstanceState) error {
-						id := is.ID
-
-						if id != cluster.ID {
+						if is.ID != cluster.ID {
 							return fmt.Errorf("cluster not updated: wrong ID")
 						}
 						return nil
@@ -231,9 +229,8 @@ func TestAccKubermaticCluster_Openstack_UpgradeVersion(t *testing.T) {
 				Config: versionedConfig(versionK8s17),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testResourceInstanceState("kubermatic_cluster.acctest_cluster", func(is *terraform.InstanceState) error {
-						id := is.ID
-						if id != cluster.ID {
-							return fmt.Errorf("cluster not upgraded. Want cluster id=%v, got %v", cluster.ID, id)
+						if is.ID != cluster.ID {
+							return fmt.Errorf("cluster not upgraded. Want cluster id=%v, got %v", cluster.ID, is.ID)
 						}
 						return nil
 					}),
