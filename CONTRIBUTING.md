@@ -56,3 +56,41 @@ This is a rough outline of what a contributor's workflow looks like:
 - Submit a pull request to the original repository.
 
 Thanks for your contributions!
+
+### Build Terraform Provider Locally
+Test your current changes:
+```
+make test
+make fmt
+```
+
+Build the provider:
+```
+make build
+```
+
+Copy the provider to the Terraform plugin directory:
+```
+export OSTYPE=linux # darwin
+
+mkdir -p ~/.terraform.d/plugins/terraform.example.com/local/kubermatic/0.1.0/${OSTYPE}_amd64
+cp bin/terraform-provider-kubermatic ~/.terraform.d/plugins/terraform.example.com/local/kubermatic/0.1.0/${OSTYPE}_amd64/
+```
+That's it!
+
+Refer in your TF manifests to the specific provider, i.e.:
+```
+terraform {
+  required_providers {
+    kubermatic = {
+      source = "terraform.example.com/local/kubermatic"
+      version = "~> 0.1.0"
+    }
+  }
+}
+provider "kubermatic" {
+  host  = "https://dev.kubermatic.io"
+  token_path = "./token"
+}
+```
+Add a token to `./token`. Either use your personal access token that you get when you go to the `https://dev.kubermatic.io/rest-api` or you create a Service Account in the target project with `Editor` or `ProjectManager` permissions.

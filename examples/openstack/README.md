@@ -7,3 +7,10 @@ To run, set up your OpenStack provider credentials. Configure Kubermatic host ad
 Running the example
 
 run `terraform apply` to see it work.
+
+## Run TF
+Adjust the variables in `variables.tfvars` and run:
+```
+terraform plan -var-file variables.tfvars -out .terraform/plan.tf
+terraform apply ".terraform/plan.tf"
+```

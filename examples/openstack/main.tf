@@ -1,61 +1,99 @@
-provider kubermatic {
-  host = "set_it_up"
-  token_path= "path"
+# ========== RESOURCES ==========
+# ===============================
+resource "kubermatic_sshkey" "test" {
+    project_id = var.project_id
+    name = "${var.cluster_name}-ssh-key"
+    public_key = var.public_ssh_key
 }
 
-resource "kubermatic_project" "example_project" {
-  name = var.project_name
-}
+resource "kubermatic_cluster" "test" {
+  project_id = var.project_id
+  name = var.cluster_name
+  sshkeys = [
+      kubermatic_sshkey.test.id
+  ]
+  dc_name = var.dc_name
+  credential = var.preset
 
-# Create Cluster Resource (without MachineDeployment for more-finegrained control)
-resource "kubermatic_cluster" "example_cluster" {
-  name       = var.cluster_name
-  dc_name    = "set_it_up"
-  project_id = kubermatic_project.example_project.id
-  credential = "preset_name"
   spec {
-    version = "1.21.0"
-    enable_user_ssh_key_agent = true # (default)
+    version = var.k8s_cp_version
+    enable_user_ssh_key_agent = true
     opa_integration {
-      enabled = false # (default)
+      enabled = false
       webhook_timeout_seconds = 0 # (default)
-    }
-    mla {
-      logging_enabled = true
-      monitoring_enabled = true
     }
     cloud {
       openstack {
-        floating_ip_pool = "public"
-        # == Credentials
-        # Not needed if "credential" set.
-        password         = "set_it_up"
-        tenant           = "set_it_up"
-        username         = "set_it_up"
+        floating_ip_pool = var.floating_ip_pool
       }
     }
   }
 }
-resource "kubermatic_node_deployment" "example_node" {
-  name       = "examplenode"
-  cluster_id = kubermatic_cluster.example_cluster.id
+
+resource "kubermatic_node_deployment" "test" {
+  name       = "${var.cluster_name}-nodedeployment"
+  project_id = var.project_id
+  dc_name = var.dc_name
+  cluster_id = kubermatic_cluster.test.id
+
   spec {
-    replicas = 2
+    replicas = var.md_replicas
     template {
       cloud {
         openstack {
-          flavor = "l1c.tiny"
-          image  = "kubermatic-e2e-ubuntu"
+          flavor = var.md_flavor
+          image  = var.md_image
+          instance_ready_check_period = var.instance_ready_check_period
+          instance_ready_check_timeout = var.instance_ready_check_timeout
         }
       }
       operating_system {
-        ubuntu {
-          dist_upgrade_on_boot = false
+        flatcar {
+          disable_auto_update = false
         }
       }
       versions {
-        kubelet = var.k8s_version
+        kubelet = var.k8s_md_version
       }
     }
   }
+}
+
+# ========= DATA SOURCE =========
+# ===============================
+
+data "kubermatic_cluster_kubeconfig" "test" {
+  project_id = kubermatic_cluster.test.project_id
+  cluster_id = kubermatic_cluster.test.id
+}
+
+data "kubermatic_cluster" "test" {
+  project_id = kubermatic_cluster.test.project_id
+  cluster_id = kubermatic_cluster.test.id
+}
+
+data "kubermatic_node_deployment" "test" {
+  project_id = kubermatic_node_deployment.test.project_id
+  cluster_id = kubermatic_node_deployment.test.cluster_id
+  dc_name    = kubermatic_node_deployment.test.dc_name
+  id         = kubermatic_node_deployment.test.id
+}
+
+
+# =========== OUTPUT ============
+# ===============================
+output "project" {
+  value = var.project_id
+}
+
+output "kubeconfig" {
+  value = data.kubermatic_cluster_kubeconfig.test.kubeconfig
+}
+
+output "cluster" {
+  value = data.kubermatic_cluster.test
+}
+
+output "node_deployment" {
+  value = data.kubermatic_node_deployment.test
 }
