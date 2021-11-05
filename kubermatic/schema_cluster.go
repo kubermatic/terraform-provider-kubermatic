@@ -50,6 +50,12 @@ func clusterSpecFields() map[string]*schema.Schema {
 				},
 			},
 		},
+		"enable_user_ssh_key_agent": {
+			Type:        schema.TypeBool,
+			Optional:    true,
+			Default:     true,
+			Description: "Enable user ssh key Agent",
+		},
 		"machine_networks": {
 			Type:        schema.TypeList,
 			Optional:    true,
@@ -76,17 +82,59 @@ func clusterSpecFields() map[string]*schema.Schema {
 				},
 			},
 		},
+		"opa_integration": {
+			Type:        schema.TypeList,
+			Optional:    true,
+			Description: "Enable OPA Integration",
+			Elem: &schema.Resource{
+				Schema: map[string]*schema.Schema{
+					"enabled": {
+						Type:     schema.TypeBool,
+						Optional: true,
+						Default:  false,
+					},
+					"webhook_timeout_seconds": {
+						Type:     schema.TypeInt,
+						Optional: true,
+						Default:  0,
+					},
+				},
+			},
+		},
+		"mla": {
+			Type:        schema.TypeList,
+			Optional:    true,
+			Description: "Enable MLA Feature",
+			Elem: &schema.Resource{
+				Schema: map[string]*schema.Schema{
+					"logging_enabled": {
+						Type:     schema.TypeBool,
+						Optional: true,
+						Default:  false,
+					},
+					"monitoring_enabled": {
+						Type:     schema.TypeBool,
+						Optional: true,
+						Default:  false,
+					},
+				},
+			},
+		},
 		"audit_logging": {
 			Type:        schema.TypeBool,
 			Optional:    true,
 			Default:     false,
 			Description: "Whether to enable audit logging or not",
 		},
-		"pod_security_policy": {
-			Type:        schema.TypeBool,
-			Optional:    true,
-			Default:     false,
-			Description: "Pod security policies allow detailed authorization of pod creation and updates.",
+		"use_pod_node_selector_admission_plugin": {
+			Type:     schema.TypeBool,
+			Optional: true,
+			Default:  false,
+		},
+		"use_pod_security_policy_admission_plugin": {
+			Type:     schema.TypeBool,
+			Optional: true,
+			Default:  false,
 		},
 	}
 }
@@ -194,28 +242,44 @@ func awsCloudSpecFields() map[string]*schema.Schema {
 
 func openstackCloudSpecFields() map[string]*schema.Schema {
 	return map[string]*schema.Schema{
+		"floating_ip_pool": {
+			Type:     schema.TypeString,
+			Required: true,
+			ForceNew: true,
+		},
+		"network": {
+			Type:     schema.TypeString,
+			Computed: true,
+		},
+		"router_id": {
+			Type:     schema.TypeString,
+			Computed: true,
+		},
+		"security_groups": {
+			Type:     schema.TypeString,
+			Computed: true,
+		},
+		"subnet_id": {
+			Type:     schema.TypeString,
+			Computed: true,
+		},
 		"tenant": {
 			Type:         schema.TypeString,
-			Required:     true,
+			Optional:     true,
 			ForceNew:     true,
 			ValidateFunc: validation.NoZeroValues,
 		},
 		"username": {
 			Type:         schema.TypeString,
-			Required:     true,
+			Optional:     true,
 			Sensitive:    true,
 			ValidateFunc: validation.NoZeroValues,
 		},
 		"password": {
 			Type:         schema.TypeString,
-			Required:     true,
+			Optional:     true,
 			Sensitive:    true,
 			ValidateFunc: validation.NoZeroValues,
-		},
-		"floating_ip_pool": {
-			Type:     schema.TypeString,
-			Required: true,
-			ForceNew: true,
 		},
 	}
 }

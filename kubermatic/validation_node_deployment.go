@@ -13,11 +13,17 @@ import (
 func validateNodeSpecMatchesCluster() schema.CustomizeDiffFunc {
 	return func(d *schema.ResourceDiff, meta interface{}) error {
 		k := meta.(*kubermaticProviderMeta)
+		projectID := d.Get("project_id").(string)
+		dc_name := d.Get("dc_name").(string)
+		dc, err := getDatacenterByName(k, dc_name)
+		if err != nil {
+			return err
+		}
 		clusterID := d.Get("cluster_id").(string)
 		if clusterID == "" {
 			return nil
 		}
-		cluster, err := getClusterForNodeDeployment(clusterID, k)
+		cluster, err := getClusterForNodeDeployment(projectID, dc.Spec.Seed, clusterID, k)
 		if err != nil {
 			return err
 		}
@@ -131,11 +137,7 @@ func validateKubeletVersionIsAvailable(d *schema.ResourceDiff, k *kubermaticProv
 	return fmt.Errorf("unknown version for node deployment %s, available versions %v", version, availableVersions)
 }
 
-func getClusterForNodeDeployment(id string, k *kubermaticProviderMeta) (*models.Cluster, error) {
-	projectID, seedDC, clusterID, err := kubermaticClusterParseID(id)
-	if err != nil {
-		return nil, err
-	}
+func getClusterForNodeDeployment(projectID, seedDC, clusterID string, k *kubermaticProviderMeta) (*models.Cluster, error) {
 
 	p := project.NewGetClusterParams()
 	p.SetProjectID(projectID)

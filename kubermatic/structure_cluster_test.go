@@ -15,9 +15,20 @@ func TestFlattenClusterSpec(t *testing.T) {
 	}{
 		{
 			&models.ClusterSpec{
-				Version:         "1.15.6",
-				MachineNetworks: nil,
-				AuditLogging:    &models.AuditLoggingSettings{},
+				Version:                             "1.15.6",
+				MachineNetworks:                     nil,
+				AuditLogging:                        &models.AuditLoggingSettings{},
+				EnableUserSSHKeyAgent:               false,
+				UsePodSecurityPolicyAdmissionPlugin: true,
+				UsePodNodeSelectorAdmissionPlugin:   true,
+				OpaIntegration: &models.OPAIntegrationSettings{
+					Enabled:               true,
+					WebhookTimeoutSeconds: 0,
+				},
+				Mla: &models.MLASettings{
+					LoggingEnabled:    true,
+					MonitoringEnabled: true,
+				},
 				Cloud: &models.CloudSpec{
 					DatacenterName: "eu-west-1",
 					Bringyourown:   map[string]interface{}{},
@@ -25,9 +36,23 @@ func TestFlattenClusterSpec(t *testing.T) {
 			},
 			[]interface{}{
 				map[string]interface{}{
-					"version":             "1.15.6",
-					"audit_logging":       false,
-					"pod_security_policy": false,
+					"version":                   "1.15.6",
+					"audit_logging":             false,
+					"enable_user_ssh_key_agent": false,
+					"use_pod_security_policy_admission_plugin": true,
+					"use_pod_node_selector_admission_plugin":   true,
+					"opa_integration": []interface{}{
+						map[string]interface{}{
+							"enabled":                 true,
+							"webhook_timeout_seconds": int32(0),
+						},
+					},
+					"mla": []interface{}{
+						map[string]interface{}{
+							"logging_enabled":    true,
+							"monitoring_enabled": true,
+						},
+					},
 					"cloud": []interface{}{
 						map[string]interface{}{
 							"bringyourown": []interface{}{map[string]interface{}{}},
@@ -40,8 +65,10 @@ func TestFlattenClusterSpec(t *testing.T) {
 			&models.ClusterSpec{},
 			[]interface{}{
 				map[string]interface{}{
-					"audit_logging":       false,
-					"pod_security_policy": false,
+					"audit_logging":                            false,
+					"use_pod_node_selector_admission_plugin":   false,
+					"use_pod_security_policy_admission_plugin": false,
+					"enable_user_ssh_key_agent":                false,
 				},
 			},
 		},
@@ -182,6 +209,10 @@ func TestFlattenOpenstackCloudSpec(t *testing.T) {
 					"password":         "Password",
 					"tenant":           "Tenant",
 					"floating_ip_pool": "FloatingIPPool",
+					"network":          "Network",
+					"subnet_id":        "SubnetID",
+					"router_id":        "RouterID",
+					"security_groups":  "SecurityGroups",
 				},
 			},
 		},
@@ -258,6 +289,60 @@ func TestFlattenAzureCloudSpec(t *testing.T) {
 	}
 }
 
+func TestFlattenOPAIntegration(t *testing.T) {
+	cases := []struct {
+		Input          *models.OPAIntegrationSettings
+		ExpectedOutput []interface{}
+	}{
+		{
+			&models.OPAIntegrationSettings{
+				Enabled:               false,
+				WebhookTimeoutSeconds: 40,
+			},
+			[]interface{}{
+				map[string]interface{}{
+					"enabled":                 false,
+					"webhook_timeout_seconds": int32(40),
+				},
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		output := flattenOPAIntegration(tc.Input)
+		if diff := cmp.Diff(tc.ExpectedOutput, output); diff != "" {
+			t.Fatalf("Unexpected output from expander: mismatch (-want +got):\n%s", diff)
+		}
+	}
+}
+
+func TestFlattenMLA(t *testing.T) {
+	cases := []struct {
+		Input          *models.MLASettings
+		ExpectedOutput []interface{}
+	}{
+		{
+			&models.MLASettings{
+				LoggingEnabled:    true,
+				MonitoringEnabled: true,
+			},
+			[]interface{}{
+				map[string]interface{}{
+					"logging_enabled":    true,
+					"monitoring_enabled": true,
+				},
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		output := flattenMLA(tc.Input)
+		if diff := cmp.Diff(tc.ExpectedOutput, output); diff != "" {
+			t.Fatalf("Unexpected output from expander: mismatch (-want +got):\n%s", diff)
+		}
+	}
+}
+
 func TestFlattenMachineNetwork(t *testing.T) {
 	cases := []struct {
 		Input          []*models.MachineNetworkingConfig
@@ -312,10 +397,23 @@ func TestExpandClusterSpec(t *testing.T) {
 		{
 			[]interface{}{
 				map[string]interface{}{
-					"version":             "1.15.6",
-					"machine_networks":    []interface{}{},
-					"audit_logging":       false,
-					"pod_security_policy": true,
+					"version":          "1.15.6",
+					"machine_networks": []interface{}{},
+					"audit_logging":    false,
+					"use_pod_security_policy_admission_plugin": true,
+					"use_pod_node_selector_admission_plugin":   true,
+					"opa_integration": []interface{}{
+						map[string]interface{}{
+							"enabled":                 false,
+							"webhook_timeout_seconds": 10,
+						},
+					},
+					"mla": []interface{}{
+						map[string]interface{}{
+							"logging_enabled":    true,
+							"monitoring_enabled": true,
+						},
+					},
 					"cloud": []interface{}{
 						map[string]interface{}{
 							"bringyourown": []interface{}{
@@ -330,6 +428,15 @@ func TestExpandClusterSpec(t *testing.T) {
 				MachineNetworks:                     nil,
 				AuditLogging:                        &models.AuditLoggingSettings{},
 				UsePodSecurityPolicyAdmissionPlugin: true,
+				UsePodNodeSelectorAdmissionPlugin:   true,
+				OpaIntegration: &models.OPAIntegrationSettings{
+					Enabled:               false,
+					WebhookTimeoutSeconds: int32(10),
+				},
+				Mla: &models.MLASettings{
+					LoggingEnabled:    true,
+					MonitoringEnabled: true,
+				},
 				Cloud: &models.CloudSpec{
 					DatacenterName: "eu-west-1",
 					Bringyourown:   map[string]interface{}{},
@@ -489,7 +596,7 @@ func TestExpandAWSCloudSpec(t *testing.T) {
 	}
 }
 
-func TestExpandAzureCloudSpec(t *testing.T) {
+func TestExpandOpenstackCloudSpec(t *testing.T) {
 	cases := []struct {
 		Input          []interface{}
 		ExpectedOutput *models.OpenstackCloudSpec
@@ -501,6 +608,10 @@ func TestExpandAzureCloudSpec(t *testing.T) {
 					"floating_ip_pool": "FloatingIPPool",
 					"username":         "Username",
 					"password":         "Password",
+					"network":          "Network",
+					"subnet_id":        "SubnetID",
+					"router_id":        "RouterID",
+					"security_groups":  "SecurityGroups",
 				},
 			},
 			&models.OpenstackCloudSpec{
@@ -509,6 +620,10 @@ func TestExpandAzureCloudSpec(t *testing.T) {
 				Password:       "Password",
 				Tenant:         "Tenant",
 				Username:       "Username",
+				Network:        "Network",
+				SubnetID:       "SubnetID",
+				RouterID:       "RouterID",
+				SecurityGroups: "SecurityGroups",
 			},
 		},
 		{
@@ -533,7 +648,7 @@ func TestExpandAzureCloudSpec(t *testing.T) {
 	}
 }
 
-func TestExpandOpenstackCloudSpec(t *testing.T) {
+func TestExpandAzureCloudSpec(t *testing.T) {
 	cases := []struct {
 		Input          []interface{}
 		ExpectedOutput *models.AzureCloudSpec
@@ -579,6 +694,60 @@ func TestExpandOpenstackCloudSpec(t *testing.T) {
 
 	for _, tc := range cases {
 		output := expandAzureCloudSpec(tc.Input)
+		if diff := cmp.Diff(tc.ExpectedOutput, output); diff != "" {
+			t.Fatalf("Unexpected output from expander: mismatch (-want +got):\n%s", diff)
+		}
+	}
+}
+
+func TestExpandOPAIntegration(t *testing.T) {
+	cases := []struct {
+		Input          []interface{}
+		ExpectedOutput *models.OPAIntegrationSettings
+	}{
+		{
+			[]interface{}{
+				map[string]interface{}{
+					"enabled":                 true,
+					"webhook_timeout_seconds": 20,
+				},
+			},
+			&models.OPAIntegrationSettings{
+				Enabled:               true,
+				WebhookTimeoutSeconds: 20,
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		output := expandOPAIntegration(tc.Input)
+		if diff := cmp.Diff(tc.ExpectedOutput, output); diff != "" {
+			t.Fatalf("Unexpected output from expander: mismatch (-want +got):\n%s", diff)
+		}
+	}
+}
+
+func TestExpandMLA(t *testing.T) {
+	cases := []struct {
+		Input          []interface{}
+		ExpectedOutput *models.MLASettings
+	}{
+		{
+			[]interface{}{
+				map[string]interface{}{
+					"logging_enabled":    true,
+					"monitoring_enabled": true,
+				},
+			},
+			&models.MLASettings{
+				LoggingEnabled:    true,
+				MonitoringEnabled: true,
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		output := expandMLA(tc.Input)
 		if diff := cmp.Diff(tc.ExpectedOutput, output); diff != "" {
 			t.Fatalf("Unexpected output from expander: mismatch (-want +got):\n%s", diff)
 		}

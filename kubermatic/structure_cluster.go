@@ -26,11 +26,47 @@ func flattenClusterSpec(values clusterPreserveValues, in *models.ClusterSpec) []
 		att["audit_logging"] = in.AuditLogging.Enabled
 	}
 
-	att["pod_security_policy"] = in.UsePodSecurityPolicyAdmissionPlugin
+	if in.OpaIntegration != nil {
+		att["opa_integration"] = flattenOPAIntegration(in.OpaIntegration)
+	}
+
+	if in.OpaIntegration != nil {
+		att["mla"] = flattenMLA(in.Mla)
+	}
+
+	att["enable_user_ssh_key_agent"] = in.EnableUserSSHKeyAgent
+	att["use_pod_node_selector_admission_plugin"] = in.UsePodNodeSelectorAdmissionPlugin
+	att["use_pod_security_policy_admission_plugin"] = in.UsePodSecurityPolicyAdmissionPlugin
 
 	if in.Cloud != nil {
 		att["cloud"] = flattenClusterCloudSpec(values, in.Cloud)
 	}
+
+	return []interface{}{att}
+}
+
+func flattenOPAIntegration(in *models.OPAIntegrationSettings) interface{} {
+	if in == nil {
+		return []interface{}{}
+	}
+
+	att := make(map[string]interface{})
+
+	att["enabled"] = in.Enabled
+	att["webhook_timeout_seconds"] = in.WebhookTimeoutSeconds
+
+	return []interface{}{att}
+}
+
+func flattenMLA(in *models.MLASettings) interface{} {
+	if in == nil {
+		return []interface{}{}
+	}
+
+	att := make(map[string]interface{})
+
+	att["logging_enabled"] = in.LoggingEnabled
+	att["monitoring_enabled"] = in.MonitoringEnabled
 
 	return []interface{}{att}
 }
@@ -139,6 +175,22 @@ func flattenOpenstackSpec(values *clusterOpenstackPreservedValues, in *models.Op
 		att["floating_ip_pool"] = in.FloatingIPPool
 	}
 
+	if in.Network != "" {
+		att["network"] = in.Network
+	}
+
+	if in.RouterID != "" {
+		att["router_id"] = in.RouterID
+	}
+
+	if in.SecurityGroups != "" {
+		att["security_groups"] = in.SecurityGroups
+	}
+
+	if in.SubnetID != "" {
+		att["subnet_id"] = in.SubnetID
+	}
+
 	if values.openstackTenant != nil {
 		att["tenant"] = values.openstackTenant
 	}
@@ -224,11 +276,27 @@ func expandClusterSpec(p []interface{}, dcName string) *models.ClusterSpec {
 		obj.MachineNetworks = expandMachineNetworks(v.([]interface{}))
 	}
 
+	if v, ok := in["enable_user_ssh_key_agent"]; ok {
+		obj.EnableUserSSHKeyAgent = v.(bool)
+	}
+
 	if v, ok := in["audit_logging"]; ok {
 		obj.AuditLogging = expandAuditLogging(v.(bool))
 	}
 
-	if v, ok := in["pod_security_policy"]; ok {
+	if v, ok := in["opa_integration"]; ok {
+		obj.OpaIntegration = expandOPAIntegration(v.([]interface{}))
+	}
+
+	if v, ok := in["mla"]; ok {
+		obj.Mla = expandMLA(v.([]interface{}))
+	}
+
+	if v, ok := in["use_pod_node_selector_admission_plugin"]; ok {
+		obj.UsePodNodeSelectorAdmissionPlugin = v.(bool)
+	}
+
+	if v, ok := in["use_pod_security_policy_admission_plugin"]; ok {
 		obj.UsePodSecurityPolicyAdmissionPlugin = v.(bool)
 	}
 
@@ -236,6 +304,44 @@ func expandClusterSpec(p []interface{}, dcName string) *models.ClusterSpec {
 		obj.Cloud = expandClusterCloudSpec(v.([]interface{}), dcName)
 	}
 
+	return obj
+}
+
+func expandOPAIntegration(p []interface{}) *models.OPAIntegrationSettings {
+	obj := &models.OPAIntegrationSettings{}
+	if len(p) < 1 {
+		return nil
+	}
+	if p[0] == nil {
+		return obj
+	}
+	in := p[0].(map[string]interface{})
+
+	if v, ok := in["enabled"]; ok {
+		obj.Enabled = v.(bool)
+	}
+	if v, ok := in["webhook_timeout_seconds"]; ok {
+		obj.WebhookTimeoutSeconds = int32(v.(int))
+	}
+	return obj
+}
+
+func expandMLA(p []interface{}) *models.MLASettings {
+	obj := &models.MLASettings{}
+	if len(p) < 1 {
+		return nil
+	}
+	if p[0] == nil {
+		return obj
+	}
+	in := p[0].(map[string]interface{})
+
+	if v, ok := in["logging_enabled"]; ok {
+		obj.LoggingEnabled = v.(bool)
+	}
+	if v, ok := in["monitoring_enabled"]; ok {
+		obj.MonitoringEnabled = v.(bool)
+	}
 	return obj
 }
 
@@ -371,6 +477,22 @@ func expandOpenstackCloudSpec(p []interface{}) *models.OpenstackCloudSpec {
 
 	if v, ok := in["floating_ip_pool"]; ok {
 		obj.FloatingIPPool = v.(string)
+	}
+
+	if v, ok := in["network"]; ok {
+		obj.Network = v.(string)
+	}
+
+	if v, ok := in["subnet_id"]; ok {
+		obj.SubnetID = v.(string)
+	}
+
+	if v, ok := in["router_id"]; ok {
+		obj.RouterID = v.(string)
+	}
+
+	if v, ok := in["security_groups"]; ok {
+		obj.SecurityGroups = v.(string)
 	}
 
 	if v, ok := in["username"]; ok {

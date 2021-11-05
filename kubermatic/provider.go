@@ -27,7 +27,7 @@ const (
 )
 
 type kubermaticProviderMeta struct {
-	client *k8client.Kubermatic
+	client *k8client.KubermaticAPI
 	auth   runtime.ClientAuthInfoWriter
 	log    *zap.SugaredLogger
 }
@@ -85,6 +85,13 @@ func Provider() terraform.ResourceProvider {
 			"kubermatic_sshkey":                resourceSSHKey(),
 			"kubermatic_service_account":       resourceServiceAccount(),
 			"kubermatic_service_account_token": resourceServiceAccountToken(),
+		},
+		DataSourcesMap: map[string]*schema.Resource{
+			"kubermatic_project":            dataSourceProject(),
+			"kubermatic_cluster":            dataSourceCluster(),
+			"kubermatic_cluster_kubeconfig": dataSourceClusterKubeconfigV2(),
+			"kubermatic_node_deployment":    dataSourceNodeDeployment(),
+			"kubermatic_sshkey":             dataSourceSSHKey(),
 		},
 	}
 
@@ -177,7 +184,7 @@ func newLogger(logDev, logDebug bool, logPath string, fd *os.File) (*zap.Sugared
 	return zap.New(core).Sugar(), nil
 }
 
-func newClient(host string) (*k8client.Kubermatic, error) {
+func newClient(host string) (*k8client.KubermaticAPI, error) {
 	u, err := url.Parse(host)
 	if err != nil {
 		return nil, err

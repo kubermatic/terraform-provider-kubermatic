@@ -78,8 +78,8 @@ func flattenOperatingSystem(in *models.OperatingSystemSpec) []interface{} {
 		att["centos"] = flattenCentos(in.Centos)
 	}
 
-	if in.ContainerLinux != nil {
-		att["container_linux"] = flattenContainerLinux(in.ContainerLinux)
+	if in.Flatcar != nil {
+		att["flatcar"] = flattenFlatcar(in.Flatcar)
 	}
 
 	return []interface{}{att}
@@ -109,7 +109,7 @@ func flattenCentos(in *models.CentOSSpec) []interface{} {
 	return []interface{}{att}
 }
 
-func flattenContainerLinux(in *models.ContainerLinuxSpec) []interface{} {
+func flattenFlatcar(in *models.FlatcarSpec) []interface{} {
 	if in == nil {
 		return []interface{}{}
 	}
@@ -252,6 +252,18 @@ func flattenOpenstackNodeSpec(in *models.OpenstackNodeSpec) []interface{} {
 		att["disk_size"] = in.RootDiskSizeGB
 	}
 
+	if in.AvailabilityZone != "" {
+		att["availability_zone"] = in.AvailabilityZone
+	}
+
+	if in.InstanceReadyCheckPeriod != "" {
+		att["instance_ready_check_period"] = in.InstanceReadyCheckPeriod
+	}
+
+	if in.InstanceReadyCheckTimeout != "" {
+		att["instance_ready_check_timeout"] = in.InstanceReadyCheckTimeout
+	}
+
 	return []interface{}{att}
 }
 
@@ -371,8 +383,9 @@ func expandOperatingSystem(p []interface{}) *models.OperatingSystemSpec {
 
 	}
 
-	if v, ok := in["container_linux"]; ok {
-		obj.ContainerLinux = expandContainerLinux(v.([]interface{}))
+	if v, ok := in["flatcar"]; ok {
+		obj.Flatcar = expandFlatcar(v.([]interface{}))
+
 	}
 
 	return obj
@@ -412,11 +425,11 @@ func expandCentos(p []interface{}) *models.CentOSSpec {
 	return obj
 }
 
-func expandContainerLinux(p []interface{}) *models.ContainerLinuxSpec {
+func expandFlatcar(p []interface{}) *models.FlatcarSpec {
 	if len(p) < 1 {
 		return nil
 	}
-	obj := &models.ContainerLinuxSpec{}
+	obj := &models.FlatcarSpec{}
 	if p[0] == nil {
 		return obj
 	}
@@ -568,6 +581,18 @@ func expandOpenstackNodeSpec(p []interface{}) *models.OpenstackNodeSpec {
 
 	if v, ok := in["disk_size"]; ok {
 		obj.RootDiskSizeGB = int64(v.(int))
+	}
+
+	if v, ok := in["availability_zone"]; ok {
+		obj.AvailabilityZone = v.(string)
+	}
+
+	if v, ok := in["instance_ready_check_period"]; ok {
+		obj.InstanceReadyCheckPeriod = v.(string)
+	}
+
+	if v, ok := in["instance_ready_check_timeout"]; ok {
+		obj.InstanceReadyCheckTimeout = v.(string)
 	}
 
 	return obj

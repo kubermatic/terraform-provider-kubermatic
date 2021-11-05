@@ -101,6 +101,9 @@ func resourceProjectCreate(d *schema.ResourceData, m interface{}) error {
 
 	r, err := k.client.Project.CreateProject(p, k.auth)
 	if err != nil {
+		if e, ok := err.(*project.CreateProjectUnauthorized); ok {
+			return fmt.Errorf("invalid or expired token. Error: %s", e.Error())
+		}
 		return fmt.Errorf("error when creating a project: %s", getErrorResponse(err))
 	}
 	d.SetId(r.Payload.ID)
@@ -154,6 +157,9 @@ func resourceProjectRead(d *schema.ResourceData, m interface{}) error {
 			d.SetId("")
 			return nil
 
+		}
+		if e, ok := err.(*project.GetProjectUnauthorized); ok {
+			return fmt.Errorf("invalid or expired token. Error: %s", e.Error())
 		}
 
 		return fmt.Errorf("unable to get project '%s': %s", d.Id(), getErrorResponse(err))
@@ -383,6 +389,9 @@ func resourceProjectDelete(d *schema.ResourceData, m interface{}) error {
 	p := project.NewDeleteProjectParams()
 	_, err := k.client.Project.DeleteProject(p.WithProjectID(d.Id()), k.auth)
 	if err != nil {
+		if e, ok := err.(*project.DeleteProjectUnauthorized); ok {
+			return fmt.Errorf("invalid or expired token. Error: %s", e.Error())
+		}
 		return fmt.Errorf("unable to delete project '%s': %s", d.Id(), getErrorResponse(err))
 	}
 

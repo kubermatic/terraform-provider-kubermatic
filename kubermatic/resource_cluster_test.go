@@ -111,11 +111,7 @@ func TestAccKubermaticCluster_Openstack_Basic(t *testing.T) {
 				Config: testAccCheckKubermaticClusterOpenstackBasic2(testName+"-changed", username, password, tenant, nodeDC, versionK8s17),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testResourceInstanceState("kubermatic_cluster.acctest_cluster", func(is *terraform.InstanceState) error {
-						_, _, id, err := kubermaticClusterParseID(is.ID)
-						if err != nil {
-							return err
-						}
-						if id != cluster.ID {
+						if is.ID != cluster.ID {
 							return fmt.Errorf("cluster not updated: wrong ID")
 						}
 						return nil
@@ -233,12 +229,8 @@ func TestAccKubermaticCluster_Openstack_UpgradeVersion(t *testing.T) {
 				Config: versionedConfig(versionK8s17),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testResourceInstanceState("kubermatic_cluster.acctest_cluster", func(is *terraform.InstanceState) error {
-						_, _, id, err := kubermaticClusterParseID(is.ID)
-						if err != nil {
-							return err
-						}
-						if id != cluster.ID {
-							return fmt.Errorf("cluster not upgraded. Want cluster id=%v, got %v", cluster.ID, id)
+						if is.ID != cluster.ID {
+							return fmt.Errorf("cluster not upgraded. Want cluster id=%v, got %v", cluster.ID, is.ID)
 						}
 						return nil
 					}),
@@ -484,14 +476,13 @@ func testAccCheckKubermaticClusterHasSSHKey(cluster, sshkey *string) resource.Te
 			return fmt.Errorf("Not found: %s", "kubermatic_project.acctest_project")
 		}
 
-		projectID, seedDC, _, err := kubermaticClusterParseID(rs.Primary.ID)
-		if err != nil {
-			return err
-		}
+		projectID := rs.Primary.Attributes["project_id"]
+		dc_name := rs.Primary.Attributes["dc_name"]
+
 		k := testAccProvider.Meta().(*kubermaticProviderMeta)
 		p := project.NewListSSHKeysAssignedToClusterParams()
 		p.SetProjectID(projectID)
-		p.SetDC(seedDC)
+		p.SetDC(dc_name)
 		p.SetClusterID(*cluster)
 		ret, err := k.client.Project.ListSSHKeysAssignedToCluster(p, k.auth)
 		if err != nil {
@@ -630,12 +621,12 @@ func testAccCheckKubermaticClusterDestroy(s *terraform.State) error {
 
 		// Try to find the cluster
 		p := project.NewGetClusterParams()
-		projectID, seedDC, clusterID, err := kubermaticClusterParseID(rs.Primary.ID)
-		if err != nil {
-			return err
-		}
+		projectID := rs.Primary.Attributes["project_id"]
+		dc_name := rs.Primary.Attributes["dc_name"]
+		clusterID := rs.Primary.ID
+
 		p.SetProjectID(projectID)
-		p.SetDC(seedDC)
+		p.SetDC(dc_name)
 		p.SetClusterID(clusterID)
 		r, err := k.client.Project.GetCluster(p, k.auth)
 		if err == nil && r.Payload != nil {
@@ -656,15 +647,14 @@ func testAccCheckKubermaticClusterExists(cluster *models.Cluster) resource.TestC
 			return fmt.Errorf("No Record ID is set")
 		}
 
-		projectID, seedDC, clusterID, err := kubermaticClusterParseID(rs.Primary.ID)
-		if err != nil {
-			return err
-		}
+		projectID := rs.Primary.Attributes["project_id"]
+		dc_name := rs.Primary.Attributes["dc_name"]
+		clusterID := rs.Primary.ID
 
 		k := testAccProvider.Meta().(*kubermaticProviderMeta)
 		p := project.NewGetClusterParams()
 		p.SetProjectID(projectID)
-		p.SetDC(seedDC)
+		p.SetDC(dc_name)
 		p.SetClusterID(clusterID)
 		ret, err := k.client.Project.GetCluster(p, k.auth)
 		if err != nil {

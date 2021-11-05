@@ -122,6 +122,76 @@ func TestFlattenNodeSpec(t *testing.T) {
 			},
 		},
 		{
+			&models.NodeSpec{
+				OperatingSystem: &models.OperatingSystemSpec{
+					Flatcar: &models.FlatcarSpec{},
+				},
+				Taints: []*models.TaintSpec{
+					{
+						Key:    "key1",
+						Value:  "value1",
+						Effect: "NoSchedule",
+					},
+					{
+						Key:    "key2",
+						Value:  "value2",
+						Effect: "NoSchedule",
+					},
+				},
+				Cloud: &models.NodeCloudSpec{
+					Aws: &models.AWSNodeSpec{},
+				},
+				Labels: map[string]string{
+					"foo": "bar",
+				},
+				Versions: &models.NodeVersionInfo{
+					Kubelet: "1.15.6",
+				},
+			},
+			[]interface{}{
+				map[string]interface{}{
+					"operating_system": []interface{}{
+						map[string]interface{}{
+							"flatcar": []interface{}{
+								map[string]interface{}{
+									"disable_auto_update": false,
+								},
+							},
+						},
+					},
+					"taints": []interface{}{
+						map[string]interface{}{
+							"key":    "key1",
+							"value":  "value1",
+							"effect": "NoSchedule",
+						},
+						map[string]interface{}{
+							"key":    "key2",
+							"value":  "value2",
+							"effect": "NoSchedule",
+						},
+					},
+					"cloud": []interface{}{
+						map[string]interface{}{
+							"aws": []interface{}{
+								map[string]interface{}{
+									"assign_public_ip": false,
+								},
+							},
+						},
+					},
+					"labels": map[string]string{
+						"foo": "bar",
+					},
+					"versions": []interface{}{
+						map[string]interface{}{
+							"kubelet": "1.15.6",
+						},
+					},
+				},
+			},
+		},
+		{
 			&models.NodeSpec{},
 			[]interface{}{
 				map[string]interface{}{},
@@ -180,13 +250,13 @@ func TestFlattenOperatingSystem(t *testing.T) {
 		},
 		{
 			&models.OperatingSystemSpec{
-				ContainerLinux: &models.ContainerLinuxSpec{
+				Flatcar: &models.FlatcarSpec{
 					DisableAutoUpdate: true,
 				},
 			},
 			[]interface{}{
 				map[string]interface{}{
-					"container_linux": []interface{}{
+					"flatcar": []interface{}{
 						map[string]interface{}{
 							"disable_auto_update": true,
 						},
@@ -282,7 +352,10 @@ func TestFlattenOpenstackNodeSpec(t *testing.T) {
 				Tags: map[string]string{
 					"foo": "bar",
 				},
-				RootDiskSizeGB: int64(999),
+				RootDiskSizeGB:            int64(999),
+				AvailabilityZone:          "nova",
+				InstanceReadyCheckPeriod:  "5s",
+				InstanceReadyCheckTimeout: "120s",
 			},
 			[]interface{}{
 				map[string]interface{}{
@@ -292,7 +365,10 @@ func TestFlattenOpenstackNodeSpec(t *testing.T) {
 					"tags": map[string]string{
 						"foo": "bar",
 					},
-					"disk_size": int64(999),
+					"disk_size":                    int64(999),
+					"availability_zone":            "nova",
+					"instance_ready_check_period":  "5s",
+					"instance_ready_check_timeout": "120s",
 				},
 			},
 		},
@@ -494,7 +570,7 @@ func TestExpandOperatingSystem(t *testing.T) {
 		{
 			[]interface{}{
 				map[string]interface{}{
-					"container_linux": []interface{}{
+					"flatcar": []interface{}{
 						map[string]interface{}{
 							"disable_auto_update": true,
 						},
@@ -502,7 +578,7 @@ func TestExpandOperatingSystem(t *testing.T) {
 				},
 			},
 			&models.OperatingSystemSpec{
-				ContainerLinux: &models.ContainerLinuxSpec{
+				Flatcar: &models.FlatcarSpec{
 					DisableAutoUpdate: true,
 				},
 			},
