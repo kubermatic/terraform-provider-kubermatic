@@ -49,7 +49,7 @@ The following arguments are supported:
 
 Please be aware the Kubermatic terraform provider isn't feature complete at the moment and is under development. 
 Currently only the following cloud providers are supported with limited functionality (for more details take a look
-at the [examples](https://github.com/kubermatic/terraform-provider-kubermatic/tree/master/examples):
+at the [examples](https://github.com/kubermatic/terraform-provider-kubermatic/tree/master/examples)):
 * AWS
 * Azure
 * OpenStack
