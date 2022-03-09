@@ -13,8 +13,8 @@ func flattenClusterSpec(values clusterPreserveValues, in *models.ClusterSpec) []
 
 	att := make(map[string]interface{})
 
-	if in.Version != nil {
-		att["version"] = in.Version
+	if in.Version != "" {
+		att["version"] = string(in.Version)
 	}
 
 	if len(in.MachineNetworks) > 0 {
@@ -269,7 +269,7 @@ func expandClusterSpec(p []interface{}, dcName string) *models.ClusterSpec {
 	in := p[0].(map[string]interface{})
 
 	if v, ok := in["version"]; ok {
-		obj.Version = v.(string)
+		obj.Version = models.Semver(v.(string))
 	}
 
 	if v, ok := in["machine_networks"]; ok {
