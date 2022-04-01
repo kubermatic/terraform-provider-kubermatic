@@ -325,7 +325,7 @@ func testAccCheckKubermaticClusterOpenstackAttributes(cluster *models.Cluster, n
 			return fmt.Errorf("want .Spec.Cloud.DatacenterName=%s, got %s", nodeDC, cluster.Spec.Cloud.DatacenterName)
 		}
 
-		if v, ok := cluster.Spec.Version.(string); !ok || v == "" {
+		if v := string(cluster.Spec.Version); v == "" {
 			return fmt.Errorf("cluster version is empty")
 		} else if v != k8sVersion {
 			return fmt.Errorf("want .Spec.Version=%s, got %s", k8sVersion, v)

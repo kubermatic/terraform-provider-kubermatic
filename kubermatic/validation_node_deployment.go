@@ -27,10 +27,7 @@ func validateNodeSpecMatchesCluster() schema.CustomizeDiffFunc {
 		if err != nil {
 			return err
 		}
-		clusterVersion := cluster.Spec.Version.(string)
-		if err != nil {
-			return err
-		}
+		clusterVersion := string(cluster.Spec.Version)
 		err = validateVersionAgainstCluster(d, clusterVersion)
 		if err != nil {
 			return err
