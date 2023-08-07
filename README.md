@@ -1,4 +1,6 @@
-# Terraform Provider forKubermatic
+**:warning: This Terraform provider is deprecated and no longer supported. To automate [Kubermatic Kubernetes Platform](https://docs.kubermatic.com/kubermatic/latest/) resources we recommend using [Custom Resources](https://docs.kubermatic.com/kubermatic/latest/references/crds/) instead. :warning:**
+
+# Terraform Provider for Kubermatic
 
 - Website: https://www.terraform.io
 - Mailing list: [Google Groups](https://groups.google.com/forum/#!forum/loodse-dev)
